@@ -585,8 +585,18 @@ def music_recommend_page():
 def channel_recommend_page():
     ajax_path = "public/" + siteurl + "/ajax/ch/"
     cur.execute("select nick_name_1,picture_url from ch_id where ig = 0")
-    ch_data = cur.fetchall()
-    len_ch_data = len(ch_data)
+    ch_data_k = cur.fetchall()
+    len_ch_data = len(ch_data_k)
+    #chdataを加工
+    ch_data = []
+    ch_data_a = ch_data.append
+    for r in ch_data_k:
+        link = r[1]
+        if "https://yt" in link:#youtube
+            link = link + "=s120-c-k-c0x00ffffff-no-rj"
+        elif "https://pbs.twimg.com" in link:#twitter
+            link = link[:-11] + "200x200" + link[-4:]
+        ch_data_a([r[0],link])
     for x in range(100):
         k_ranlist = []
         n_dict = {}
