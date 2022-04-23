@@ -1,5 +1,8 @@
+import math
 import os
 import cx_Oracle
+from requests import request
+import requests
 import get_youtube_data as gy
 import music_data as md
 import datetime
@@ -79,6 +82,19 @@ def add_ch_data():
         cur.execute("INSERT INTO CH_ID (CH_ID,NAM,PICTURE_URL) VALUES ('" + rt_ch[x][0] + "','" + str(rt_ch[x][1]).replace("'","''") + "','" + rt_ch[x][2] + "')")
     con.commit()
 
+def add_ch_data_self(chid_list):#めんどいので一つずつ
+    st_chidlist = str(chid_list).replace("[","").replace("]","")
+    cur.execute("select distinct ch_id from ch_id where ch_id in (" + st_chidlist + ")")
+    if cur.fetchone()!=None:
+        print("もうすでにある可能性があります")
+        return#処理終了
+    else:
+        rt_ch = gy.ExtremeChidToInfo(chid_list)
+        for x in range(len(rt_ch)):
+            cur.execute("INSERT INTO CH_ID (CH_ID,NAM,PICTURE_URL) VALUES ('" + rt_ch[x][0] + "','" + str(rt_ch[x][1]).replace("'","''") + "','" + rt_ch[x][2] + "')")
+        con.commit()
+        print("データ追加完了")
+
 def add_groupe_name():
     #テーブルA=ペアリスト テーブルB=動画IDリスト　参考https://www.projectgroup.info/tips/Oracle/SQL/SQL000001.html
     cur.execute("INSERT INTO PAIR_LIST_SECOND (GROUPE_NAME) SELECT distinct GROUPE_NAME FROM VIDEO_ID TAB_B WHERE GROUPE_NAME IS NOT NULL AND NOT EXISTS (SELECT 'X' FROM PAIR_LIST_SECOND TAB_A WHERE TAB_A.GROUPE_NAME = TAB_B.GROUPE_NAME)")
@@ -152,13 +168,6 @@ def groupe_name2men_name(groupe_name):#過去の遺産低速
     return songer_list
 
 def add_music_data():
-    """
-    cur.execute("SELECT DISTINCT MUSIC_NAME FROM VIDEO_ID WHERE MUSIC_NAME IS NOT NULL")
-    k_v_mlist = cur.fetchall()
-    cur.execute("SELECT DISTINCT KEY_MUSIC_NAME FROM MUSIC_SONG_DB")
-    K_db_mlist = cur.fetchall()
-    k_rec_mlist = list((set(k_v_mlist) ^ set(K_db_mlist)) - set(K_db_mlist))
-    """
     cur.execute("select distinct music_name from video_id where music_name is not null and music_name not in (select key_music_name from MUSIC_SONG_DB where Key_music_name is not null)")
     k_rec_mlist = cur.fetchall()
     if len(k_rec_mlist)==0:
@@ -362,7 +371,7 @@ def make_music_page(music_name):
     #jsライブラリ及びそれに付随するCSSを追加
     html_body_data_a('<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.css">')
     #カスタムCSSを追加
-    html_body_data_a("<style>.recommend-ch{width:120px;height:120px;aspect-ratio:1/1}.other_music{font-size:25px;text-align:center}.ofoverflow{width:120px;overflow:hidden;white-space:nowrap;text-overflow:clip;display:inline-block}:root{--main-text:#3f4551;--main-bg:#fffffd}@media (prefers-color-scheme:dark){:root{--main-text:silver;--main-bg:#2f3136;color-scheme:dark}}body{color:var(--main-text);background-color:var(--main-bg);font-family:'Meiryo',sans-serif}#video_data_t td{min-width:500px;min-height:300px}.v_face{max-height:75px;max-width:75px;aspect-ratio:1/1;border-radius:50%}.vtuber_sing,#music_recommend,#ch_recommend{overflow-x:auto;display:flex}a{color:#8aa2d3}.table-line{border-collapse:collapse}.yt-meta{max-width:600px}.music_title{font-size:20px;text-align:center}.yt-view_graph{max-width:500px;max-height:250px}.yt-view-sum{max-width:500px;max-height:250px;width:490px}.for_center{margin-left:calc(48vw - 500px);margin-right:calc(48vw - 500px)}h1{text-align:center}.inline{margin-left:auto;margin-right:auto}@media screen and (max-width:1000px){.yt-meta{min-width:75px!important;max-width:calc(97vw - 500px)!important}.yt-view_graph{max-width:calc(98vw - 500px)}.for_center{margin-left:auto!important;margin-right:auto!important}}@media screen and (max-width:600px){#video_data_t td{padding:4px 12px;display:block;min-width:90vw;max-width:90vw;min-height:auto}.yt-meta{max-width:90vw!important}.yt-view_graph{max-width:none!important}.yt-view-sum{width:100%}}</style>")
+    html_body_data_a("<style>.recommend-ch{width:120px;height:120px;aspect-ratio:1/1}.other_music{font-size:25px;text-align:center}.ofoverflow{width:120px;overflow:hidden;white-space:nowrap;text-overflow:clip;display:inline-block}:root{--main-text:#3f4551;--main-bg:#fffffd}@media (prefers-color-scheme:dark){:root{--main-text:silver;--main-bg:#2f3136;color-scheme:dark}}body{color:var(--main-text);background-color:var(--main-bg);font-family:'Meiryo',sans-serif}#video_data_t td{min-width:500px;min-height:300px}.v_face{max-height:75px;max-width:75px;aspect-ratio:1/1;border-radius:50%}.vtuber_sing,#music_recommend,#ch_recommend{overflow-x:auto;display:flex}a{color:#8aa2d3}.table-line{border-collapse:collapse}.yt-meta{max-width:500px}.music_title{font-size:20px;text-align:center}.yt-view_graph{max-width:500px;max-height:250px}.yt-view-sum{max-width:500px;max-height:250px;width:490px}.for_center{margin-left:calc(48vw - 500px);margin-right:calc(48vw - 500px)}h1{text-align:center}.inline{margin-left:auto;margin-right:auto}@media screen and (max-width:1000px){.yt-meta{min-width:75px!important;max-width:calc(97vw - 500px)!important}.yt-view_graph{max-width:calc(98vw - 500px)}.for_center{margin-left:auto!important;margin-right:auto!important}}@media screen and (max-width:600px){#video_data_t td{padding:4px 12px;display:block;min-width:90vw;max-width:90vw;min-height:auto}.yt-meta{max-width:90vw!important}.yt-view_graph{max-width:none!important}.yt-view-sum{width:100%}}</style>")
     #chart.jsのラッパーおよび削除くんを作成
     html_body_data_a("<script>function Chart_cleater(video_id,label_d,dataset_v){new Chart(document.getElementById(video_id),{type:'line',data:{labels:label_d,datasets:[{label:'視聴回数',backgroundColor:'rgb(255, 99, 132)',borderColor:'rgb(255, 99, 132)',data:dataset_v}]},option:{responsive:!0,animation:false}})}if(window.matchMedia('(prefers-color-scheme: dark)').matches===!0){Chart.defaults.color='#c0c0c0'}else{Chart.defaults.color='#3f4551'}function dt(video_id){if(window.matchMedia('(min-width:768px)').matches){document.getElementById(video_id+'_td').innerHTML=document.getElementById(video_id+'_dt').innerHTML}};function Chart_cleater_v2(id_c,label,vc,lc,cc){new Chart(document.getElementById(id_c),{type:'line',data:{labels:label,datasets:[{label:'視聴回数',data:vc,borderColor:'rgb(255, 99, 132)',backgroundColor:'rgb(255, 99, 132)',},{label:'高評価数',data:lc,hidden:!0,borderColor:'rgb(58,180,139)',backgroundColor:'rgb(58,180,139)',},{label:'コメント数',data:cc,hidden:!0,borderColor:'rgb(137, 195, 235)',backgroundColor:'rgb(137, 195, 235)',}]},options:{animation:!1,responsive:!0}})}</script>")
     #音楽データの表を作成
@@ -430,12 +439,15 @@ def make_music_page(music_name):
     with open(n_html_path + "index.html","wb") as f:
         f.write("".join(html_body_data).encode("utf-8"))#windows対策
 
+#make_music_page("フォニイ")
+
 def make_all_musicpage():
     cur.execute("SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB")
     for x in cur.fetchall():
         make_music_page(str(x)[2:-3])
 
 def reloadpeople_picture():
+    #youtubeの場合
     cur.execute("SELECT CH_ID FROM CH_ID WHERE CH_ID is not null and ig = 0")
     chid_list = []
     chid_list_a = chid_list.append
@@ -444,6 +456,27 @@ def reloadpeople_picture():
     ch_data = gy.ExtremeChidToInfo(chid_list)
     for x in ch_data:
         cur.execute("UPDATE CH_ID SET PICTURE_URL='" + x[2] + "' WHERE CH_ID = '" + x[0] + "'")
+    con.commit()
+    #twitterの場合
+    cur.execute("select distinct twitter_name from ch_id where TWITTER_NAME is not null")
+    k_tnlist = cur.fetchall()
+    tnlist = [str(i)[2:-3] for i in k_tnlist]
+    n_n = math.ceil(float(len(tnlist)/100))
+    header_tw = {"Authorization":"Bearer " + ev.tw_apikey}
+    for r in range(n_n):
+        if n_n==r+1:#最後
+            n_length = len(tnlist) - (100*r)
+        else:
+            n_length = 100
+        n_tster = []
+        n_tster_a = n_tster.append
+        for e in range(n_length):
+            n_tster_a(tnlist[e+100*r])
+        tster = str(n_tster).replace("'","").replace(" ","").replace("[","").replace("]","")
+        jsong = requests.get("https://api.twitter.com/2/users/by?user.fields=profile_image_url&usernames=" + tster,headers=header_tw)
+        new_json = jsong.json()
+        for i in range(n_length):
+            cur.execute("update CH_ID set PICTURE_URL='" + new_json["data"][i]["profile_image_url"].replace("normal","400x400") + "' where TWITTER_NAME='" + new_json["data"][i]["username"] + "'")
     con.commit()
 
 def get_ch_vdata(nickname):
@@ -482,15 +515,16 @@ def make_channel_page(nick_name):#チャンネルのページを作成
     #jsライブラリ及びそれに付随するCSSを追加
     html_body_data_a('<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.css">')
     #カスタムCSSを追加
-    html_body_data_a("<style>.other_music{font-size:25px;text-align:center}.ofoverflow{width:120px;overflow:hidden;white-space:nowrap;text-overflow:clip;display:inline-block}h1{text-align:center;font-size:30px}:root{--main-text:#3f4551;--main-bg:#fffffd}@media (prefers-color-scheme:dark){:root{--main-text:silver;--main-bg:#2f3136;color-scheme:dark}}body{color:var(--main-text);background-color:var(--main-bg);font-family:'Meiryo',sans-serif}#video_data_t td{min-width:500px;min-height:300px}.v_face{max-height:75px;max-width:75px;aspect-ratio:1/1;border-radius:50%}.vtuber_sing,#music_recommend,#ch_recommend{overflow-x:auto;display:flex}.recommend-ch{width:120px;height:120px;aspect-ratio:1/1}a{color:#8aa2d3}.table-line{border-collapse:collapse}.yt-meta{max-width:600px}.music_title{font-size:20px;text-align:center}.yt-view_graph{max-width:500px;max-height:250px}h1{text-align:center}.for_center{margin-left:calc(48vw - 500px);margin-right:calc(48vw - 500px)}@media screen and (max-width:1000px){.yt-meta{min-width:75px!important;max-width:calc(97vw - 500px)!important}.yt-view_graph{max-width:calc(98vw - 500px)}.for_center{margin-left:auto!important;margin-right:auto!important}}@media screen and (max-width:600px){#video_data_t td{padding:4px 12px;display:block;min-width:90vw;max-width:90vw;min-height:auto}.yt-meta{max-width:90vw!important}.yt-view_graph{max-width:none!important}</style>")
+    html_body_data_a("<style>.other_music{font-size:25px;text-align:center}.ofoverflow{width:120px;overflow:hidden;white-space:nowrap;text-overflow:clip;display:inline-block}h1{text-align:center;font-size:30px}:root{--main-text:#3f4551;--main-bg:#fffffd}@media (prefers-color-scheme:dark){:root{--main-text:silver;--main-bg:#2f3136;color-scheme:dark}}body{color:var(--main-text);background-color:var(--main-bg);font-family:'Meiryo',sans-serif}#video_data_t td{min-width:500px;min-height:300px}.v_face{max-height:75px;max-width:75px;aspect-ratio:1/1;border-radius:50%}.vtuber_sing,#music_recommend,#ch_recommend{overflow-x:auto;display:flex}.recommend-ch{width:120px;height:120px;aspect-ratio:1/1}a{color:#8aa2d3}.table-line{border-collapse:collapse}.yt-meta{max-width:500px}.music_title{font-size:20px;text-align:center}.yt-view_graph{max-width:500px;max-height:250px}h1{text-align:center}.for_center{margin-left:calc(48vw - 500px);margin-right:calc(48vw - 500px)}@media screen and (max-width:1000px){.yt-meta{min-width:75px!important;max-width:calc(97vw - 500px)!important}.yt-view_graph{max-width:calc(98vw - 500px)}.for_center{margin-left:auto!important;margin-right:auto!important}}@media screen and (max-width:600px){#video_data_t td{padding:4px 12px;display:block;min-width:90vw;max-width:90vw;min-height:auto}.yt-meta{max-width:90vw!important}.yt-view_graph{max-width:none!important}}</style>")
     #chart.jsのラッパーおよび削除くんを作成
-    html_body_data_a("<script>function Chart_cleater(video_id,label_d,dataset_v){new Chart(document.getElementById(video_id),{type:'line',data:{labels:label_d,datasets:[{label:'視聴回数',backgroundColor:'rgb(255, 99, 132)',borderColor:'rgb(255, 99, 132)',data:dataset_v}]},option:{responsive:!0,animation:false}})}if(window.matchMedia('(prefers-color-scheme: dark)').matches===!0){Chart.defaults.color='#c0c0c0'}else{Chart.defaults.color='#3f4551'}function dt(video_id){if(window.matchMedia('(min-width:768px)').matches){document.getElementById(video_id+'_td').innerHTML=document.getElementById(video_id+'_dt').innerHTML}}</script>")
+    html_body_data_a("<script>function Chart_cleater(video_id,label_d,dataset_v){new Chart(document.getElementById(video_id),{type:'line',data:{labels:label_d,datasets:[{label:'視聴回数',backgroundColor:'rgb(255, 99, 132)',borderColor:'rgb(255, 99, 132)',data:dataset_v}]},options:{animation:!1,responsive:!0}})} if(window.matchMedia('(prefers-color-scheme: dark)').matches===!0){Chart.defaults.color='#c0c0c0'}else{Chart.defaults.color='#3f4551'} function dt(video_id){if(window.matchMedia('(min-width:768px)').matches){document.getElementById(video_id+'_td').innerHTML=document.getElementById(video_id+'_dt').innerHTML}}</script>")
     v_data,page_fc_date = get_ch_vdata(nick_name)
     html_body_data_a('<main><div class="for_center">')
     html_body_data_a("<h1>" + nick_name + "</h1>")
     html_body_data_a("<table id='video_data_t'><tbody id='video_data_tbody'>")
     overflow_ajax = {}
     numbering = 0
+    numbering_b = 0
     for x in range(len(v_data)):
         men_of_list = []
         if v_data[x][2]==1:#歌い手が１人
@@ -534,16 +568,20 @@ def make_channel_page(nick_name):#チャンネルのページを作成
             tmp_datalist = []#処理が終わったら一時データリストを初期化
         else:
             html_body_data_a(sc + "</div></details></td></tr>")
+        if x in range(10,1000,10):
+            html_body_data.append("</tbody><tbody id='tbd-" + str(numbering_b) + "'>")
+            numbering_b += 1
         if x>=10 and len(v_data)-1==x or x in range(20,1000,10):#10以上かつ最後か20以上の10のときにAJAX用ファイルを生成
             if os.path.isdir(n_html_path + "ajax/")==False:#フォルダがなければ生成
                 os.mkdir(n_html_path + "ajax/")
+            overflow_ajax["now_c"] = numbering
             with open(n_html_path + "ajax/tbdata-" + str(numbering) + ".json","w") as f:
                 json.dump(overflow_ajax,f,indent=4)
             numbering += 1
             overflow_ajax = {}
     html_body_data_a = html_body_data.append#変更している場合があるのでこのタイミングで元に戻す
     html_body_data_a("""</tbody></table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""")
-    html_body_data_a("""<script>var numbaring=0;var load_max=0;const html=document.querySelector("html");function scroll_do(){let request=new XMLHttpRequest();request.open("GET","ajax/tbdata-"+String(numbaring)+".json");numbaring+=1;request.responseType="json";request.send();request.onload=function(){const res=request.response;for(let i=0;i<10;i++){try{let now_tr=document.createElement("tr");now_tr.innerHTML=res[i].mainc;now_tr.className=res[i].forclass;document.getElementById("video_data_tbody").appendChild(now_tr);dt(res[i].fnc[0]);Chart_cleater(res[i].fnc[0],res[i].fnc[1],res[i].fnc[2])}catch{window.removeEventListener("scroll",scroll_ev);if(load_max<1){load_max++;let url_parm=new URL(window.location.href).searchParams;if(url_parm.get('ran')!=null){now_ran=url_parm.get('ran')}else{now_ran=Math.floor(Math.random()*100);history.replaceState(null,null,"?ran="+String(now_ran))} let request_mr=new XMLHttpRequest();request_mr.open("GET","/ajax/music/mr-"+String(now_ran)+".json");request_mr.responseType="json";request_mr.send();request_mr.onload=function(){const res_mr=request_mr.response;let divm=document.getElementById("music_recommend");document.getElementById("descm").innerHTML='<hr><p class="other_music">他のおすすめの曲</p>';for(let i=0;i<20;i++){divm.innerHTML=divm.innerHTML+"<a href='/music/"+res_mr[i][0]+"/'>"+res_mr[i][0]+"<img src='https://i.ytimg.com/vi/"+res_mr[i][1]+"/mqdefault.jpg' alt='"+res_mr[i][0]+"'></a>"}};let request_cr=new XMLHttpRequest();request_cr.open("GET","/ajax/ch/cr-"+String(now_ran)+".json");request_cr.responseType="json";request_cr.send();request_cr.onload=function(){const res_cr=request_cr.response;let divc=document.getElementById("ch_recommend");document.getElementById("descc").innerHTML='<hr><p class="other_music">他のおすすめのVtuber</p>';for(let i=0;i<20;i++){divc.innerHTML=divc.innerHTML+"<a href='/ch/"+res_cr[i][0]+"/'><span class='ofoverflow'>"+res_cr[i][0]+"</span><img class='recommend-ch' src='"+res_cr[i][1]+"' alt='"+res_cr[i][0]+"' title='"+res_cr[i][0]+"'></a>"}}}}}}} function scroll_ev(){const currentPos=window.pageYOffset;var bottomPoint=document.body.clientHeight-window.innerHeight-600;if(bottomPoint<=currentPos){scroll_do()}} window.addEventListener("scroll",scroll_ev);scroll_ev();let url_parm=new URL(window.location.href).searchParams;if(url_parm.get('ran')!=null){for(let step=0;step<20;step++){scroll_do()}}</script>""")
+    html_body_data_a("<script>var max_len=" + str(numbering) + """;var numbaring=0;var load_max=0;var su_numb=0;const html=document.querySelector("html");function scroll_do(){if(numbaring<max_len){document.head.insertAdjacentHTML('beforeEnd','<link rel="preload" href="ajax/tbdata-'+String(numbaring+1)+'.json">');let request=new XMLHttpRequest();request.open("GET","ajax/tbdata-"+String(numbaring)+".json");numbaring++;request.responseType="json";request.send();request.onload=function(){const res=request.response;let url_parm=new URL(window.location.href).searchParams;if(url_parm.get('ran')==null){history.replaceState(null,null,"?tbdid="+String(su_numb))} su_numb++;for(let i=0;i<10;i++){try{let now_tr=document.createElement("tr");now_tr.innerHTML=res[i].mainc;now_tr.className=res[i].forclass;document.getElementById("tbd-"+String(res.now_c)).appendChild(now_tr);dt(res[i].fnc[0]);Chart_cleater(res[i].fnc[0],res[i].fnc[1],res[i].fnc[2])}catch{window.removeEventListener("scroll",scroll_ev);if(load_max==0){load_max++;let url_parm=new URL(window.location.href).searchParams;if(url_parm.get('ran')!=null){now_ran=url_parm.get('ran')}else{now_ran=Math.floor(Math.random()*100);history.replaceState(null,null,"?ran="+String(now_ran))} let request_mr=new XMLHttpRequest();request_mr.open("GET","/ajax/music/mr-"+String(now_ran)+".json");request_mr.responseType="json";request_mr.send();request_mr.onload=function(){const res_mr=request_mr.response;let divm=document.getElementById("music_recommend");document.getElementById("descm").innerHTML='<hr><p class="other_music">他のおすすめの曲</p>';for(let i=0;i<20;i++){divm.innerHTML=divm.innerHTML+"<a href='/music/"+res_mr[i][0]+"/'>"+res_mr[i][0]+"<img src='https://i.ytimg.com/vi/"+res_mr[i][1]+"/mqdefault.jpg' alt='"+res_mr[i][0]+"'></a>"}};let request_cr=new XMLHttpRequest();request_cr.open("GET","/ajax/ch/cr-"+String(now_ran)+".json");request_cr.responseType="json";request_cr.send();request_cr.onload=function(){const res_cr=request_cr.response;let divc=document.getElementById("ch_recommend");document.getElementById("descc").innerHTML='<hr><p class="other_music">他のおすすめのVtuber</p>';for(let i=0;i<20;i++){divc.innerHTML=divc.innerHTML+"<a href='/ch/"+res_cr[i][0]+"/'><span class='ofoverflow'>"+res_cr[i][0]+"</span><img class='recommend-ch' src='"+res_cr[i][1]+"' alt='"+res_cr[i][0]+"' title='"+res_cr[i][0]+"'></a>"}}}}}}}} function scroll_ev(){const currentPos=window.pageYOffset;var bottomPoint=document.body.clientHeight-window.innerHeight-600;if(bottomPoint<=currentPos){scroll_do()}} window.addEventListener("scroll",scroll_ev);scroll_ev();let url_parm=new URL(window.location.href).searchParams;if(url_parm.get('ran')!=null){for(let step=0;step<20;step++){scroll_do()}} if(url_parm.get('tbdid')!=null){for(let step=0;step<1+Number(url_parm.get('tbdid'));step++){scroll_do()}}</script>""")
     description = "Vtuberの" + nick_name + "が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
     page_title = nick_name + "の歌った曲集"
     head_data = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"></head><body>'

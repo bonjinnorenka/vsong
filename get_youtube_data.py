@@ -25,17 +25,14 @@ def highper_vidFromPlaylist(playlist_id,iglist=[]):#subprocessを利用し無理
     cur = connection.cursor()
     cur.execute("delete from tmp_vid")
     connection.commit()
-    max_process = 64
     proc_list = []
     loop_num = len(playlist_id)
     for n in range(loop_num):
         proc = subprocess.Popen(['python','get_youtube_playlist.py',str(playlist_id[n])])
         proc_list.append(proc)
-        if (n + 1) % max_process == 0 or (n + 1) == loop_num:
-            #max_process毎に、全プロセスの終了を待つ
-            for subproc in proc_list:
-                subproc.wait()
-            proc_list = []
+    for subproc in proc_list:
+        subproc.wait()
+    proc_list = []
     cur.execute("SELECT DISTINCT videoid FROM vtuber_sing.tmp_vid")
     kk_vid = cur.fetchall()
     k_vid = []
@@ -111,6 +108,7 @@ def VideoidToStatics(video_id):
     jsong = requests.get(url)
     new_json = jsong.json()
     result_list = []
+    result_list_a = result_list.append
     for i in range(new_json["pageInfo"]["totalResults"]):
         #エラーの時はとりあえず-1を出力
         _id = new_json["items"][i]["id"]
@@ -126,7 +124,7 @@ def VideoidToStatics(video_id):
             comment_count = new_json["items"][i]["statistics"]["commentCount"]
         except:
             comment_count = -1
-        result_list.append([_id,view_count,like_count,comment_count])
+        result_list_a([_id,view_count,like_count,comment_count])
     return result_list
 
 def ExtremeVideoToStatics(videoid_list):
