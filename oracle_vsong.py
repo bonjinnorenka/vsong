@@ -498,6 +498,8 @@ def make_music_page_v2(music_name,mode=0):
         description = "Vtuberの" + music_name + "の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
         page_title = "Vtuberの歌う" + music_name
         share_html_a('<main><div class="for_center">')
+        if music_data[1]==None:
+            music_data[1] = "不明"
         if music_data[2] and music_data[3]!=None:#spotifyもyoutubeも存在する場合
             share_html_a("<h1>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + music_data[3] + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + """</p><td><a href='https://open.spotify.com/track/""" + music_data[2] + """'>Spotifyで再生</a></td></tr></table>""")
         elif music_data[2]==None and music_data[3]!=None:#spotifyにはないがyoutubeにはある場合
