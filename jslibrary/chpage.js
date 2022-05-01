@@ -41,7 +41,6 @@ function Chart_cleater_v2(id_c, label, vc, lc, cc) {
     })
 }
 //データを読み込む
-window.scrollTo(0,1);//開始時に少しずらしておく
 var now_nick_name = "";
 var counter_up = 0;
 var counter_down = 0;
@@ -232,3 +231,5 @@ function scroll_ev() {
     replace_urlst();
 }
 window.addEventListener("scroll", scroll_ev);
+scroll_ev();
+window.scrollTo(0,1);//開始時に少しずらしておく

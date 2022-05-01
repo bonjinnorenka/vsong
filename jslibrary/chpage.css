@@ -1,0 +1,143 @@
+.yt-view-sum {
+    max-width: 500px;
+    max-height: 250px;
+    width: 490px;
+    margin-left: auto;
+    margin-right: auto
+}
+
+.other_music {
+    font-size: 25px;
+    text-align: center
+}
+
+.ofoverflow {
+    width: 120px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: clip;
+    display: inline-block
+}
+
+h1 {
+    text-align: center;
+    font-size: 30px
+}
+
+:root {
+    --main-text: #3f4551;
+    --main-bg: #fffffd
+}
+
+@media (prefers-color-scheme:dark) {
+    :root {
+        --main-text: silver;
+        --main-bg: #2f3136;
+        color-scheme: dark
+    }
+}
+
+body {
+    color: var(--main-text);
+    background-color: var(--main-bg);
+    font-family: 'Meiryo', sans-serif
+}
+
+#video_data_t td {
+    min-width: 500px;
+    min-height: 300px
+}
+
+.v_face {
+    max-height: 75px;
+    max-width: 75px;
+    aspect-ratio: 1/1;
+    border-radius: 50%
+}
+
+.vtuber_sing,
+#music_recommend,
+#ch_recommend {
+    overflow-x: auto;
+    display: flex
+}
+
+.recommend-ch {
+    width: 120px;
+    height: 120px;
+    aspect-ratio: 1/1
+}
+
+a {
+    color: #8aa2d3
+}
+
+.table-line {
+    border-collapse: collapse
+}
+
+.yt-meta {
+    max-width: 500px
+}
+
+.music_title {
+    font-size: 20px;
+    text-align: center
+}
+
+.yt-view_graph {
+    max-width: 500px;
+    max-height: 250px
+}
+
+h1 {
+    text-align: center
+}
+
+.for_center {
+    margin-left: calc(48vw - 500px);
+    margin-right: calc(48vw - 500px)
+}
+
+@media screen and (max-width:1000px) {
+    .yt-meta {
+        min-width: 75px !important;
+        max-width: calc(97vw - 500px) !important
+    }
+
+    .yt-view_graph.yt-view-sum {
+        max-width: calc(98vw - 500px)
+    }
+
+    .for_center {
+        margin-left: auto !important;
+        margin-right: auto !important
+    }
+}
+
+@media screen and (max-width:600px) {
+    #video_data_t td {
+        padding: 4px 12px;
+        display: block;
+        min-width: 90vw;
+        max-width: 90vw;
+        min-height: auto
+    }
+
+    .yt-meta {
+        max-width: 90vw !important
+    }
+
+    .mdata-dt {
+        max-width: 90vw;
+        width: 90vw
+    }
+
+    .yt-view_graph {
+        max-width: none !important
+    }
+
+    .yt-view-sum {
+        width: 100%
+    }
+}
