@@ -1,0 +1,234 @@
+if (window.matchMedia('(prefers-color-scheme: dark)').matches === !0) {
+    Chart.defaults.color = '#c0c0c0';
+} else {
+    Chart.defaults.color = '#3f4551';
+}
+
+function dt(video_id) {
+    if (window.matchMedia('(min-width:768px)').matches) {
+        document.getElementById(video_id + '_td').innerHTML = document.getElementById(video_id + '_dt').innerHTML;
+    }
+};
+
+function Chart_cleater_v2(id_c, label, vc, lc, cc) {
+    new Chart(document.getElementById(id_c), {
+        type: 'line',
+        data: {
+            labels: label,
+            datasets: [{
+                label: '視聴回数',
+                data: vc,
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgb(255, 99, 132)',
+            }, {
+                label: '高評価数',
+                data: lc,
+                hidden: !0,
+                borderColor: 'rgb(58,180,139)',
+                backgroundColor: 'rgb(58,180,139)',
+            }, {
+                label: 'コメント数',
+                data: cc,
+                hidden: !0,
+                borderColor: 'rgb(137, 195, 235)',
+                backgroundColor: 'rgb(137, 195, 235)',
+            }]
+        },
+        options: {
+            animation: !1,
+            responsive: !0
+        }
+    })
+}
+//データを読み込む
+window.scrollTo(0,1);//開始時に少しずらしておく
+var now_nick_name = "";
+var counter_up = 0;
+var counter_down = 0;
+var load_max = 0;
+var maxlength = -1;
+let now_data_xhr = new XMLHttpRequest();
+now_data_xhr.open("GET","data.json");//今のページのjsonを取り寄せる
+now_data_xhr.responseType = "json";
+now_data_xhr.send();
+now_data_xhr.onload = function() {//ファイルが来たら実行
+    const ndr = now_data_xhr.response;
+    now_nick_name = ndr["nick_name"];
+    nowvid = ndr["videoidlist"];
+    counter_up = ndr["pageid"];
+    counter_down = ndr["pageid"];
+    maxlength = ndr["max-length"];
+    let statistics_xhr = new XMLHttpRequest();
+    statistics_xhr.open("GET","/ch/" + now_nick_name + "/statistics.json");
+    statistics_xhr.responseType = "json";
+    statistics_xhr.send();
+    statistics_xhr.onload = function(){
+        statistics_data = statistics_xhr.response;
+        if (ndr["pageid"]===0){
+            Chart_cleater_v2("sum-yt",statistics_data["channel"][0],statistics_data["channel"][1],statistics_data["channel"][2],statistics_data["channel"][3]);
+        }
+        for(var k=0;k<nowvid.length;k++){
+            dt(nowvid[k]);
+            Chart_cleater_v2(nowvid[k],statistics_data[nowvid[k]][1],statistics_data[nowvid[k]][2],statistics_data[nowvid[k]][3],statistics_data[nowvid[k]][4]);
+        }
+    }
+}
+
+function scroll_do(mes) {
+    let sc_xhr = new XMLHttpRequest();
+    if (mes=="down"&&maxlength>counter_down+1){
+        sc_xhr.open("GET","/ch/" + now_nick_name + "/page" + String(counter_down+2) + "/data.json");
+        counter_down++;
+    }
+    else if(mes=="up"&&0<counter_up){
+        if(counter_up==1){
+            sc_xhr.open("GET","/ch/" + now_nick_name + "/data.json");
+        }
+        else{
+            sc_xhr.open("GET","/ch/" + now_nick_name + "/page" + String(counter_up) + "/data.json");
+        }
+        counter_up += -1;
+    }
+    else{
+        recommend();
+        return//処理強制終了
+    }
+    sc_xhr.responseType = "json";
+    sc_xhr.send();
+    sc_xhr.onload = function(){
+        const njdata = sc_xhr.response;
+        console.log("onload-xhr id:" + njdata["pageid"])
+        if(njdata["pageid"]==0){
+            document.getElementById("sum-viewer").innerHTML = njdata["first"] + document.getElementById("sum-viewer").innerHTML;
+            Chart_cleater_v2("sum-yt",statistics_data["channel"][0],statistics_data["channel"][1],statistics_data["channel"][2],statistics_data["channel"][3]);
+        }
+        tbody_el = document.getElementById("tbd-" + String(njdata["pageid"]));
+        for (let g=0;g<njdata["videoidlist"].length;g++){
+            tbody_el.innerHTML = tbody_el.innerHTML + njdata[g];
+        }
+        for (let g=0;g<njdata["videoidlist"].length;g++){
+            dt(njdata["videoidlist"][g]);
+            Chart_cleater_v2(njdata["videoidlist"][g],statistics_data[njdata["videoidlist"][g]][1],statistics_data[njdata["videoidlist"][g]][2],statistics_data[njdata["videoidlist"][g]][3],statistics_data[njdata["videoidlist"][g]][4]);
+        }
+        if(mes=="up"){
+            if(njdata["pageid"]==0){
+                console.log("ab")
+                window.scrollBy(0,document.getElementById("sum-viewer").clientHeight+document.getElementById("tbd-" + String(njdata["pageid"])).clientHeight);
+            }
+            else{
+                console.log("bb")
+                window.scrollBy(0,document.getElementById("tbd-" + String(njdata["pageid"])).clientHeight);
+            }
+        }
+    }
+}
+
+function recommend(){
+    if(load_max===0){
+        load_max++;
+        let url_parm = new URL(window.location.href).searchParams;
+        let urp = new URLSearchParams(new URL(window.location.href));
+        if (url_parm.get('ran') != null) {
+            now_ran = url_parm.get('ran');
+        } else {
+            now_ran = Math.floor(Math.random() * 100);
+            urp.delete("tbdid");
+            urp.set("ran", String(now_ran));
+            history.replaceState(null, null, "?" + urp.toString())
+        }
+        let request_mr = new XMLHttpRequest();
+        request_mr.open("GET", "/ajax/music/mr-" + String(now_ran) + ".json");
+        request_mr.responseType = "json";
+        request_mr.send();
+        request_mr.onload = function () {
+            const res_mr = request_mr.response;
+            let divm = document.getElementById("music_recommend");
+            document.getElementById("descm").innerHTML = '<hr><p class="other_music">他のおすすめの曲</p>';
+            for (let i = 0; i < 20; i++) {
+                divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][0] +
+                    "/' onclick='rec_c()'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
+                    res_mr[i][1] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "'></a>"
+            }
+        };
+        let request_cr = new XMLHttpRequest();
+        request_cr.open("GET", "/ajax/ch/cr-" + String(now_ran) + ".json");
+        request_cr.responseType = "json";
+        request_cr.send();
+        request_cr.onload = function () {
+            const res_cr = request_cr.response;
+            let divc = document.getElementById("ch_recommend");
+            document.getElementById("descc").innerHTML = '<hr><p class="other_music">他のおすすめのVtuber</p>';
+            for (let i = 0; i < 20; i++) {
+                divc.innerHTML = divc.innerHTML + "<a href='/ch/" + res_cr[i][0] +
+                    "/' onclick='rec_c()'><span class='ofoverflow'>" + res_cr[i][0] +
+                    "</span><img class='recommend-ch' src='" + res_cr[i][1] + "' alt='" + res_cr[i][0] +
+                    "' title='" + res_cr[i][0] + "'></a>"
+            }
+        }
+    }
+}
+
+function getClosestNum(num, ar){
+    //近似値を保持しておく変数
+    var closest;
+    //配列かどうか、要素があるか判定
+    if(Object.prototype.toString.call(ar) ==='[object Array]' && ar.length>0){
+      //まず配列の最初の要素を近似値として保持する
+      closest = ar[0];
+      //配列の要素を順次比較していく
+      for(var i=0;i<ar.length;i++){ 
+         //この時点での近似値と、指定値の差異を絶対値で保持しておく
+         var closestDiff = Math.abs(num - closest);
+         //読み込んだ値と比較し、差異を絶対値で保持しておく
+         var currentDiff = Math.abs(num - ar[i]);
+         //新しく比較した値のほうが近かったら、近似値として保持しておく
+         if(currentDiff < closestDiff){
+             closest = ar[i];
+         }
+       }
+      //ループが終わったら、近似値を返す
+       return closest;
+     }
+  //配列じゃなかったらfalse
+  return false;
+ }
+
+function replace_urlst(){
+    k_place_array = [];
+    for(var k=0;k<maxlength;k++){
+        let ndt = document.getElementById("tbd-" + String(k));
+        if (ndt.innerHTML!=""){//内容があるのだけ追加
+            k_place_array.push(ndt.getBoundingClientRect()["y"]);
+        }
+    }
+    if (window.matchMedia('(min-width:600px)').matches) {
+        var get_put = -1700
+    }
+    else{
+        var get_put = -1000
+    }
+    const ans = getClosestNum(get_put,k_place_array);
+    for(var k=0;k<maxlength;k++){
+        if(document.getElementById("tbd-" + String(k)).getBoundingClientRect()["y"]===ans&&String(location).match("/page" + String(k+1) + "/")==null){
+            if (k!=0){
+                history.replaceState(null,null,"/ch/" + now_nick_name + "/page" + String(k+1) + "/" + location.search)
+            }
+            else{
+                history.replaceState(null,null,"/ch/" + now_nick_name + "/" + location.search)
+            }
+        }
+    }
+}
+
+function scroll_ev() {
+    const currentPos = window.pageYOffset;
+    var bottomPoint = document.body.clientHeight - window.innerHeight - 600;
+    if (bottomPoint <= currentPos) {//下にスクロールされた場合
+            scroll_do("down")
+    }
+    if (currentPos < 500){
+        scroll_do("up")
+    }
+    replace_urlst();
+}
+window.addEventListener("scroll", scroll_ev);
