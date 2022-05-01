@@ -96,7 +96,6 @@ function scroll_do(mes) {
     sc_xhr.send();
     sc_xhr.onload = function(){
         const njdata = sc_xhr.response;
-        console.log("onload-xhr id:" + njdata["pageid"])
         if(njdata["pageid"]==0){
             document.getElementById("sum-viewer").innerHTML = njdata["first"] + document.getElementById("sum-viewer").innerHTML;
             Chart_cleater_v2("sum-yt",statistics_data["channel"][0],statistics_data["channel"][1],statistics_data["channel"][2],statistics_data["channel"][3]);
@@ -111,11 +110,9 @@ function scroll_do(mes) {
         }
         if(mes=="up"){
             if(njdata["pageid"]==0){
-                console.log("ab")
                 window.scrollBy(0,document.getElementById("sum-viewer").clientHeight+document.getElementById("tbd-" + String(njdata["pageid"])).clientHeight);
             }
             else{
-                console.log("bb")
                 window.scrollBy(0,document.getElementById("tbd-" + String(njdata["pageid"])).clientHeight);
             }
         }
