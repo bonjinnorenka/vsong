@@ -1,18 +1,7 @@
-import math
-import os
-import re
-import cx_Oracle
-from numpy import insert
-import requests
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy
 import get_youtube_data as gy
 import music_data as md
-import datetime
-import collections
-import urllib.parse
-import json
-import random
 import ev
-import copy
 
 con = cx_Oracle.connect(ev.oracle_user, ev.oracle_ps, ev.oracle_connect_string)
 print("Database version:", con.version + "\tデータベースに正常に接続できました。")
@@ -22,6 +11,7 @@ cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
 #webサイト用変数設定
 siteurl = "vsong.fans"
 header = """<style>.Top{font-size:40px;text-align:center}nav ul{display:flex;justify-content:center;list-style:none;padding:0;margin:0}nav ul li{width:120px}.header-nav a{font-size:20px}</style><header><h2 class="Top"><a href="/">VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search">検索</a><li><a href="/today">今日の人気</a></ul></nav></header>"""
+folder_path = "public/"
 
 def conect_close():#接続切るよう
     con.close()
@@ -484,7 +474,7 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    n_html_path = "public/" + siteurl + "/music/" + music_name.replace("?","").replace(":","").replace("/","") + "/"
+    n_html_path = folder_path + siteurl + "/music/" + music_name.replace("?","").replace(":","").replace("/","") + "/"
     if os.path.isdir(n_html_path)==False:
         os.mkdir(n_html_path)
     share_html = []
@@ -628,7 +618,7 @@ def make_music_page_v2(music_name,mode=0):
 
 def make_chpage_v2(nick_name,mode=0):
     site_nick_name = nick_name.replace("?","").replace(":","").replace("/","")
-    n_html_path = "public/" + siteurl + "/ch/" + site_nick_name + "/"
+    n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
     if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
         os.mkdir(n_html_path)
     if mode==0:
@@ -766,7 +756,7 @@ def make_all_chpage(mode=0):
         make_chpage_v2(str(i)[2:-3],mode=mode)
 
 def music_recommend_page():
-    ajax_path = "public/" + siteurl + "/ajax/music/"
+    ajax_path = folder_path + siteurl + "/ajax/music/"
     cur.execute("select KEY_MUSIC_NAME from MUSIC_SONG_DB")
     music_list = []
     music_list_a = music_list.append
@@ -790,7 +780,7 @@ def music_recommend_page():
             json.dump(n_dict,f,indent=4)
 
 def channel_recommend_page():
-    ajax_path = "public/" + siteurl + "/ajax/ch/"
+    ajax_path = folder_path + siteurl + "/ajax/ch/"
     cur.execute("select nick_name_1,picture_url from ch_id where ig = 0")
     ch_data_k = cur.fetchall()
     len_ch_data = len(ch_data_k)
