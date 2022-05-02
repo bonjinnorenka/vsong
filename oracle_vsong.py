@@ -10,7 +10,7 @@ cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
 
 #webサイト用変数設定
 siteurl = "vsong.fans"
-header = """<style>.Top{font-size:40px;text-align:center}nav ul{display:flex;justify-content:center;list-style:none;padding:0;margin:0}nav ul li{width:120px}.header-nav a{font-size:20px}</style><header><h2 class="Top"><a href="/">VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search">検索</a><li><a href="/today">今日の人気</a></ul></nav></header>"""
+header = """<header><h2 class="Top"><a href="/">VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search">検索</a><li><a href="/today">今日の人気</a></ul></nav></header>"""
 folder_path = "public/"
 
 def conect_close():#接続切るよう
