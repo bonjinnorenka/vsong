@@ -1,4 +1,6 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv
+import re
+from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
 import ev
@@ -26,7 +28,7 @@ def flatten(l):
 
 def update_videodata():
     cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
-    cur.execute("SELECT DISTINCT video_id FROM VIDEO_ID")
+    cur.execute("SELECT video_id FROM VIDEO_ID")
     v_id_kl = cur.fetchall()
     #変形
     v_id_l = []
@@ -48,7 +50,7 @@ def correct_video_list():
     pid_l_a = pid_l.append
     for x in range(len(pid_kl)):
         pid_l_a(str(pid_kl[x])[2:-3])
-    cur.execute("SELECT DISTINCT video_id FROM VIDEO_ID")
+    cur.execute("SELECT video_id FROM VIDEO_ID")
     v_id_kl = cur.fetchall()
     v_id_l = []
     v_id_a = v_id_l.append
@@ -498,9 +500,9 @@ def make_music_page_v2(music_name,mode=0):
             share_html_a("<h1>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + """</p><td><a href='https://open.spotify.com/track/""" + music_data[2] + """'>Spotifyで再生</a></td></tr></table>""")
         else:#spotifyにもyoutubeにもないパターン
             share_html_a("<h1>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-    share_html_a('<div id="sum-viewer"></div>')
-    share_html_a("<table id='video_data_t'>")
-    share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""")
+        share_html_a('<div id="sum-viewer"></div>')
+        share_html_a("<table id='video_data_t'>")
+        share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""")
     music_videos_id = music_list(music_name)
     tbdata = []
     tbdata_ex = tbdata.extend
@@ -806,3 +808,36 @@ def channel_recommend_page():
             n_dict[n] = k_ar
         with open(ajax_path + "cr-" + str(x) + ".json","w") as f:
             json.dump(n_dict,f,indent=4)
+
+kks = kakasi()#インスタンスは負荷がかかるので事前に呼び出す
+
+def KanjiToKana(kanji_st):
+    kanji_st = kanji_st.lower()
+    res = kks.convert(kanji_st)
+    er_strings = [["博衣こより","はくいこより"]]
+    k_res_list = []#うまくルビ振りができないのを登録
+    for x in res:
+        k_res_list.append(x["hira"])
+    all_kana_res = "".join(k_res_list)
+    for x in er_strings:
+        if kanji_st==x[0]:
+            all_kana_res = x[1]
+    kana_res = jaconv.kata2hira(kanji_st)
+    if all_kana_res==kana_res:
+        return [all_kana_res]
+    else:
+        return [kana_res,all_kana_res]
+
+def make_search_index():
+    cur.execute("select KEY_MUSIC_NAME from MUSIC_SONG_DB where CLEATE_PAGE_DATE is not null")
+    search_index = []
+    search_index_a = search_index.append
+    for x in cur.fetchall():
+        nst = str(x)[2:-3]
+        search_index_a([KanjiToKana(nst),nst,"/music/" + nst])
+    cur.execute("select NICK_NAME_1 from ch_id where CLEATE_PAGE_DATE is not null")
+    for x in cur.fetchall():
+        nst = str(x)[2:-3]
+        search_index_a([KanjiToKana(nst),nst,"/ch/" + nst])
+    with open(folder_path + siteurl + "/search_index.json","w") as f:
+        json.dump({"index":search_index},f,indent=4)

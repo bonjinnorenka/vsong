@@ -52,8 +52,14 @@ function page_transition(){//ページ移動時万が一あると問題が起こ
     delete nowvid;
     delete statistics_data;
     delete now_nick_name;
+    delete search_index_data;
+    delete top_result;
     window.removeEventListener("scroll", music_scroll_ev);
     window.removeEventListener("scroll",ch_scroll_ev);
+    try{
+        document.getElementById('search').removeEventListener("input",search_index);
+    }
+    catch{}
 }
 
 function ch_page_load(){
@@ -300,6 +306,51 @@ function recommend(){
     }
 }
 
+function toppage_recommend(){
+    if(load_max===0){
+        load_max++;
+        let url_parm = new URL(window.location.href).searchParams;
+        let urp = new URLSearchParams(new URL(window.location.href));
+        if (url_parm.get('ran') != null) {
+            now_ran = url_parm.get('ran');
+        } else {
+            now_ran = Math.floor(Math.random() * 100);
+            urp.delete("tbdid");
+            urp.set("ran", String(now_ran));
+            history.replaceState(null, null, "?" + urp.toString())
+        }
+        let request_mr = new XMLHttpRequest();
+        request_mr.open("GET", "/ajax/music/mr-" + String(now_ran) + ".json");
+        request_mr.responseType = "json";
+        request_mr.send();
+        request_mr.onload = function () {
+            const res_mr = request_mr.response;
+            let divm = document.getElementById("music_recommend");
+            document.getElementById("descm").innerHTML = '<hr><p class="other_music">おすすめの曲(ランダム表示)</p>';
+            for (let i = 0; i < 20; i++) {
+                divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][0] +
+                    "/' onclick='rec_c()'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
+                    res_mr[i][1] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "'></a>"
+            }
+        };
+        let request_cr = new XMLHttpRequest();
+        request_cr.open("GET", "/ajax/ch/cr-" + String(now_ran) + ".json");
+        request_cr.responseType = "json";
+        request_cr.send();
+        request_cr.onload = function () {
+            const res_cr = request_cr.response;
+            let divc = document.getElementById("ch_recommend");
+            document.getElementById("descc").innerHTML = '<hr><p class="other_music">おすすめのVtuber(ランダム表示)</p>';
+            for (let i = 0; i < 20; i++) {
+                divc.innerHTML = divc.innerHTML + "<a href='/ch/" + res_cr[i][0] +
+                    "/' onclick='rec_c()'><span class='ofoverflow'>" + res_cr[i][0] +
+                    "</span><img class='recommend-ch' src='" + res_cr[i][1] + "' alt='" + res_cr[i][0] +
+                    "' title='" + res_cr[i][0] + "'></a>"
+            }
+        }
+    }
+}
+
 function getClosestNum(num, ar){
     //近似値を保持しておく変数
     var closest;
@@ -364,6 +415,66 @@ function music_scroll_ev() {
     music_replace_urlst();
 }
 
+function search_index_finish(){
+    search_index();
+    if (top_result.length==1){
+        console.log("success");
+        window.location.href = top_result[0][2];
+    }
+    else if (sub_result.length==1){
+        window.location.href = sub_result[0][2];
+    }
+    else if (sub_result.length==0){
+        document.getElementById("search_result").innerText = "すみません1件も見つかりませんでした.";
+    }
+}
+
+function search_index(){
+    top_result = [];
+    sub_result = [];
+    let now_svalue = document.getElementById("lib_search").value.toLowerCase();
+    now_svalue = now_svalue.replace(/[ァ-ン]/g, function(s) {return String.fromCharCode(s.charCodeAt(0) - 0x60);});//内部処理用にカタカナを平仮名に変換
+    for(var nint=0;nint<search_index_data.length;nint++){
+        let nowst = search_index_data[nint];
+        for(var aint=0;aint<nowst[0].length;aint++){
+            let mega_nowst = nowst[0][aint]
+            if (mega_nowst===now_svalue){//完全一致
+                top_result.push(nowst);
+                sub_result.push(nowst);
+                break;
+            }
+            else if (mega_nowst.indexOf(now_svalue)!=-1&&sub_result.indexOf(nowst)==-1){
+                sub_result.push(nowst);
+            }
+        }
+    }
+    let result_area = document.getElementById("search_result")
+    let k_strin = "";
+    for(var nint=0;nint<sub_result.length;nint++){
+        k_strin = k_strin + "<a href='" + sub_result[nint][2] + "'>" + sub_result[nint][1] + "</a><br>";
+    }
+    if (search_index_data.length!=sub_result.length){
+        result_area.innerHTML = k_strin;
+    }
+    else{
+        result_area.innerHTML = "";
+    }
+}
+
+function search_index_load(){
+    let index_xhr = new XMLHttpRequest();
+    index_xhr.open("GET","/search_index.json");
+    index_xhr.responseType = "json";
+    index_xhr.send();
+    index_xhr.onload = function(){
+        search_index_data = index_xhr.response["index"];
+        document.getElementById('lib_search').addEventListener("input",search_index);
+        document.getElementById('lib_search').addEventListener("change",search_index_finish);
+        document.getElementById('lib_search').focus();
+        search_index();
+    }
+}
+
 function page_load(){//ページロード時の処理
     page_transition();//変数削除
     if (location.pathname.indexOf("/music/")!==-1){//音楽ページ
@@ -377,6 +488,13 @@ function page_load(){//ページロード時の処理
         ch_page_load();
         window.addEventListener("scroll", ch_scroll_ev);
         ch_scroll_do();
+    }
+    else if (location.pathname==="/"){//トップページ
+        load_max = 0;
+        toppage_recommend();
+    }
+    else if (location.pathname==="/search/"){
+        search_index_load();
     }
 }
 page_load();
