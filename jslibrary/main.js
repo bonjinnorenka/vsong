@@ -450,8 +450,16 @@ function search_index(){
     }
     let result_area = document.getElementById("search_result")
     let k_strin = "";
+    if (top_result.length==1){
+        k_strin = "<a href='" + top_result[0][2] + "'>" + top_result[0][1] + "</a><br>"
+    }
     for(var nint=0;nint<sub_result.length;nint++){
-        k_strin = k_strin + "<a href='" + sub_result[nint][2] + "'>" + sub_result[nint][1] + "</a><br>";
+        if (top_result.length!=1){
+            k_strin = k_strin + "<a href='" + sub_result[nint][2] + "'>" + sub_result[nint][1] + "</a><br>";
+        }
+        else if(sub_result[nint]!==top_result[0]){
+            k_strin = k_strin + "<a href='" + sub_result[nint][2] + "'>" + sub_result[nint][1] + "</a><br>";
+        }
     }
     if (search_index_data.length!=sub_result.length){
         result_area.innerHTML = k_strin;
