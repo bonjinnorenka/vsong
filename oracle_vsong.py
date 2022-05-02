@@ -484,7 +484,7 @@ def make_music_page_v2(music_name,mode=0):
         share_html_a(header)
         #jsライブラリ及びそれに付随するCSSを追加
         share_html_a('<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.css">')
-        share_html_a("<link rel='stylesheet' href='/music/musicpage.css'>")
+        share_html_a("<link rel='stylesheet' href='/library/main.css'>")
         description = "Vtuberの" + music_name + "の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
         page_title = "Vtuberの歌う" + music_name
         share_html_a('<main><div class="for_center">')
@@ -574,7 +574,7 @@ def make_music_page_v2(music_name,mode=0):
             k_tbdata = copy.deepcopy(tbdata)
             k_tbdata.insert((2*r)+1,page_html_data_mdata)
             nowpgdata.insert(7,k_tbdata)
-            nowpgdata.append("<script src='/music/musicpage.js'></script>")
+            nowpgdata.append("<script src='/library/main.js'></script>")
             head_data = []
             stapass_preload = "<link rel='preload' href='/music/" + music_name + "/statistics.json' as 'fetch'>"
             if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
@@ -633,7 +633,7 @@ def make_chpage_v2(nick_name,mode=0):
     #jsライブラリ及びそれに付随するCSSを追加
     share_html_a('<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.css">')
     #カスタムCSSを追加
-    share_html_a("<link rel='stylesheet' href='/ch/chpage.css'>")
+    share_html_a("<link rel='stylesheet' href='/library/main.css'>")
     share_html_a('<main><div class="for_center"><div id="sum-viewer"></div>')
     share_html_a("<table id='video_data_t'>")
     #ここの6番目にデータは入れてね
@@ -707,7 +707,7 @@ def make_chpage_v2(nick_name,mode=0):
             k_tbdata = copy.deepcopy(tbdata)
             k_tbdata.insert((2*r)+1,page_html_data_mdata)
             nowpgdata.insert(5,k_tbdata)
-            nowpgdata.append("<script src='/ch/chpage.js'></script>")
+            nowpgdata.append("<script src='/library/main.js'></script>")
             head_data = []
             stapass_preload = "<link rel='preload' href='/ch/" + nick_name + "/statistics.json' as 'fetch'>"
             if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
