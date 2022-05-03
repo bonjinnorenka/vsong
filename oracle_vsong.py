@@ -476,7 +476,7 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    n_html_path = folder_path + siteurl + "/music/" + music_name.replace("?","").replace(":","").replace("/","") + "/"
+    n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
     if os.path.isdir(n_html_path)==False:
         os.mkdir(n_html_path)
     share_html = []
@@ -516,7 +516,7 @@ def make_music_page_v2(music_name,mode=0):
         nowvid = []
         page_html_data_mdata = []
         phdm_a = page_html_data_mdata.append
-        json_pagedata = {"music_name":music_name,"pageid":r,"max-length":math.ceil(len(music_videos_id)/10)}
+        json_pagedata = {"music_name":dir_name_replace(music_name),"pageid":r,"max-length":math.ceil(len(music_videos_id)/10)}
         nowpgdata = copy.deepcopy(share_html)
         json_count = 0
         if 10*(r+1) > len(music_videos_id):
@@ -571,7 +571,6 @@ def make_music_page_v2(music_name,mode=0):
                 json_pagedata[json_count] = "".join(x_list)
                 json_count += 1
                 phdm_a(copy.copy(x_list))
-
         if mode==0:
             k_tbdata = copy.deepcopy(tbdata)
             k_tbdata.insert((2*r)+1,page_html_data_mdata)
@@ -619,7 +618,7 @@ def make_music_page_v2(music_name,mode=0):
         json.dump(statistics_data,f,indent=4)
 
 def make_chpage_v2(nick_name,mode=0):
-    site_nick_name = nick_name.replace("?","").replace(":","").replace("/","")
+    site_nick_name = dir_name_replace(nick_name)
     n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
     if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
         os.mkdir(n_html_path)
@@ -650,7 +649,7 @@ def make_chpage_v2(nick_name,mode=0):
             nowvid = []
             page_html_data_mdata = []
             phdm_a = page_html_data_mdata.append
-            json_pagedata = {"nick_name":nick_name,"pageid":r,"max-length":math.ceil(len(v_data)/10)}
+            json_pagedata = {"nick_name":dir_name_replace(nick_name),"pageid":r,"max-length":math.ceil(len(v_data)/10)}
             nowpgdata = copy.deepcopy(share_html)
             json_count = 0
         if 10*(r+1) > len(videolist_id):
@@ -809,6 +808,10 @@ def channel_recommend_page():
         with open(ajax_path + "cr-" + str(x) + ".json","w") as f:
             json.dump(n_dict,f,indent=4)
 
+def dir_name_replace(dir_name):
+    ret_dn = str(dir_name).replace("\\","").replace(",","").replace(".","").replace(":","").replace(";","").replace("?","").replace("/","").replace("<","").replace(">","").replace("*","").replace("|","").replace("+","").replace("=","").replace("[","").replace("]","").replace('"',"").replace("(","").replace(")","").replace("^","").replace("!","").replace("$","").replace("'","").replace("%","").replace("&","").replace("～","")
+    return ret_dn
+
 kks = kakasi()#インスタンスは負荷がかかるので事前に呼び出す
 moji = str.maketrans("ぁぃぅぇぉっゃゅょ", "あいうえおつやゆよ")#使いまわせるものわしなくては！
 
@@ -823,8 +826,8 @@ def KanjiToKana(kanji_st):
     for x in er_strings:
         if kanji_st==x[0]:
             all_kana_res = x[1]
-    kana_res = str(jaconv.kata2hira(kanji_st)).translate(moji)
-    all_kana_res = all_kana_res.translate(moji)
+    kana_res = dir_name_replace(str(jaconv.kata2hira(kanji_st)).translate(moji))
+    all_kana_res = dir_name_replace(all_kana_res.translate(moji))
     if all_kana_res==kana_res:
         return [all_kana_res]
     else:
@@ -836,10 +839,10 @@ def make_search_index():
     search_index_a = search_index.append
     for x in cur.fetchall():
         nst = str(x)[2:-3]
-        search_index_a([KanjiToKana(nst),nst,"/music/" + nst])
+        search_index_a([KanjiToKana(nst),nst,"/music/" + dir_name_replace(nst)])
     cur.execute("select NICK_NAME_1 from ch_id where CLEATE_PAGE_DATE is not null")
     for x in cur.fetchall():
         nst = str(x)[2:-3]
-        search_index_a([KanjiToKana(nst),nst,"/ch/" + nst])
+        search_index_a([KanjiToKana(nst),nst,"/ch/" + dir_name_replace(nst)])
     with open(folder_path + siteurl + "/search_index.json","w") as f:
         json.dump({"index":search_index},f,indent=4)
