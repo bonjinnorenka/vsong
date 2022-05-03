@@ -810,11 +810,12 @@ def channel_recommend_page():
             json.dump(n_dict,f,indent=4)
 
 kks = kakasi()#インスタンスは負荷がかかるので事前に呼び出す
+moji = str.maketrans("ぁぃぅぇぉっゃゅょ", "あいうえおつやゆよ")#使いまわせるものわしなくては！
 
 def KanjiToKana(kanji_st):
     kanji_st = kanji_st.lower()
     res = kks.convert(kanji_st)
-    er_strings = [["博衣こより","はくいこより"]]
+    er_strings = [["博衣こより","はくいこより"],["雪花ラミィ","ゆきはならみぃ"],["大神ミオ","おおかみみお"]]
     k_res_list = []#うまくルビ振りができないのを登録
     for x in res:
         k_res_list.append(x["hira"])
@@ -822,7 +823,8 @@ def KanjiToKana(kanji_st):
     for x in er_strings:
         if kanji_st==x[0]:
             all_kana_res = x[1]
-    kana_res = jaconv.kata2hira(kanji_st)
+    kana_res = str(jaconv.kata2hira(kanji_st)).translate(moji)
+    all_kana_res = all_kana_res.translate(moji)
     if all_kana_res==kana_res:
         return [all_kana_res]
     else:

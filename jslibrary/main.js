@@ -429,11 +429,19 @@ function search_index_finish(){
     }
 }
 
+function japan_smallToBig(nowst){
+    let retst = nowst.replaceAll("ぁ","あ").replaceAll("ぃ","い").replaceAll("ぅ","う").replaceAll("ぇ","え").replaceAll("ぉ","お").replaceAll("っ","つ").replaceAll("ゃ","や").replaceAll("ゅ","ゆ").replaceAll("ょ","よ")
+    retst = retst.replaceAll("ァ","あ").replaceAll("ィ","い").replaceAll("ゥ","う").replaceAll("ェ","え").replaceAll("ォ","お").replaceAll("ッ","つ").replaceAll("ャ","や").replaceAll("ュ","ゆ").replaceAll("ョ","よ")
+    return retst
+}
+
 function search_index(){
     top_result = [];
     sub_result = [];
     let now_svalue = document.getElementById("lib_search").value.toLowerCase();
+    now_svalue = japan_smallToBig(now_svalue);
     now_svalue = now_svalue.replace(/[ァ-ン]/g, function(s) {return String.fromCharCode(s.charCodeAt(0) - 0x60);});//内部処理用にカタカナを平仮名に変換
+    console.log(now_svalue)
     for(var nint=0;nint<search_index_data.length;nint++){
         let nowst = search_index_data[nint];
         for(var aint=0;aint<nowst[0].length;aint++){
