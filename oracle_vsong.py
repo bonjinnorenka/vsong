@@ -1,5 +1,4 @@
 import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv
-import re
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
@@ -12,7 +11,7 @@ cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
 
 #webサイト用変数設定
 siteurl = "vsong.fans"
-header = """<header><h2 class="Top"><a href="/">VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search">検索</a><li><a href="/today">今日の人気</a></ul></nav></header>"""
+header = """<header><h2 class="Top"><a href="/" onClick='page_ajax_load("/")'>VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search/" onClick='page_ajax_load("/search/")'>検索</a><li><a href="/today/" onClick='page_ajax_load("/today/")'>今日の人気</a></ul></nav></header>"""
 folder_path = "public/"
 
 def conect_close():#接続切るよう
@@ -486,7 +485,6 @@ def make_music_page_v2(music_name,mode=0):
         share_html_a(header)
         #jsライブラリ及びそれに付随するCSSを追加
         share_html_a('<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.css">')
-        share_html_a("<link rel='stylesheet' href='/library/main.css'>")
         description = "Vtuberの" + music_name + "の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
         page_title = "Vtuberの歌う" + music_name
         share_html_a('<main><div class="for_center">')
@@ -563,10 +561,10 @@ def make_music_page_v2(music_name,mode=0):
                 x_list_a("<tr class='" + " ".join(men_of_list) + "'><td><lite-youtube videoid='" + v_data[x][0] + "' playlabel='Play'></lite-youtube></td><td class='yt-meta' id='" + v_data[x][0] + "_td'><details id='" + v_data[x][0] + "_dt' class='mdata-dt'><summary class='music_title'>" + v_data[x][4][2] + "</summary>" + can_d + "<div class='vtuber_sing'>")
                 #人データ追加
                 if v_data[x][2]==1:#歌い手が１人
-                    x_list_a("<a href='/ch/" + v_data[x][3][0] + "' onclick='rec_c()'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
+                    x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
                 else:#歌い手が複数人
                     for u in range(v_data[x][2]):
-                        x_list_a("<a href='/ch/" + v_data[x][3][u][0] + "' onclick='rec_c()'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][u][3] + "' alt='" + v_data[x][3][u][0] + "' title='" + v_data[x][3][u][0] + "'></a>")
+                        x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][u][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][u][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][u][3] + "' alt='" + v_data[x][3][u][0] + "' title='" + v_data[x][3][u][0] + "'></a>")
                 x_list_a("</div></details></td></tr>")
                 json_pagedata[json_count] = "".join(x_list)
                 json_count += 1
@@ -574,25 +572,25 @@ def make_music_page_v2(music_name,mode=0):
         if mode==0:
             k_tbdata = copy.deepcopy(tbdata)
             k_tbdata.insert((2*r)+1,page_html_data_mdata)
-            nowpgdata.insert(7,k_tbdata)
+            nowpgdata.insert(6,k_tbdata)
             nowpgdata.append("<script src='/library/main.js'></script>")
             head_data = []
             stapass_preload = "<link rel='preload' href='/music/" + music_name + "/statistics.json' as 'fetch'>"
             if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">')
+                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"><link rel="stylesheet" href="/library/main.css">')
                 head_data.append('<link rel="next" href="/music/' + music_name + '/page2/">')
                 head_data.append(stapass_preload + "</head>")#閉じタグちゃん
             elif r==0 and r==math.ceil(len(v_data)/10):#初回ページのみ
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">' + stapass_preload + '</head>')
+                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">' + stapass_preload + '<link rel="stylesheet" href="/library/main.css"></head>')
             elif r==math.ceil(len(v_data)/10):#最後のページ
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">' + stapass_preload)
+                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"><link rel="stylesheet" href="/library/main.css">' + stapass_preload)
                 if r!=1:
                     head_data.append('<link rel="prev" href="/music/' + music_name + '/page' + str(math.ceil(len(v_data)/10)-1) + '/">')
                 else:
                     head_data.append('<link rel="prev" href="/music/' + music_name + '/">')
                 head_data.append("</head>")#閉じタグちゃん
             else:
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">' + stapass_preload)
+                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"><link rel="stylesheet" href="/library/main.css">' + stapass_preload)
                 if r==1:#２ページ目の場合初回ページが前
                     head_data.append('<link rel="prev" href="/music/' + music_name + '/">')
                 else:
@@ -634,7 +632,6 @@ def make_chpage_v2(nick_name,mode=0):
     #jsライブラリ及びそれに付随するCSSを追加
     share_html_a('<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.css">')
     #カスタムCSSを追加
-    share_html_a("<link rel='stylesheet' href='/library/main.css'>")
     share_html_a('<main><div class="for_center"><div id="sum-viewer"></div>')
     share_html_a("<table id='video_data_t'>")
     #ここの6番目にデータは入れてね
@@ -696,10 +693,10 @@ def make_chpage_v2(nick_name,mode=0):
                 x_list_a("<tr class='" + " ".join(men_of_list) + "'><td><lite-youtube videoid='" + v_data[x][0] + "' playlabel='Play'></lite-youtube></td><td class='yt-meta' id='" + v_data[x][0] + "_td'><details id='" + v_data[x][0] + "_dt' class='mdata-dt'><summary class='music_title'>" + v_data[x][1][0] + "</summary>" + can_d + "<div class='vtuber_sing'>")
                 #人データ追加
                 if v_data[x][2]==1:#歌い手が１人
-                    x_list_a("<a href='/ch/" + v_data[x][3][0] + "' onclick='rec_c()'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
+                    x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
                 else:#歌い手が複数人
                     for u in range(v_data[x][2]):
-                        x_list_a("<a href='/ch/" + v_data[x][3][u][0] + "' onclick='rec_c()'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][u][3] + "' alt='" + v_data[x][3][u][0] + "' title='" + v_data[x][3][u][0] + "'></a>")
+                        x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][u][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][u][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][u][3] + "' alt='" + v_data[x][3][u][0] + "' title='" + v_data[x][3][u][0] + "'></a>")
                 x_list_a("</div></details></td></tr>")
                 json_pagedata[json_count] = "".join(x_list)
                 json_count += 1
@@ -707,25 +704,25 @@ def make_chpage_v2(nick_name,mode=0):
         if mode==0:
             k_tbdata = copy.deepcopy(tbdata)
             k_tbdata.insert((2*r)+1,page_html_data_mdata)
-            nowpgdata.insert(5,k_tbdata)
+            nowpgdata.insert(4,k_tbdata)
             nowpgdata.append("<script src='/library/main.js'></script>")
             head_data = []
             stapass_preload = "<link rel='preload' href='/ch/" + nick_name + "/statistics.json' as 'fetch'>"
             if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">')
+                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"><link rel="stylesheet" href="/library/main.css">')
                 head_data.append('<link rel="next" href="/ch/' + nick_name + '/page2/">')
                 head_data.append(stapass_preload + "</head>")#閉じタグちゃん
             elif r==0 and r==math.ceil(len(v_data)/10):#初回ページのみ
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">' + stapass_preload + '</head>')
+                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">' + stapass_preload + '<link rel="stylesheet" href="/library/main.css"></head>')
             elif r==math.ceil(len(v_data)/10):#最後のページ
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">' + stapass_preload)
+                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"><link rel="stylesheet" href="/library/main.css">' + stapass_preload)
                 if r!=1:
                     head_data.append('<link rel="prev" href="/ch/' + nick_name + '/page' + str(math.ceil(len(v_data)/10)-1) + '/">')
                 else:
                     head_data.append('<link rel="prev" href="/ch/' + nick_name + '/">')
                 head_data.append("</head>")#閉じタグちゃん
             else:
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '">' + stapass_preload)
+                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"><link rel="stylesheet" href="/library/main.css">' + stapass_preload)
                 if r==1:#２ページ目の場合初回ページが前
                     head_data.append('<link rel="prev" href="/ch/' + nick_name + '/">')
                 else:
@@ -775,7 +772,7 @@ def music_recommend_page():
             nmusic_name = music_list[k_ranlist[x]]
             cur.execute("select video_id from video_id where music_name = '" + nmusic_name.replace("'","''") + "' order by upload_time desc")
             n_vid = str(cur.fetchone())[2:-3]
-            k_ar = [nmusic_name,n_vid]
+            k_ar = [nmusic_name,dir_name_replace(nmusic_name),n_vid]
             n_dict[x] = k_ar
         with open(ajax_path + "mr-" + str(n) + ".json","w") as f:
             json.dump(n_dict,f,indent=4)
@@ -803,7 +800,7 @@ def channel_recommend_page():
             if k not in k_ranlist:
                 k_ranlist.append(k)        
         for n in range(len(k_ranlist)):
-            k_ar = [ch_data[k_ranlist[n]][0],ch_data[k_ranlist[n]][1]]
+            k_ar = [ch_data[k_ranlist[n]][0],dir_name_replace(ch_data[k_ranlist[n]][0]),ch_data[k_ranlist[n]][1]]
             n_dict[n] = k_ar
         with open(ajax_path + "cr-" + str(x) + ".json","w") as f:
             json.dump(n_dict,f,indent=4)
@@ -839,10 +836,10 @@ def make_search_index():
     search_index_a = search_index.append
     for x in cur.fetchall():
         nst = str(x)[2:-3]
-        search_index_a([KanjiToKana(nst),nst,"/music/" + dir_name_replace(nst)])
+        search_index_a([KanjiToKana(nst),nst,"/music/" + dir_name_replace(nst) + "/"])
     cur.execute("select NICK_NAME_1 from ch_id where CLEATE_PAGE_DATE is not null")
     for x in cur.fetchall():
         nst = str(x)[2:-3]
-        search_index_a([KanjiToKana(nst),nst,"/ch/" + dir_name_replace(nst)])
+        search_index_a([KanjiToKana(nst),nst,"/ch/" + dir_name_replace(nst) + "/"])
     with open(folder_path + siteurl + "/search_index.json","w") as f:
         json.dump({"index":search_index},f,indent=4)

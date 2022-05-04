@@ -54,10 +54,11 @@ function page_transition(){//ページ移動時万が一あると問題が起こ
     delete now_nick_name;
     delete search_index_data;
     delete top_result;
+    delete sub_result;
     window.removeEventListener("scroll", music_scroll_ev);
     window.removeEventListener("scroll",ch_scroll_ev);
     try{
-        document.getElementById('search').removeEventListener("input",search_index);
+        document.getElementById('lib_search').removeEventListener("input",search_index);
     }
     catch{}
 }
@@ -261,7 +262,7 @@ function music_scroll_do(mes) {
     }
 }
 
-function recommend(){
+function recommend(kind=""){
     if(load_max===0){
         load_max++;
         let url_parm = new URL(window.location.href).searchParams;
@@ -281,11 +282,16 @@ function recommend(){
         request_mr.onload = function () {
             const res_mr = request_mr.response;
             let divm = document.getElementById("music_recommend");
-            document.getElementById("descm").innerHTML = '<hr><p class="other_music">他のおすすめの曲</p>';
+            if (kind===""){
+                document.getElementById("descm").innerHTML = '<hr><p class="other_music">他のおすすめの曲</p>';
+            }
+            else if (kind==="top"){
+                document.getElementById("descm").innerHTML = '<hr><p class="other_music">おすすめの曲(ランダム表示)</p>';
+            }
             for (let i = 0; i < 20; i++) {
-                divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][0] +
-                    "/' onclick='rec_c()'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
-                    res_mr[i][1] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "'></a>"
+                divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][1] +
+                    "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "\");return false'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
+                    res_mr[i][2] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "'></a>"
             }
         };
         let request_cr = new XMLHttpRequest();
@@ -295,56 +301,16 @@ function recommend(){
         request_cr.onload = function () {
             const res_cr = request_cr.response;
             let divc = document.getElementById("ch_recommend");
-            document.getElementById("descc").innerHTML = '<hr><p class="other_music">他のおすすめのVtuber</p>';
-            for (let i = 0; i < 20; i++) {
-                divc.innerHTML = divc.innerHTML + "<a href='/ch/" + res_cr[i][0] +
-                    "/' onclick='rec_c()'><span class='ofoverflow'>" + res_cr[i][0] +
-                    "</span><img class='recommend-ch' src='" + res_cr[i][1] + "' alt='" + res_cr[i][0] +
-                    "' title='" + res_cr[i][0] + "'></a>"
+            if (kind===""){
+                document.getElementById("descc").innerHTML = '<hr><p class="other_music">他のおすすめのVtuber</p>';
             }
-        }
-    }
-}
-
-function toppage_recommend(){
-    if(load_max===0){
-        load_max++;
-        let url_parm = new URL(window.location.href).searchParams;
-        let urp = new URLSearchParams(new URL(window.location.href));
-        if (url_parm.get('ran') != null) {
-            now_ran = url_parm.get('ran');
-        } else {
-            now_ran = Math.floor(Math.random() * 100);
-            urp.delete("tbdid");
-            urp.set("ran", String(now_ran));
-            history.replaceState(null, null, "?" + urp.toString())
-        }
-        let request_mr = new XMLHttpRequest();
-        request_mr.open("GET", "/ajax/music/mr-" + String(now_ran) + ".json");
-        request_mr.responseType = "json";
-        request_mr.send();
-        request_mr.onload = function () {
-            const res_mr = request_mr.response;
-            let divm = document.getElementById("music_recommend");
-            document.getElementById("descm").innerHTML = '<hr><p class="other_music">おすすめの曲(ランダム表示)</p>';
-            for (let i = 0; i < 20; i++) {
-                divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][0] +
-                    "/' onclick='rec_c()'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
-                    res_mr[i][1] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "'></a>"
+            else if (kind==="top"){
+                document.getElementById("descc").innerHTML = '<hr><p class="other_music">おすすめのVtuber(ランダム表示)</p>';
             }
-        };
-        let request_cr = new XMLHttpRequest();
-        request_cr.open("GET", "/ajax/ch/cr-" + String(now_ran) + ".json");
-        request_cr.responseType = "json";
-        request_cr.send();
-        request_cr.onload = function () {
-            const res_cr = request_cr.response;
-            let divc = document.getElementById("ch_recommend");
-            document.getElementById("descc").innerHTML = '<hr><p class="other_music">おすすめのVtuber(ランダム表示)</p>';
             for (let i = 0; i < 20; i++) {
-                divc.innerHTML = divc.innerHTML + "<a href='/ch/" + res_cr[i][0] +
-                    "/' onclick='rec_c()'><span class='ofoverflow'>" + res_cr[i][0] +
-                    "</span><img class='recommend-ch' src='" + res_cr[i][1] + "' alt='" + res_cr[i][0] +
+                divc.innerHTML = divc.innerHTML + "<a href='/ch/" + res_cr[i][1] +
+                    "/' onclick='page_ajax_load(\"/ch/" + res_cr[i][1] + "\");return false'><span class='ofoverflow'>" + res_cr[i][0] +
+                    "</span><img class='recommend-ch' src='" + res_cr[i][2] + "' alt='" + res_cr[i][0] +
                     "' title='" + res_cr[i][0] + "'></a>"
             }
         }
@@ -418,11 +384,10 @@ function music_scroll_ev() {
 function search_index_finish(){
     search_index();
     if (top_result.length==1){
-        console.log("success");
-        window.location.href = top_result[0][2];
+        page_ajax_load(top_result[0][2]);
     }
     else if (sub_result.length==1){
-        window.location.href = sub_result[0][2];
+        page_ajax_load(sub_result[0][2]);
     }
     else if (sub_result.length==0){
         document.getElementById("search_result").innerText = "すみません1件も見つかりませんでした.";
@@ -430,8 +395,7 @@ function search_index_finish(){
 }
 
 function japan_smallToBig(nowst){
-    let retst = nowst.replaceAll("ぁ","あ").replaceAll("ぃ","い").replaceAll("ぅ","う").replaceAll("ぇ","え").replaceAll("ぉ","お").replaceAll("っ","つ").replaceAll("ゃ","や").replaceAll("ゅ","ゆ").replaceAll("ょ","よ")
-    retst = retst.replaceAll("ァ","あ").replaceAll("ィ","い").replaceAll("ゥ","う").replaceAll("ェ","え").replaceAll("ォ","お").replaceAll("ッ","つ").replaceAll("ャ","や").replaceAll("ュ","ゆ").replaceAll("ョ","よ")
+    let retst = nowst.replaceAll("ぁ","あ").replaceAll("ぃ","い").replaceAll("ぅ","う").replaceAll("ぇ","え").replaceAll("ぉ","お").replaceAll("っ","つ").replaceAll("ゃ","や").replaceAll("ゅ","ゆ").replaceAll("ょ","よ").replaceAll("ァ","あ").replaceAll("ィ","い").replaceAll("ゥ","う").replaceAll("ェ","え").replaceAll("ォ","お").replaceAll("ッ","つ").replaceAll("ャ","や").replaceAll("ュ","ゆ").replaceAll("ョ","よ")
     return retst
 }
 
@@ -441,7 +405,6 @@ function search_index(){
     let now_svalue = document.getElementById("lib_search").value.toLowerCase();
     now_svalue = japan_smallToBig(now_svalue);
     now_svalue = now_svalue.replace(/[ァ-ン]/g, function(s) {return String.fromCharCode(s.charCodeAt(0) - 0x60);});//内部処理用にカタカナを平仮名に変換
-    console.log(now_svalue)
     for(var nint=0;nint<search_index_data.length;nint++){
         let nowst = search_index_data[nint];
         for(var aint=0;aint<nowst[0].length;aint++){
@@ -477,6 +440,30 @@ function search_index(){
     }
 }
 
+function page_ajax_load(htmlpass,ig=0){
+    let page_ajax_xhr = new XMLHttpRequest();
+    page_ajax_xhr.open("GET",htmlpass);
+    page_ajax_xhr.responseType = "document";
+    page_ajax_xhr.send();
+    page_ajax_xhr.onload = function(){
+        const ajax_html = page_ajax_xhr.response;
+        let ajax_head = ajax_html.querySelector("head");
+        let ajax_main = ajax_html.querySelector("main");
+        //書き換え
+        document.querySelector("head").innerHTML = ajax_head.innerHTML;
+        document.querySelector("main").innerHTML = ajax_main.innerHTML;
+        let nowurl = String(location).replace(location.origin,"");
+        if (ig===0){
+            history.pushState(nowurl,null,htmlpass);
+        }
+        if (ig===1){
+            history.replaceState(null,null,htmlpass);
+        }
+        console.log(htmlpass);
+        page_load();
+    }
+}
+
 function search_index_load(){
     let index_xhr = new XMLHttpRequest();
     index_xhr.open("GET","/search_index.json");
@@ -507,10 +494,13 @@ function page_load(){//ページロード時の処理
     }
     else if (location.pathname==="/"){//トップページ
         load_max = 0;
-        toppage_recommend();
+        recommend("top");
     }
     else if (location.pathname==="/search/"){
         search_index_load();
     }
 }
 page_load();
+window.addEventListener('popstate', function(e) {
+    page_ajax_load(location.pathname,1);
+});
