@@ -11,7 +11,7 @@ cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
 
 #webサイト用変数設定
 siteurl = "vsong.fans"
-header = """<header><h2 class="Top"><a href="/" onClick='page_ajax_load("/")'>VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search/" onClick='page_ajax_load("/search/")'>検索</a><li><a href="/today/" onClick='page_ajax_load("/today/")'>今日の人気</a></ul></nav></header>"""
+header = """<header><h2 class="Top"><a href="/" onClick='page_ajax_load("/");return false'>VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search/" onClick='page_ajax_load("/search/");return false'>検索</a><li><a href="/today/" onClick='page_ajax_load("/today/");return false'>今日の人気</a></ul></nav></header>"""
 folder_path = "public/"
 
 def conect_close():#接続切るよう
@@ -575,7 +575,7 @@ def make_music_page_v2(music_name,mode=0):
             nowpgdata.insert(6,k_tbdata)
             nowpgdata.append("<script src='/library/main.js'></script>")
             head_data = []
-            stapass_preload = "<link rel='preload' href='/music/" + music_name + "/statistics.json' as 'fetch'>"
+            stapass_preload = "<link rel='preload' href='/music/" + music_name + "/statistics.json' as='fetch'>"
             if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
                 head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"><link rel="stylesheet" href="/library/main.css">')
                 head_data.append('<link rel="next" href="/music/' + music_name + '/page2/">')
@@ -707,7 +707,7 @@ def make_chpage_v2(nick_name,mode=0):
             nowpgdata.insert(4,k_tbdata)
             nowpgdata.append("<script src='/library/main.js'></script>")
             head_data = []
-            stapass_preload = "<link rel='preload' href='/ch/" + nick_name + "/statistics.json' as 'fetch'>"
+            stapass_preload = "<link rel='preload' href='/ch/" + nick_name + "/statistics.json' as='fetch'>"
             if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
                 head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + nomsec_time(datetime.datetime.now()) + '"><link rel="stylesheet" href="/library/main.css">')
                 head_data.append('<link rel="next" href="/ch/' + nick_name + '/page2/">')

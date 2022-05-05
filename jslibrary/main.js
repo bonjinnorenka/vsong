@@ -143,33 +143,6 @@ function ch_scroll_do(mes) {
     }
 }
 
-function ch_replace_urlst(){
-    let k_place_array = [];
-    for(var k=0;k<maxlength;k++){
-        let ndt = document.getElementById("tbd-" + String(k));
-        if (ndt.innerHTML!=""){//内容があるのだけ追加
-            k_place_array.push(ndt.getBoundingClientRect()["y"]);
-        }
-    }
-    if (window.matchMedia('(min-width:600px)').matches) {
-        var get_put = -1700
-    }
-    else{
-        var get_put = -1000
-    }
-    const ans = getClosestNum(get_put,k_place_array);
-    for(var k=0;k<maxlength;k++){
-        if(document.getElementById("tbd-" + String(k)).getBoundingClientRect()["y"]===ans&&String(location).match("/page" + String(k+1) + "/")==null){
-            if (k!=0){
-                history.replaceState(null,null,"/ch/" + now_nick_name + "/page" + String(k+1) + "/" + location.search)
-            }
-            else{
-                history.replaceState(null,null,"/ch/" + now_nick_name + "/" + location.search)
-            }
-        }
-    }
-}
-
 function ch_scroll_ev() {
     const currentPos = window.pageYOffset;
     var bottomPoint = document.body.clientHeight - window.innerHeight - 600;
@@ -179,7 +152,7 @@ function ch_scroll_ev() {
     if (currentPos < 500){
         ch_scroll_do("up")
     }
-    ch_replace_urlst();
+    replace_urlst("ch");
 }
 
 function music_page_load(){
@@ -290,7 +263,7 @@ function recommend(kind=""){
             }
             for (let i = 0; i < 20; i++) {
                 divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][1] +
-                    "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "\");return false'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
+                    "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "/\");return false'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
                     res_mr[i][2] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "'></a>"
             }
         };
@@ -309,7 +282,7 @@ function recommend(kind=""){
             }
             for (let i = 0; i < 20; i++) {
                 divc.innerHTML = divc.innerHTML + "<a href='/ch/" + res_cr[i][1] +
-                    "/' onclick='page_ajax_load(\"/ch/" + res_cr[i][1] + "\");return false'><span class='ofoverflow'>" + res_cr[i][0] +
+                    "/' onclick='page_ajax_load(\"/ch/" + res_cr[i][1] + "/\");return false'><span class='ofoverflow'>" + res_cr[i][0] +
                     "</span><img class='recommend-ch' src='" + res_cr[i][2] + "' alt='" + res_cr[i][0] +
                     "' title='" + res_cr[i][0] + "'></a>"
             }
@@ -342,7 +315,7 @@ function getClosestNum(num, ar){
   return false;
 }
 
-function music_replace_urlst(){
+function replace_urlst(kind=""){
     let k_place_array = [];
     for(var k=0;k<maxlength;k++){
         let ndt = document.getElementById("tbd-" + String(k));
@@ -360,13 +333,24 @@ function music_replace_urlst(){
     for(var k=0;k<maxlength;k++){
         if(document.getElementById("tbd-" + String(k)).getBoundingClientRect()["y"]===ans&&String(location).match("/page" + String(k+1) + "/")==null){
             if (k!=0){
-                history.replaceState(null,null,"/music/" + now_music_name + "/page" + String(k+1) + "/" + location.search)
+                if(kind==="music"){
+                    history.replaceState(null,null,"/music/" + now_music_name + "/page" + String(k+1) + "/" + location.search)
+                }
+                else if(kind==="ch"){
+                    history.replaceState(null,null,"/ch/" + now_nick_name + "/page" + String(k+1) + "/" + location.search)
+                }
             }
             else{
-                history.replaceState(null,null,"/music/" + now_music_name + "/" + location.search)
+                if(kind==="music"){
+                    history.replaceState(null,null,"/music/" + now_music_name + "/" + location.search)
+                }
+                else if(kind==="ch"){
+                    history.replaceState(null,null,"/ch/" + now_nick_name + "/" + location.search)
+                }
             }
         }
     }
+    
 }
 
 function music_scroll_ev() {
@@ -378,7 +362,7 @@ function music_scroll_ev() {
     if (currentPos < 500){
         music_scroll_do("up")
     }
-    music_replace_urlst();
+    replace_urlst("music");
 }
 
 function search_index_finish(){
@@ -402,7 +386,14 @@ function japan_smallToBig(nowst){
 function search_index(){
     top_result = [];
     sub_result = [];
-    let now_svalue = document.getElementById("lib_search").value.toLowerCase();
+    let now_query_st = document.getElementById("lib_search").value;
+    if(now_query_st!=""){
+        history.replaceState(null,null,location.pathname + "?q=" + now_query_st);
+    }
+    else{
+        history.replaceState(null,null,location.pathname);
+    }
+    let now_svalue = now_query_st.toLowerCase();
     now_svalue = japan_smallToBig(now_svalue);
     now_svalue = now_svalue.replace(/[ァ-ン]/g, function(s) {return String.fromCharCode(s.charCodeAt(0) - 0x60);});//内部処理用にカタカナを平仮名に変換
     for(var nint=0;nint<search_index_data.length;nint++){
@@ -422,14 +413,14 @@ function search_index(){
     let result_area = document.getElementById("search_result")
     let k_strin = "";
     if (top_result.length==1){
-        k_strin = "<a href='" + top_result[0][2] + "'>" + top_result[0][1] + "</a><br>"
+        k_strin = "<a href='" + top_result[0][2] + "' onClick='page_ajax_load(\"" + top_result[0][2] + "\");return false'>" + top_result[0][1] + "</a><br>"
     }
     for(var nint=0;nint<sub_result.length;nint++){
         if (top_result.length!=1){
-            k_strin = k_strin + "<a href='" + sub_result[nint][2] + "'>" + sub_result[nint][1] + "</a><br>";
+            k_strin = k_strin + "<a href='" + sub_result[nint][2] + "' onClick='page_ajax_load(\"" + sub_result[nint][2] + "\");return false'>" + sub_result[nint][1] + "</a><br>";
         }
         else if(sub_result[nint]!==top_result[0]){
-            k_strin = k_strin + "<a href='" + sub_result[nint][2] + "'>" + sub_result[nint][1] + "</a><br>";
+            k_strin = k_strin + "<a href='" + sub_result[nint][2] + "' onClick='page_ajax_load(\"" + sub_result[nint][2] + "\");return false'>" + sub_result[nint][1] + "</a><br>";
         }
     }
     if (search_index_data.length!=sub_result.length){
@@ -452,11 +443,11 @@ function page_ajax_load(htmlpass,ig=0){
         //書き換え
         document.querySelector("head").innerHTML = ajax_head.innerHTML;
         document.querySelector("main").innerHTML = ajax_main.innerHTML;
-        let nowurl = String(location).replace(location.origin,"");
-        if (ig===0){
-            history.pushState(nowurl,null,htmlpass);
+        if (ig===0){//次のページに行くとき
+            history.pushState(null,null,htmlpass);
+            window.scrollTo(0,0);
         }
-        if (ig===1){
+        if (ig===1){//戻っちゃうとき
             history.replaceState(null,null,htmlpass);
         }
         console.log(htmlpass);
@@ -497,10 +488,15 @@ function page_load(){//ページロード時の処理
         recommend("top");
     }
     else if (location.pathname==="/search/"){
+        let url_parm = new URL(window.location.href).searchParams;
+        if(url_parm.get("q")!=null){
+            document.getElementById("lib_search").value=url_parm.get("q");
+        }
         search_index_load();
     }
 }
 page_load();
 window.addEventListener('popstate', function(e) {
-    page_ajax_load(location.pathname,1);
+    let now_url = String(location.href).replace(location.origin,"");
+    page_ajax_load(now_url,1);
 });
