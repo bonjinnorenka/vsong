@@ -842,11 +842,11 @@ def make_search_index():
         json.dump({"index":search_index},f,indent=4)
 
 def make_video_random():
-    cur.execute("SELECT VIDEO_ID,VIDEO_NAME FROM VIDEO_ID")
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
     vid_list = []
     vid_list_a = vid_list.append
     for x in cur.fetchall():
-        vid_list_a([str(x[0]),str(x[1])])
+        vid_list_a(str(x)[2:-3])
     vidlen = len(vid_list)
     for x in range(100):
         n_vidlist = []
