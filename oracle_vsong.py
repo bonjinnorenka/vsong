@@ -446,7 +446,7 @@ def make_music_page_v2(music_name,mode=0):
     share_html_a = share_html.append
     if mode==0:
         music_data = search_musicdata(music_name)
-        share_html_a('<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.css">')
+        share_html_a('<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script>')
         share_html_a(header)
         description = "Vtuberの" + music_name + "の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
         page_title = "Vtuberの歌う" + music_name
@@ -591,7 +591,7 @@ def make_chpage_v2(nick_name,mode=0):
     share_html_a = share_html.append
     description = "Vtuberの" + nick_name + "が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
     page_title = nick_name + "の歌った曲集"
-    share_html_a('<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lite-youtube-embed@0.2.0/src/lite-yt-embed.min.css">')
+    share_html_a('<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script>')
     share_html_a(header)
     share_html_a('<main><div class="for_center"><div id="sum-viewer"></div>')
     share_html_a("<table id='video_data_t'>")
@@ -651,7 +651,7 @@ def make_chpage_v2(nick_name,mode=0):
                         elif "https://pbs.twimg.com" in v_data[x][3][w][3]:
                             v_data[x][3][w][3] = str(v_data[x][3][w][3])[:-11] + "200x200" + str(v_data[x][3][w][3])[-4:]
                 #行のデータ
-                x_list_a("<tr class='" + " ".join(men_of_list) + "'><td><lite-youtube videoid='" + v_data[x][0] + "' playlabel='Play'></lite-youtube></td><td class='yt-meta' id='" + v_data[x][0] + "_td'><details id='" + v_data[x][0] + "_dt' class='mdata-dt'><summary class='music_title'>" + v_data[x][1][0] + "</summary>" + can_d + "<div class='vtuber_sing'>")
+                x_list_a("<tr class='" + " ".join(men_of_list) + "'><td><lite-youtube videoid='" + v_data[x][0] + "' playlabel='Play'></lite-youtube></td><td class='yt-meta' id='" + v_data[x][0] + "_td'><details id='" + v_data[x][0] + "_dt' class='mdata-dt'><summary id='" + v_data[x][0] + "_sum' class='music_title'><a id='" + v_data[x][0] + "_music_a' href='/music/"+ dir_name_replace(v_data[x][1][0]) + "/' onClick='page_ajax_load(\"/music/" + dir_name_replace(v_data[x][1][0]) + "/\");return false'>" + v_data[x][1][0] + "</a></summary>" + can_d + "<div class='vtuber_sing'>")
                 #人データ追加
                 if v_data[x][2]==1:#歌い手が１人
                     x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
@@ -731,7 +731,7 @@ def music_recommend_page():
                 k_ranlist.append(k)
         for x in range(len(k_ranlist)):
             nmusic_name = music_list[k_ranlist[x]]
-            cur.execute("select video_id from video_id where music_name = '" + nmusic_name.replace("'","''") + "' order by upload_time desc")
+            cur.execute("select video_id from video_id where music_name = '" + nmusic_name.replace("'","''") + "' order by upload_time desc FETCH FIRST 1 ROWS ONLY")
             n_vid = str(cur.fetchone())[2:-3]
             k_ar = [nmusic_name,dir_name_replace(nmusic_name),n_vid]
             n_dict[x] = k_ar

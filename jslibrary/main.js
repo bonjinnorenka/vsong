@@ -10,6 +10,9 @@ function dt(video_id) {
     if (window.matchMedia('(min-width:768px)').matches) {
         document.getElementById(video_id + '_td').innerHTML = document.getElementById(video_id + '_dt').innerHTML;
     }
+    else{
+        document.getElementById(video_id + "_sum").innerHTML = document.getElementById(video_id + "_music_a").innerHTML;
+    }
 };
 
 function Chart_cleater_v2(id_c, label, vc, lc, cc) {
@@ -859,6 +862,11 @@ function hotchange(){
             today_load(kind=nown);
         }
     }
+}
+
+function dir_replace(n_str){
+    let n_rep_st = String(n_str).replaceAll("\\","").replaceAll(",","").replaceAll(".","").replaceAll(":","").replaceAll(";","").replaceAll("?","").replaceAll("/","").replaceAll("<","").replaceAll(">","").replaceAll("*","").replaceAll("|","").replaceAll("+","").replaceAll("=","").replaceAll("[","").replaceAll("]","").replaceAll('"',"").replaceAll("(","").replaceAll(")","").replaceAll("^","").replaceAll("!","").replaceAll("$","").replaceAll("'","").replaceAll("%","").replaceAll("&","").replaceAll("～","")
+    return n_rep_st
 }
 
 function page_load(){//ページロード時の処理
