@@ -1,4 +1,6 @@
+import itertools
 import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv
+import MySQLdb
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
@@ -26,8 +28,7 @@ def flatten(l):
             yield el
 
 def update_videodata():
-    cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
-    cur.execute("SELECT video_id FROM VIDEO_ID")
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
     v_id_kl = cur.fetchall()
     #変形
     v_id_l = []
@@ -42,14 +43,13 @@ def update_videodata():
     con.commit()
 
 def correct_video_list():
-    cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
     cur.execute("SELECT DISTINCT PLAYLIST_ID FROM CRAWLER_PLAYLIST")
     pid_kl = cur.fetchall()
     pid_l = []
     pid_l_a = pid_l.append
     for x in range(len(pid_kl)):
         pid_l_a(str(pid_kl[x])[2:-3])
-    cur.execute("SELECT video_id FROM VIDEO_ID")
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
     v_id_kl = cur.fetchall()
     v_id_l = []
     v_id_a = v_id_l.append
@@ -100,35 +100,19 @@ def add_groupe_name():
     cur.execute("INSERT INTO PAIR_LIST_SECOND (GROUPE_NAME) SELECT distinct GROUPE_NAME FROM VIDEO_ID TAB_B WHERE GROUPE_NAME IS NOT NULL AND NOT EXISTS (SELECT 'X' FROM PAIR_LIST_SECOND TAB_A WHERE TAB_A.GROUPE_NAME = TAB_B.GROUPE_NAME)")
     con.commit()
 
-def video2data(video_id):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME FROM VIDEO_ID WHERE VIDEO_ID = '" + video_id + "'")
-    video_info = cur.fetchone()
-    song_info = [video_info[0],search_musicdata(video_info[3])]
-    if video_info[4]==None:#投稿者が一人で歌っている場合
-        song_info.append(1)
-        cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL FROM CH_ID ci WHERE CH_ID = '" + video_info[1] + "'")
-        song_info.append(list(cur.fetchone()))
-    else:#グループで歌っているパターン
-        menlist = groupe_name2men_name(video_info[4])
-        m_menlist = []
-        for x in range(len(menlist)):
-            m_menlist.append(search_chdata(menlist[x]))
-        song_info.extend([len(menlist),m_menlist])
-    return song_info
-
 def video2data_v2(video_id):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME FROM VIDEO_ID WHERE VIDEO_ID = '" + video_id + "'")
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME FROM VIDEO_ID WHERE VIDEO_ID = :video_id",video_id=video_id)
     video_info = cur.fetchone()
     song_info = [video_info[0],search_musicdata(video_info[3])]
     if video_info[4]==None:#投稿者が一人で歌っている場合
         song_info.append(1)
-        cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID ci WHERE CH_ID = '" + video_info[1] + "'")
+        cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID ci WHERE CH_ID = :ch_id",ch_id=video_info[1])
         song_info.append(list(cur.fetchone()))
     else:#グループで歌っているパターン
         menlist = groupe_name2men_namev2(video_info[4])
         if len(menlist)==1:
             song_info.append(1)
-            cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID WHERE (NICK_NAME_1 in ('" + menlist[0] + "') OR NICK_NAME_2 in ('" + menlist[0] + "')) and ig = 0")
+            cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID WHERE (NICK_NAME_1 in (:nick_name) OR NICK_NAME_2 in (:nick_name)) and ig = 0",nick_name=menlist[0])
             song_info.append(list(cur.fetchone()))
         else:
             song_info.extend([len(menlist),search_chdata_list_bf(menlist)])
@@ -138,7 +122,7 @@ def video2data_v2(video_id):
 def groupe_name2men_namev2(groupe_name):#v2のテーブルにアクセス
     songer_list = []
     songer_list_a = songer_list.append
-    cur.execute("select MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,MN_7,MN_8,MN_9,MN_10,MN_11,MN_12,MN_13,MN_14,MN_15,MN_16,MN_17,MN_18,MN_19,MN_20,MN_21,MN_22,MN_23,MN_24,MN_25,MN_26,MN_27,MN_28,MN_29,MN_30,MN_31,MN_32,MN_33,MN_34,MN_35,MN_36,MN_37,MN_38,MN_39 from PAIR_LIST_SECOND where groupe_name = '" + groupe_name.replace("'","''") + "'")
+    cur.execute("select MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,MN_7,MN_8,MN_9,MN_10,MN_11,MN_12,MN_13,MN_14,MN_15,MN_16,MN_17,MN_18,MN_19,MN_20,MN_21,MN_22,MN_23,MN_24,MN_25,MN_26,MN_27,MN_28,MN_29,MN_30,MN_31,MN_32,MN_33,MN_34,MN_35,MN_36,MN_37,MN_38,MN_39 from PAIR_LIST_SECOND where groupe_name = :group_name",group_name=groupe_name.replace("'","''"))
     k_gndata = cur.fetchone()
     for r in k_gndata:
         if r!=None:#データあり
@@ -147,28 +131,8 @@ def groupe_name2men_namev2(groupe_name):#v2のテーブルにアクセス
             break
     return songer_list
 
-def groupe_name2men_name(groupe_name):#過去の遺産低速
-    songer_list = []
-    songer_list_a = songer_list.append
-    cur.execute("SELECT GROUPE_NAME,REDIRECT,MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,OVER_MN FROM PAIR_LIST WHERE GROUPE_NAME = '" + groupe_name.replace("'","''") +"'")
-    k_gdata = cur.fetchone()
-    while k_gdata[1]!=None:#リダイレクトがあればなくなるまで処理続行
-        cur.execute("SELECT GROUPE_NAME,REDIRECT,MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,OVER_MN FROM PAIR_LIST WHERE GROUPE_NAME = '" + k_gdata[1].replace("'","''") +"'")
-        k_gdata = cur.fetchone()
-    while True:
-        for x in range(6):
-            if k_gdata[x+2]!=None:
-                songer_list_a(k_gdata[x+2])
-            else:
-                break
-        if k_gdata[8]==None:
-            break
-        cur.execute("SELECT GROUPE_NAME,REDIRECT,MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,OVER_MN FROM PAIR_LIST WHERE GROUPE_NAME = '" + k_gdata[8].replace("'","''") +"'")
-        k_gdata = cur.fetchone()
-    return songer_list
-
 def add_music_data():
-    cur.execute("select distinct music_name from video_id where music_name is not null and music_name not in (select key_music_name from MUSIC_SONG_DB where Key_music_name is not null)")
+    cur.execute("SELECT DISTINCT MUSIC_NAME FROM VIDEO_ID WHERE MUSIC_NAME IS NOT NULL AND MUSIC_NAME NOT IN (SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB WHERE KEY_MUSIC_NAME IS NOT NULL)")
     k_rec_mlist = cur.fetchall()
     if len(k_rec_mlist)==0:
         return
@@ -244,7 +208,7 @@ def true_check():
         print(str(_faul) + "件のエラーが発生しています")
 
 def music_list(music_name):
-    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE MUSIC_NAME = '" + music_name.replace("'","''") + "' and ig = 0 ORDER BY UPLOAD_TIME DESC")#登校が新しい順に並び変え
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE MUSIC_NAME = :music_name and ig = 0 ORDER BY UPLOAD_TIME DESC",music_name=music_name.replace("'","''"))#登校が新しい順に並び変え
     m_vid = cur.fetchall()
     mlist = []
     mlist_a = mlist.append
@@ -272,7 +236,7 @@ def search_musicdata(music_name):
 
 def search_chdata(nick_name):
     nick_name = nick_name.replace("'","''")
-    cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,NICK_NAME_2 FROM CH_ID WHERE NICK_NAME_1 ='" + nick_name + "' OR NICK_NAME_2 = '" + nick_name + "'")
+    cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,NICK_NAME_2 FROM CH_ID WHERE NICK_NAME_1 = :nick_name OR NICK_NAME_2 = :nick_name",nick_name=nick_name)
     ch_data = list(cur.fetchone())
     if ch_data[1]==None and ch_data[4]!=None:
         ch_data[1] = ch_data[4]
@@ -321,7 +285,7 @@ def youtube_embedded(video_id):
     return '<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/' + video_id + '" title="YouTube video player" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
 
 def look_up_v_history(video_id,scope=7):#scopeでデータ取得　jstタイムゾーンがJSTなことを確認!!
-    cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'),VIEW_C,LIKE_C,COMMENT_C FROM VIDEO_V_DATA WHERE VIDEO_ID = '" + video_id + "' and RELOAD_TIME >= (current_date - " + str(scope) + ") ORDER BY RELOAD_TIME ASC")
+    cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), 0) AS DIFF, LIKE_C, COMMENT_C FROM VIDEO_V_DATA vvd WHERE VIDEO_ID = '" + video_id + "' AND RELOAD_TIME > SYSDATE - " + str(scope + 1) + " ORDER BY RELOAD_TIME ASC OFFSET 1 ROWS FETCH FIRST 7 ROWS ONLY")
     return cur.fetchall()
 
 def view_vlist_graph(video_idlist,scope=7,data=0):
@@ -499,7 +463,7 @@ def make_music_page_v2(music_name,mode=0):
             share_html_a("<h1>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
         share_html_a('<div id="sum-viewer"></div>')
         share_html_a("<table id='video_data_t'>")
-        share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""")
+        share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main><div class="sticky_c_yt dis_none" id="ytembed"><div id="youtube-iframe"></div></div><span class="sticky_c dis_none" id="control_panel"><progress class="yt-progress" id="yt-player-time" max="100" value="0"></progress><div class="flex_box"><div class="beside_gr"><div class="beside_gr_in" id="music_name_display"></div></div><div class="play_center"><button id="yt-playbt" onclick="yt_playorstop()" class="bt_noborder" title="再生"><img class="control_icon" src="/util/playbtn.svg"></button><button onclick="yt_skip()" title="スキップ" class="bt_noborder"><img class="control_icon" src="/util/skipbt.svg"></button><input title="音量を調節" type="range" id="yt_sound_volume" min="0" max="100" value="100" onchange="yt_volume_change()"><button id="yt_display" onclick="yt_display()">表示</button><button id="yt_ch_dismode" onclick='yt_watchmode_ch()' title="大画面で表示" class="bt_noborder"><img class="control_icon" src="/util/bigwindow.svg"></button><input id="autoload_check" type="checkbox"></div></div></span>""")
     music_videos_id = music_list(music_name)
     tbdata = []
     tbdata_ex = tbdata.extend
@@ -632,7 +596,7 @@ def make_chpage_v2(nick_name,mode=0):
     share_html_a('<main><div class="for_center"><div id="sum-viewer"></div>')
     share_html_a("<table id='video_data_t'>")
     #ここの6番目にデータは入れてね
-    share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""")
+    share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main><div class="sticky_c_yt dis_none" id="ytembed"><div id="youtube-iframe"></div></div><span class="sticky_c dis_none" id="control_panel"><progress class="yt-progress" id="yt-player-time" max="100" value="0"></progress><div class="flex_box"><div class="beside_gr"><div class="beside_gr_in" id="music_name_display"></div></div><div class="play_center"><button id="yt-playbt" onclick="yt_playorstop()" class="bt_noborder" title="再生"><img class="control_icon" src="/util/playbtn.svg"></button><button onclick="yt_skip()" title="スキップ" class="bt_noborder"><img class="control_icon" src="/util/skipbt.svg"></button><input title="音量を調節" type="range" id="yt_sound_volume" min="0" max="100" value="100" onchange="yt_volume_change()"><button id="yt_display" onclick="yt_display()">表示</button><button id="yt_ch_dismode" onclick='yt_watchmode_ch()' title="大画面で表示" class="bt_noborder"><img class="control_icon" src="/util/bigwindow.svg"></button><input id="autoload_check" type="checkbox"></div></div></span>""")
     tbdata = []
     tbdata_ex = tbdata.extend
     for g in range(math.ceil(len(videolist_id)/10)):
@@ -811,6 +775,7 @@ moji = str.maketrans("ぁぃぅぇぉっゃゅょ", "あいうえおつやゆよ
 
 def KanjiToKana(kanji_st):
     kanji_st = kanji_st.lower()
+    kanji_st.replace(" ","").replace("　","")
     res = kks.convert(kanji_st)
     er_strings = [["博衣こより","はくいこより"],["雪花ラミィ","ゆきはならみぃ"],["大神ミオ","おおかみみお"]]
     k_res_list = []#うまくルビ振りができないのを登録
@@ -833,13 +798,75 @@ def make_search_index():
     search_index_a = search_index.append
     for x in cur.fetchall():
         nst = str(x)[2:-3]
-        search_index_a([KanjiToKana(nst),nst,"/music/" + dir_name_replace(nst) + "/"])
+        nowret = KanjiToKana(nst)
+        if len(nowret)==1:
+            search_index_a([nowret[0],nst,"/music/" + dir_name_replace(nst) + "/"])
+        else:#2使えってくる
+            for r in range(2):
+                search_index_a([nowret[r],nst,"/music/" + dir_name_replace(nst) + "/"])
     cur.execute("select NICK_NAME_1 from ch_id where CLEATE_PAGE_DATE is not null")
     for x in cur.fetchall():
         nst = str(x)[2:-3]
-        search_index_a([KanjiToKana(nst),nst,"/ch/" + dir_name_replace(nst) + "/"])
-    with open(folder_path + siteurl + "/search_index.json","w") as f:
+        nowret = KanjiToKana(nst)
+        if len(nowret)==1:
+            search_index_a([nowret[0],nst,"/ch/" + dir_name_replace(nst) + "/"])
+        else:#2使えってくる
+            for r in range(2):
+                search_index_a([nowret[r],nst,"/ch/" + dir_name_replace(nst) + "/"])
+    cur.execute("SELECT CH_ID,NICK_NAME_1 FROM CH_ID WHERE EXISTS (SELECT DISTINCT CHANNEL_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME IS NULL and CH_ID.CH_ID = CHANNEL_ID)")#一人で歌っているチャンネルを取得
+    single_ch_list = cur.fetchall()
+    for n_chid in single_ch_list:
+        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE CHANNEL_ID = '" + n_chid[0] + "'AND IG = 0 AND GROUPE_NAME IS NULL AND MUSIC_NAME IS NOT NULL")
+        for n in cur.fetchall():
+            nst = n_chid[1] + " " + n[1]
+            nowret = KanjiToKana(nst)
+            if len(nowret)==1:
+                search_index_a([nowret[0].replace(" ",""),nst,"/watch?v=" + n[0]])
+            else:#2使えってくる
+                for r in range(2):
+                    search_index_a([nowret[r].replace(" ",""),nst,"/watch?v=" + n[0]])
+            nst = n[1] + " " + n_chid[1]
+            nowret = KanjiToKana(nst)
+            if len(nowret)==1:
+                search_index_a([nowret[0].replace(" ",""),nst,"/watch?v=" + n[0]])
+            else:#2使えってくる
+                for r in range(2):
+                    search_index_a([nowret[r].replace(" ",""),nst,"/watch?v=" + n[0]])
+    cur.execute("SELECT DISTINCT GROUPE_NAME FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME IS NOT NULL")#使われているgroupe name抽出
+    gname_v = cur.fetchall()
+    for n_gn in gname_v:
+        now_gname = str(n_gn)[2:-3]
+        now_g_list = groupe_name2men_namev2(now_gname)
+        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE GROUPE_NAME = '" + now_gname + "' AND IG = 0")
+        for n in cur.fetchall():
+            for z in now_g_list:
+                nst = z + " " + n[1]
+                nowret = KanjiToKana(nst)
+                if len(nowret)==1:
+                    search_index_a([nowret[0].replace(" ",""),nst,"/watch?v=" + n[0]])
+                else:#2使えってくる
+                    for r in range(2):
+                        search_index_a([nowret[r].replace(" ",""),nst,"/watch?v=" + n[0]])
+                nst = n[1] + " " + z
+                nowret = KanjiToKana(nst)
+                if len(nowret)==1:
+                    search_index_a([nowret[0].replace(" ",""),nst,"/watch?v=" + n[0]])
+                else:#2使えってくる
+                    for r in range(2):
+                        search_index_a([nowret[r].replace(" ",""),nst,"/watch?v=" + n[0]])
+    with open(folder_path + siteurl + "/cgi-bin/search_index.json","w") as f:
         json.dump({"index":search_index},f,indent=4)
+    k_ar = list(itertools.chain.from_iterable(search_index))
+    with open(folder_path + siteurl + "/cgi-bin/search_index_a.json","w") as f:
+        json.dump({"index":k_ar},f)
+    with open(folder_path + siteurl + "/cgi-bin/search_index_a.rcsv","w",encoding="utf-8") as f:
+        f.write("@".join(k_ar))
+    connection_l = MySQLdb.connect(host="localhost",user="root",passwd="mysqlroot",db="vsong")
+    cur_l = connection_l.cursor()
+    for r in search_index:
+        cur_l.execute("INSERT INTO vsong_search (main_index_key,index_print_name,index_url) VALUES('" + r[0] + "','" + str(r[1]).replace("'","''") + "','" + r[2] + "')")
+    connection_l.commit()
+    connection_l.close()
 
 def make_video_random():
     cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
@@ -860,5 +887,73 @@ def make_video_random():
         for r in n_range_list:
             n_vidlist_a(vid_list[r])
         k_dict = {0:n_vidlist}
-        with open(folder_path + siteurl + "/random_vid/ran" + str(x) + ".json","w") as f:
+        with open(folder_path + siteurl + "/random_pl/ran" + str(x) + ".json","w") as f:
             json.dump(k_dict,f,indent=4)
+
+def todays_hot():
+    #データベースから前日の伸び率　ただし分母や分子が0になったときは-1000を出力　を最初の100行だけ取得
+    cur.execute("SELECT VIDEO_ID,(SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID),RELOAD_TIME,NVL(NULLIF((VIEW_C - lag(VIEW_C,1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)),0)/NULLIF((lag(VIEW_C,1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME) - lag(VIEW_C,2) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)),0),-1000)-1 DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE -3 AND EXISTS (SELECT VIDEO_ID FROM VIDEO_ID vid WHERE vid.VIDEO_ID = vvd.VIDEO_ID AND IG = 0) ORDER BY RELOAD_TIME DESC,DIFF DESC FETCH FIRST 100 ROWS ONLY")
+    kari_fetch = cur.fetchall()
+    rank_list = []
+    for r in kari_fetch:#パーセントのようにして配列に保存
+        rank_list.append([r[0],r[1],math.floor(r[3]*100)])
+    with open(folder_path + siteurl + "/today/index_diff.json","w") as f:
+        json.dump({"kind":"diff","index":rank_list},f)
+    cur.execute("SELECT VIDEO_ID,(SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID),RELOAD_TIME,NVL(NULLIF((VIEW_C - lag(VIEW_C,1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)),0),-1) AS DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE-2 AND EXISTS (SELECT VIDEO_ID FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID AND IG = 0) ORDER BY RELOAD_TIME DESC,DIFF DESC FETCH FIRST 100 ROWS ONLY")
+    kari_fetch = cur.fetchall()
+    rank_list = []
+    for r in kari_fetch:#パーセントのようにして配列に保存
+        rank_list.append([r[0],r[1],r[3]])
+    with open(folder_path + siteurl + "/today/index_daydiff.json","w") as f:
+        json.dump({"kind":"daydiff","index":rank_list},f)
+    cur.execute("SELECT VIDEO_ID,(SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID),RELOAD_TIME,NVL(NULLIF((VIEW_C - lag(VIEW_C,7) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)),0),-1) AS DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE-8 AND EXISTS (SELECT VIDEO_ID FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID AND IG = 0) ORDER BY RELOAD_TIME DESC,DIFF DESC FETCH FIRST 100 ROWS ONLY")
+    kari_fetch = cur.fetchall()
+    rank_list = []
+    for r in kari_fetch:#パーセントのようにして配列に保存
+        rank_list.append([r[0],r[1],r[3]])
+    with open(folder_path + siteurl + "/today/index_weekdiff.json","w") as f:
+        json.dump({"kind":"weekdiff","index":rank_list},f)
+    cur.execute("SELECT VIDEO_ID,(SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID),RELOAD_TIME,NVL(NULLIF((VIEW_C - lag(VIEW_C,30) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)),0),-1) AS DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE-31 AND EXISTS (SELECT VIDEO_ID FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID AND IG = 0) ORDER BY RELOAD_TIME DESC,DIFF DESC FETCH FIRST 100 ROWS ONLY")
+    kari_fetch = cur.fetchall()
+    rank_list = []
+    for r in kari_fetch:#パーセントのようにして配列に保存
+        rank_list.append([r[0],r[1],r[3]])
+    with open(folder_path + siteurl + "/today/index_monthdiff.json","w") as f:
+        json.dump({"kind":"monthdiff","index":rank_list},f)
+
+def wikipedia_info(nickname_list):#wikipediapi->自動update 一度にできるの50個まででも名前にカンマ入っていると悲劇が起こるので40で
+    #wikipedia apiは順番守らないので注意
+    nowlen = len(nickname_list)
+    nowloop = math.ceil(float(nowlen/40))
+    for x in range(nowloop):
+        if x==nowloop-1:
+            now_long = nowlen - 40 * (x)
+        else:
+            now_long = 40
+        now_nclist = []
+        now_nclist_a = now_nclist.append
+        for r in range(now_long):
+            now_nclist_a(nickname_list[40*x+r])
+        #nclist->nickname(1)|nickname(2)
+        now_ncst = str(now_nclist).replace("[","").replace("]","").replace(",","|").replace("'","")
+        jsong = requests.get("https://ja.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=" + now_ncst)
+        new_json = jsong.json()#パース
+        nowkeys = new_json["query"]["pages"].keys()
+        for r in nowkeys:
+            nowdata = new_json["query"]["pages"][r]
+            title = nowdata["title"]
+            try:
+                exp = nowdata["extract"]
+            except:
+                exp = ""
+            if exp!="":
+                cur.execute("UPDATE CH_ID SET DESCRIPTION = '" + exp.replace("'","''").replace(" ","").replace("　","") + "' WHERE NICK_NAME_1 = '" + title.replace("'","''") + "'")
+        con.commit()
+
+def wikipedia_all():#没
+    cur.execute("SELECT NICK_NAME_1 FROM CH_ID WHERE NICK_NAME_1 IS NOT NULL AND DESCRIPTION IS NULL")
+    k_nclist = []
+    k_nclist_a = k_nclist.append
+    for z in cur.fetchall():
+        k_nclist_a(str(z)[2:-3])
+    wikipedia_info(k_nclist)

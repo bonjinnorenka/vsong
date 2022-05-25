@@ -122,3 +122,6 @@ kari.py
 public/
 resouces/
 ev.py
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/tasks.json

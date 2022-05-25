@@ -21,9 +21,9 @@ def evolution_VideoidFromPlaylist(playlist_id_list,iglist=[]):#pytubeとappend�
     return n_vid_l
 
 def highper_vidFromPlaylist(playlist_id,iglist=[]):#subprocessを利用し無理やり並列実行化 mysqlを経由してデータをやり取り
-    connection = MySQLdb.connect(host=ev.mysql_host,user=ev.mysql_user,passwd=ev.mysql_ps,db="vtuber_sing")
+    connection = MySQLdb.connect(host=ev.mysql_host,user=ev.mysql_user,passwd=ev.mysql_ps,db="vsong")
     cur = connection.cursor()
-    cur.execute("delete from tmp_vid")
+    cur.execute("delete from vsong.tmp_vid")
     connection.commit()
     proc_list = []
     loop_num = len(playlist_id)
@@ -33,7 +33,7 @@ def highper_vidFromPlaylist(playlist_id,iglist=[]):#subprocessを利用し無理
     for subproc in proc_list:
         subproc.wait()
     proc_list = []
-    cur.execute("SELECT DISTINCT videoid FROM vtuber_sing.tmp_vid")
+    cur.execute("SELECT DISTINCT videoid FROM vsong.tmp_vid")
     kk_vid = cur.fetchall()
     k_vid = []
     k_a = k_vid.append
