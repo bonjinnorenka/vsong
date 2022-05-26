@@ -466,4 +466,8 @@ background-color: #38a1db;
     .flex_box{
         height: 70px !important;
     }
+
+    .sticky_c_yt{
+        bottom: 70px !important;
+    }
 }
