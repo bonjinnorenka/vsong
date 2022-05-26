@@ -193,6 +193,16 @@ function music_page_load(){
     }
 }
 
+function allplay(){
+    let now_stalist = Object.keys(statistics_data);
+    now_stalist.shift();
+    now_playlist = [];
+    for(let y = 0;y<now_stalist.length;y++){
+        now_playlist.push(now_stalist[y]);
+    }
+    yt_skip();
+}
+
 function music_scroll_do(mes) {
     let sc_xhr = new XMLHttpRequest();
     if (mes=="down"&&maxlength>counter_down+1){
@@ -566,7 +576,7 @@ function load_youtubeapi_player(now_video_id){
     catch{}
     before_playing = now_video_id;
     let ytembed_el = document.getElementById("ytembed");
-    if(ytembed_el.innerHTML=='<div id=\"youtube-iframe\"></div>'){
+    if(ytembed_el.innerHTML=='<div id=\"youtube-iframe\"></div>'||now_player==""){
         let vw = window.innerWidth;
         let yt_window_size;
         if (vw<600){//スマホ向け　全力表示
@@ -587,9 +597,6 @@ function load_youtubeapi_player(now_video_id){
             }
         })
         ytembed_el.classList.add("float_right");
-        if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
-            yt_display();
-        }
     }
     else{
         now_player.loadVideoById({videoId:now_video_id});
@@ -600,6 +607,9 @@ function load_youtubeapi_player(now_video_id){
 function yt_sm_play(){//スマホ自動開始用
     now_player.playVideo();
     yt_music_display();
+    if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
+        yt_display();
+    }
 }
 
 function yt_volume_change(){
@@ -669,7 +679,12 @@ function yt_skip(){
             console.log(now_playlist);
             nowvid = now_playlist.shift();
             console.log("start_playing(skip):\t" + nowvid);
-            now_player.loadVideoById({'videoId': nowvid});
+            if(now_player!=""){
+                now_player.loadVideoById({'videoId': nowvid});
+            }
+            else{
+                load_youtubeapi_player(nowvid);
+            }
             before_playing = nowvid;
             yt_music_display();
         } 
@@ -678,7 +693,12 @@ function yt_skip(){
         console.log("normal_next");
         nowvid = now_playlist.shift();
         console.log("start_playing(skip):\t" + nowvid);
-        now_player.loadVideoById({'videoId': nowvid});
+        if(now_player!=""){
+            now_player.loadVideoById({'videoId': nowvid});
+        }
+        else{
+            load_youtubeapi_player(nowvid);
+        }
         before_playing = nowvid;
         yt_music_display();
     }
