@@ -15,8 +15,10 @@ function dt(video_id) {
     }
 };
 
+let chart_instance = {};
+
 function Chart_cleater_v2(id_c, label, vc, lc, cc) {
-    new Chart(document.getElementById(id_c), {
+    chart_instance[id_c] = new Chart(document.getElementById(id_c), {
         type: 'line',
         data: {
             labels: label,
@@ -46,6 +48,25 @@ function Chart_cleater_v2(id_c, label, vc, lc, cc) {
     })
 }
 
+function Chart_cleater_single_v1(id_c,label,content,content_name){
+    chart_instance[id_c] = new Chart(document.getElementById(id_c), {
+        type: 'line',
+        data: {
+            labels: label,
+            datasets: [{
+                label: content_name,
+                data: content,
+                borderColor: 'rgb(56, 161, 219)',
+                backgroundColor: 'rgb(56, 161, 219)',
+            }]
+        },
+        options: {
+            animation: !1,
+            responsive: !0
+        }
+    })
+}
+
 function page_transition(){//ページ移動時万が一あると問題が起こる可能性があるグローバル変数を削除
     delete now_music_name;
     delete counter_down;
@@ -60,11 +81,49 @@ function page_transition(){//ページ移動時万が一あると問題が起こ
     delete sub_result;
     window.removeEventListener("scroll", music_scroll_ev);
     window.removeEventListener("scroll",ch_scroll_ev);
+    chart_instance = {};
     try{
         document.getElementById('lib_search').removeEventListener("input",search_index);
         document.getElementById('lib_search').removeEventListener("change",search_index_finish);
     }
     catch{}
+}
+
+function change_graph_music(g_name){
+    chart_instance[g_name].destroy(); 
+    let elements = document.getElementsByName(g_name+"_ra");
+    var nown = 0;
+    for (let x = 0;x<elements.length;x++){
+        if (elements.item(x).checked){
+            nown = x;
+        }
+    }
+    let kind = ["視聴回数","高評価","コメント数"];
+    if(g_name=="sum-yt"){
+        Chart_cleater_single_v1(g_name, statistics_data["music"][0], statistics_data["music"][nown+1],kind[nown]);
+    }
+    else{
+        Chart_cleater_single_v1(g_name, statistics_data[g_name][1],statistics_data[g_name][nown+2],kind[nown]);
+    }
+}
+
+function change_graph_ch(g_name){
+    //キャンバス初期化
+    chart_instance[g_name].destroy(); 
+    let elements = document.getElementsByName(g_name+"_ra");
+    var nown = 0;
+    for (let x = 0;x<elements.length;x++){
+        if (elements.item(x).checked){
+            nown = x;
+        }
+    }
+    let kind = ["視聴回数","高評価","コメント数"];
+    if(g_name=="sum-yt"){
+        Chart_cleater_single_v1(g_name, statistics_data["channel"][0], statistics_data["channel"][nown+1],kind[nown]);
+    }
+    else{
+        Chart_cleater_single_v1(g_name, statistics_data[g_name][1],statistics_data[g_name][nown+2],kind[nown]);
+    }
 }
 
 function ch_page_load(){
@@ -91,11 +150,13 @@ function ch_page_load(){
         statistics_xhr.onload = function(){
             statistics_data = statistics_xhr.response;
             if (ndr["pageid"]===0){
-                Chart_cleater_v2("sum-yt",statistics_data["channel"][0],statistics_data["channel"][1],statistics_data["channel"][2],statistics_data["channel"][3]);
+                //Chart_cleater_v2("sum-yt",statistics_data["channel"][0],statistics_data["channel"][1],statistics_data["channel"][2],statistics_data["channel"][3]);
+                Chart_cleater_single_v1("sum-yt",statistics_data["channel"][0],statistics_data["channel"][1],"視聴回数");
             }
             for(var k=0;k<nowvid.length;k++){
                 dt(nowvid[k]);
-                Chart_cleater_v2(nowvid[k],statistics_data[nowvid[k]][1],statistics_data[nowvid[k]][2],statistics_data[nowvid[k]][3],statistics_data[nowvid[k]][4]);
+                //Chart_cleater_v2(nowvid[k],statistics_data[nowvid[k]][1],statistics_data[nowvid[k]][2],statistics_data[nowvid[k]][3],statistics_data[nowvid[k]][4]);
+                Chart_cleater_single_v1(nowvid[k],statistics_data[nowvid[k]][1],statistics_data[nowvid[k]][2],"視聴回数");
             }
         }
     }
@@ -134,7 +195,8 @@ function ch_scroll_do(mes) {
         }
         for (let g=0;g<njdata["videoidlist"].length;g++){
             dt(njdata["videoidlist"][g]);
-            Chart_cleater_v2(njdata["videoidlist"][g],statistics_data[njdata["videoidlist"][g]][1],statistics_data[njdata["videoidlist"][g]][2],statistics_data[njdata["videoidlist"][g]][3],statistics_data[njdata["videoidlist"][g]][4]);
+            //Chart_cleater_v2(njdata["videoidlist"][g],statistics_data[njdata["videoidlist"][g]][1],statistics_data[njdata["videoidlist"][g]][2],statistics_data[njdata["videoidlist"][g]][3],statistics_data[njdata["videoidlist"][g]][4]);
+            Chart_cleater_single_v1(njdata["videoidlist"][g],statistics_data[njdata["videoidlist"][g]][1],statistics_data[njdata["videoidlist"][g]][2],"視聴回数");
         }
         if(mes=="up"){
             if(njdata["pageid"]==0){
@@ -183,11 +245,13 @@ function music_page_load(){
         statistics_xhr.onload = function(){
             statistics_data = statistics_xhr.response;
             if (ndr["pageid"]===0){
-                Chart_cleater_v2("sum-yt",statistics_data["music"][0],statistics_data["music"][1],statistics_data["music"][2],statistics_data["music"][3]);
+                //Chart_cleater_v2("sum-yt",statistics_data["music"][0],statistics_data["music"][1],statistics_data["music"][2],statistics_data["music"][3]);
+                Chart_cleater_single_v1("sum-yt",statistics_data["music"][0],statistics_data["music"][1],"視聴回数");
             }
             for(var k=0;k<nowvid.length;k++){
                 dt(nowvid[k]);
-                Chart_cleater_v2(nowvid[k],statistics_data[nowvid[k]][1],statistics_data[nowvid[k]][2],statistics_data[nowvid[k]][3],statistics_data[nowvid[k]][4]);
+                //Chart_cleater_v2(nowvid[k],statistics_data[nowvid[k]][1],statistics_data[nowvid[k]][2],statistics_data[nowvid[k]][3],statistics_data[nowvid[k]][4]);
+                Chart_cleater_single_v1(nowvid[k],statistics_data[nowvid[k]][1],statistics_data[nowvid[k]][2],"視聴回数");
             }
         }
     }
@@ -228,7 +292,8 @@ function music_scroll_do(mes) {
         const njdata = sc_xhr.response;
         if(njdata["pageid"]==0){
             document.getElementById("sum-viewer").innerHTML = njdata["first"] + document.getElementById("sum-viewer").innerHTML;
-            Chart_cleater_v2("sum-yt",statistics_data["music"][0],statistics_data["music"][1],statistics_data["music"][2],statistics_data["music"][3]);
+            //Chart_cleater_v2("sum-yt",statistics_data["music"][0],statistics_data["music"][1],statistics_data["music"][2],statistics_data["music"][3]);
+            Chart_cleater_single_v1("sum-yt",statistics_data["music"][0],statistics_data["music"][1],"視聴回数");
         }
         let tbody_el = document.getElementById("tbd-" + String(njdata["pageid"]));
         for (let g=0;g<njdata["videoidlist"].length;g++){
@@ -236,7 +301,8 @@ function music_scroll_do(mes) {
         }
         for (let g=0;g<njdata["videoidlist"].length;g++){
             dt(njdata["videoidlist"][g]);
-            Chart_cleater_v2(njdata["videoidlist"][g],statistics_data[njdata["videoidlist"][g]][1],statistics_data[njdata["videoidlist"][g]][2],statistics_data[njdata["videoidlist"][g]][3],statistics_data[njdata["videoidlist"][g]][4]);
+            //Chart_cleater_v2(njdata["videoidlist"][g],statistics_data[njdata["videoidlist"][g]][1],statistics_data[njdata["videoidlist"][g]][2],statistics_data[njdata["videoidlist"][g]][3],statistics_data[njdata["videoidlist"][g]][4]);
+            Chart_cleater_single_v1(njdata["videoidlist"][g],statistics_data[njdata["videoidlist"][g]][1],statistics_data[njdata["videoidlist"][g]][2],"視聴回数");
         }
         if(mes=="up"){
             if(njdata["pageid"]==0){
