@@ -336,7 +336,7 @@ background-color: #38a1db;
     margin: 0;
 }
 
-#today_hot{
+#today_hot,#music_top{
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -351,7 +351,7 @@ background-color: #38a1db;
     display: inline-block;
 }
 
-.today_hot_space{
+.today_hot_space,.music_top_space{
     margin: 10px;
 }
 

@@ -958,5 +958,21 @@ def wikipedia_all():#没
         k_nclist_a(str(z)[2:-3])
     wikipedia_info(k_nclist)
 
+def make_music_top():
+    cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE IG = 0")
+    vlist = []
+    vlist_a = vlist.append
+    for x in cur.fetchall():
+        nowst = dir_name_replace(x[1])
+        vlist_a([x[0],x[1],"/music/" + nowst])
+    vlist_len_c = len(vlist) - 1
+    for r in range(100):
+        karilist = []
+        karilist_a = karilist.append
+        for n in range(50):
+            now_ran = random.randint(0,vlist_len_c)
+            karilist_a([vlist[now_ran][0],vlist[now_ran][1],vlist[now_ran][2]])
+        with open(folder_path + siteurl + "/ajax/music-top/mct-" + str(r) + ".json","w") as f:
+            json.dump({"index":karilist},f)
 
-make_music_page_v2("KING")
+make_music_top()

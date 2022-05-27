@@ -257,6 +257,35 @@ function music_page_load(){
     }
 }
 
+function musittop_load(){
+    let url_parm = new URL(window.location.href).searchParams;
+    let urp = new URLSearchParams(new URL(window.location.href));
+    let now_ran;
+    if (url_parm.get('ran') != null) {
+        now_ran = url_parm.get('ran');
+    } else {
+        now_ran = Math.floor(Math.random() * 100);
+        urp.delete("tbdid");
+        urp.set("ran", String(now_ran));
+        history.replaceState(null, null, "?" + urp.toString());
+    }
+    let musictop_xhr = new XMLHttpRequest();
+    musictop_xhr.open("GET","/ajax/music-top/mct-" + String(now_ran) + ".json");
+    musictop_xhr.responseType = "json";
+    musictop_xhr.send();
+    musictop_xhr.onload = function(){
+        now_j = musictop_xhr.response;
+        now_j = now_j["index"];
+        let p_doc = document.getElementById("music_top");
+        for(let r = 0;r<50;r++){
+            var now_el = document.createElement("div");
+            now_el.classList.add("music_top_space");
+            now_el.innerHTML = '<a href="' + now_j[r][2] + '" onClick="page_ajax_load(\"' + now_j[r][2] + '\");return false"><span class="ofoverflow_320" title="' + now_j[r][1] +'">' + now_j[r][1] + '</span><br><img src="https://i.ytimg.com/vi/' + now_j[r][0] + '/mqdefault.jpg"</a>';
+            p_doc.appendChild(now_el);
+        }
+    }
+}
+
 function allplay(){
     let now_stalist = Object.keys(statistics_data);
     now_stalist.shift();
@@ -326,7 +355,7 @@ function recommend(kind=""){
             now_ran = Math.floor(Math.random() * 100);
             urp.delete("tbdid");
             urp.set("ran", String(now_ran));
-            history.replaceState(null, null, "?" + urp.toString())
+            history.replaceState(null, null, "?" + urp.toString());
         }
         let request_mr = new XMLHttpRequest();
         request_mr.open("GET", "/ajax/music/mr-" + String(now_ran) + ".json");
@@ -341,7 +370,7 @@ function recommend(kind=""){
             for (let i = 0; i < 20; i++) {
                 divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][1] +
                     "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "/\");return false' title='" + res_mr[i][0] + "'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
-                    res_mr[i][2] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "' width='320' height='180'></a>"
+                    res_mr[i][2] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "' width='320' height='180'></a>";
             }
         };
         let request_cr = new XMLHttpRequest();
@@ -358,7 +387,7 @@ function recommend(kind=""){
                 divc.innerHTML = divc.innerHTML + "<a href='/ch/" + res_cr[i][1] +
                     "/' onclick='page_ajax_load(\"/ch/" + res_cr[i][1] + "/\");return false' title='" + res_cr[i][0] + "'><span class='ofoverflow'>" + res_cr[i][0] +
                     "</span><img class='recommend-ch' src='" + res_cr[i][2] + "' alt='" + res_cr[i][0] +
-                    "' width='120' height='120'></a>"
+                    "' width='120' height='120'></a>";
             }
         }
     }
@@ -957,7 +986,10 @@ function dir_replace(n_str){
 
 function page_load(){//ページロード時の処理
     page_transition();//変数削除
-    if (location.pathname.indexOf("/music/")!==-1){//音楽ページ
+    if(location.pathname=="/music/"){
+        musittop_load();
+    }
+    else if (location.pathname.indexOf("/music/")!==-1){//音楽ページ
         load_chart();
         music_page_load();
         window.addEventListener("scroll", music_scroll_ev);
