@@ -12,7 +12,7 @@ cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
 #webサイト用変数設定
 header = """<header><h2 class="Top"><a href="/" onClick='page_ajax_load("/");return false'>VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search/" onClick='page_ajax_load("/search/");return false'>検索</a><li><a href="/today/" onClick='page_ajax_load("/today/");return false'>今日の人気</a></ul></nav></header>"""
 music_control_html = """<div class="sticky_c_yt dis_none" id="ytembed"><div id="youtube-iframe"></div></div><span class="sticky_c dis_none" id="control_panel"><progress class="yt-progress" id="yt-player-time" max="100" value="0"></progress><div class="flex_box"><div class="beside_gr"><div class="beside_gr_in" id="music_name_display"></div></div><div class="play_center"><button id="yt-playbt" onclick="yt_playorstop()" class="bt_noborder" title="再生"><img class="control_icon" src="/util/playbtn.svg"></button><button onclick="yt_skip()" title="スキップ" class="bt_noborder"><img class="control_icon" src="/util/skipbt.svg"></button><input title="音量を調節" type="range" id="yt_sound_volume" min="0" max="100" value="100" onchange="yt_volume_change()"><button id="yt_display" onclick="yt_display()">表示</button><button id="yt_ch_dismode" onclick='yt_watchmode_ch()' title="大画面で表示" class="bt_noborder"><img class="control_icon" src="/util/bigwindow.svg"></button><input id="autoload_check" type="checkbox"></div></div></span>"""
-html_import_lib = '<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script>'
+html_import_lib = '<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script><script defer src="https://cdn.jsdelivr.net/npm/instant.page@5.1.0/instantpage.min.js"></script>'
 siteurl = ""
 try:
     siteurl = ev.siteurl
@@ -37,7 +37,7 @@ def cp_lib():#ライブラリのデータを配置
 def ps_lib():#ライブラリのデータを本番環境から移す
     shutil.copy2(folder_path + siteurl + "/library/main.js","jslibrary/main.js")
     shutil.copy2(folder_path + siteurl + "/library/main.css","jslibrary/main.css")
-    shutil.copy2(folder_path + siteurl + "/library/search.cpp","jslibrary/search.cpp")
+    shutil.copy2(folder_path + siteurl + "/cgi-bin/search.cpp","jslibrary/search.cpp")
 
 def cp_htm():#basic_pageのデータを本番の場所にペースト
     shutil.copy2("basic_page/watch-index.html",folder_path + siteurl + "/watch/index.html")

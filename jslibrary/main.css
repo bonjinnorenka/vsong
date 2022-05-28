@@ -200,26 +200,26 @@ a {
 .yt-view-sum {
     max-width: 500px;
     max-height: 250px;
-    width: 490px
+    width: 490px;
 }
 
 .for_center {
     margin-left: calc(48vw - 500px);
-    margin-right: calc(48vw - 500px)
+    margin-right: calc(48vw - 500px);
 }
 
 h1 {
-    text-align: center
+    text-align: center;
 }
 
 .inline {
     margin-left: auto;
-    margin-right: auto
+    margin-right: auto;
 }
 
 .Top {
     font-size: 40px;
-    text-align: center
+    text-align: center;
 }
 
 nav ul {
@@ -278,7 +278,7 @@ nav ul li {
 }
 
 #search_result{
-    min-height: 100%;
+    min-height: calc(91vh - 215px);
 }
 
 .dis_none{
