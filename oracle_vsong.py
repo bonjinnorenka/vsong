@@ -866,8 +866,6 @@ def make_search_index():
                 else:#2使えってくる
                     for r in range(2):
                         search_index_a([nowret[r].replace(" ",""),nst,"/watch?v=" + n[0]])
-    with open(cgi_bin_dir + "/cgi-bin/search_index.json","w") as f:
-        json.dump({"index":search_index},f,indent=4)
     k_ar = list(itertools.chain.from_iterable(search_index))
     with open(cgi_bin_dir + "/cgi-bin/search_index_a.json","w") as f:
         json.dump({"index":k_ar},f)
