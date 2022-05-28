@@ -26,6 +26,7 @@ while True:
     elif nowcommand=="random_gen":
         ov.music_recommend_page()
         ov.channel_recommend_page()
+        ov.make_music_top()
     elif nowcommand=="hot":
         ov.todays_hot()
     elif nowcommand=="always_do":
