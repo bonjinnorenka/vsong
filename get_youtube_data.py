@@ -28,7 +28,7 @@ def highper_vidFromPlaylist(playlist_id,iglist=[]):#subprocessを利用し無理
     proc_list = []
     loop_num = len(playlist_id)
     for n in range(loop_num):
-        proc = subprocess.Popen(['python','get_youtube_playlist.py',str(playlist_id[n])])
+        proc = subprocess.Popen([ev.python_call,'get_youtube_playlist.py',str(playlist_id[n])])
         proc_list.append(proc)
     for subproc in proc_list:
         subproc.wait()

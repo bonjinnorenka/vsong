@@ -11,6 +11,8 @@ cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
 
 #webサイト用変数設定
 header = """<header><h2 class="Top"><a href="/" onClick='page_ajax_load("/");return false'>VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search/" onClick='page_ajax_load("/search/");return false'>検索</a><li><a href="/today/" onClick='page_ajax_load("/today/");return false'>今日の人気</a></ul></nav></header>"""
+music_control_html = """<div class="sticky_c_yt dis_none" id="ytembed"><div id="youtube-iframe"></div></div><span class="sticky_c dis_none" id="control_panel"><progress class="yt-progress" id="yt-player-time" max="100" value="0"></progress><div class="flex_box"><div class="beside_gr"><div class="beside_gr_in" id="music_name_display"></div></div><div class="play_center"><button id="yt-playbt" onclick="yt_playorstop()" class="bt_noborder" title="再生"><img class="control_icon" src="/util/playbtn.svg"></button><button onclick="yt_skip()" title="スキップ" class="bt_noborder"><img class="control_icon" src="/util/skipbt.svg"></button><input title="音量を調節" type="range" id="yt_sound_volume" min="0" max="100" value="100" onchange="yt_volume_change()"><button id="yt_display" onclick="yt_display()">表示</button><button id="yt_ch_dismode" onclick='yt_watchmode_ch()' title="大画面で表示" class="bt_noborder"><img class="control_icon" src="/util/bigwindow.svg"></button><input id="autoload_check" type="checkbox"></div></div></span>"""
+html_import_lib = '<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script>'
 siteurl = ""
 try:
     siteurl = ev.siteurl
@@ -481,7 +483,7 @@ def make_music_page_v2(music_name,mode=0):
     share_html_a = share_html.append
     if mode==0:
         music_data = search_musicdata(music_name)
-        share_html_a('<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script>')
+        share_html_a(html_import_lib)
         share_html_a(header)
         description = "Vtuberの" + music_name + "の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
         page_title = "Vtuberの歌う" + music_name
@@ -498,7 +500,7 @@ def make_music_page_v2(music_name,mode=0):
             share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
         share_html_a('<div id="sum-viewer"></div>')
         share_html_a("<table id='video_data_t'>")
-        share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main><div class="sticky_c_yt dis_none" id="ytembed"><div id="youtube-iframe"></div></div><span class="sticky_c dis_none" id="control_panel"><progress class="yt-progress" id="yt-player-time" max="100" value="0"></progress><div class="flex_box"><div class="beside_gr"><div class="beside_gr_in" id="music_name_display"></div></div><div class="play_center"><button id="yt-playbt" onclick="yt_playorstop()" class="bt_noborder" title="再生"><img class="control_icon" src="/util/playbtn.svg"></button><button onclick="yt_skip()" title="スキップ" class="bt_noborder"><img class="control_icon" src="/util/skipbt.svg"></button><input title="音量を調節" type="range" id="yt_sound_volume" min="0" max="100" value="100" onchange="yt_volume_change()"><button id="yt_display" onclick="yt_display()">表示</button><button id="yt_ch_dismode" onclick='yt_watchmode_ch()' title="大画面で表示" class="bt_noborder"><img class="control_icon" src="/util/bigwindow.svg"></button><input id="autoload_check" type="checkbox"></div></div></span>""")
+        share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""" + music_control_html)
     music_videos_id = music_list(music_name)
     tbdata = []
     tbdata_ex = tbdata.extend
@@ -626,12 +628,12 @@ def make_chpage_v2(nick_name,mode=0):
     share_html_a = share_html.append
     description = "Vtuberの" + nick_name + "が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
     page_title = nick_name + "の歌った曲集"
-    share_html_a('<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script>')
+    share_html_a(html_import_lib)
     share_html_a(header)
     share_html_a('<main><div class="for_center"><div id="sum-viewer"></div>')
     share_html_a("<table id='video_data_t'>")
     #ここの6番目にデータは入れてね
-    share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main><div class="sticky_c_yt dis_none" id="ytembed"><div id="youtube-iframe"></div></div><span class="sticky_c dis_none" id="control_panel"><progress class="yt-progress" id="yt-player-time" max="100" value="0"></progress><div class="flex_box"><div class="beside_gr"><div class="beside_gr_in" id="music_name_display"></div></div><div class="play_center"><button id="yt-playbt" onclick="yt_playorstop()" class="bt_noborder" title="再生"><img class="control_icon" src="/util/playbtn.svg"></button><button onclick="yt_skip()" title="スキップ" class="bt_noborder"><img class="control_icon" src="/util/skipbt.svg"></button><input title="音量を調節" type="range" id="yt_sound_volume" min="0" max="100" value="100" onchange="yt_volume_change()"><button id="yt_display" onclick="yt_display()">表示</button><button id="yt_ch_dismode" onclick='yt_watchmode_ch()' title="大画面で表示" class="bt_noborder"><img class="control_icon" src="/util/bigwindow.svg"></button><input id="autoload_check" type="checkbox"></div></div></span>""")
+    share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""" + music_control_html)
     tbdata = []
     tbdata_ex = tbdata.extend
     for g in range(math.ceil(len(videolist_id)/10)):
