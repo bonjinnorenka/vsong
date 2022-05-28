@@ -89,6 +89,26 @@ function page_transition(){//ページ移動時万が一あると問題が起こ
     catch{}
 }
 
+function recommend_music_scroll(kind=0){
+    let maindoc = document.getElementById("music_recommend");
+    if(kind==0){//進
+        maindoc.scrollBy(window.innerWidth-100,0);
+    }
+    else if (kind==1){//戻る
+        maindoc.scrollBy(100 - window.innerWidth,0);
+    }
+}
+
+function recommend_ch_scroll(kind=0){
+    let maindoc = document.getElementById("ch_recommend");
+    if(kind==0){//進
+        maindoc.scrollBy(window.innerWidth-100,0);
+    }
+    else if (kind==1){//戻る
+        maindoc.scrollBy(100 - window.innerWidth,0);
+    }
+}
+
 function change_graph_music(g_name){
     chart_instance[g_name].destroy(); 
     let elements = document.getElementsByName(g_name+"_ra");
@@ -361,9 +381,10 @@ function recommend(kind=""){
         request_mr.open("GET", "/ajax/music/mr-" + String(now_ran) + ".json");
         request_mr.responseType = "json";
         request_mr.send();
-        request_mr.onload = function () {
+        request_mr.onload = function () {//音楽のほう
             const res_mr = request_mr.response;
             let divm = document.getElementById("music_recommend");
+            divm.innerHTML = '<button type="button" class="musicbt musicundo" onclick="recommend_music_scroll(1)"><img class="music-bt" src="/util/undo.svg"></button><button type="button" class="musicbt musicnext" onclick="recommend_music_scroll(0)"><img class="music-bt" src="/util/nextbt.svg"></button>'
             if (kind===""){
                 document.getElementById("descm").innerHTML = '<hr><p class="other_music">他のおすすめの曲</p>';
             }
@@ -377,9 +398,10 @@ function recommend(kind=""){
         request_cr.open("GET", "/ajax/ch/cr-" + String(now_ran) + ".json");
         request_cr.responseType = "json";
         request_cr.send();
-        request_cr.onload = function () {
+        request_cr.onload = function () {//チャンネルのほう
             const res_cr = request_cr.response;
             let divc = document.getElementById("ch_recommend");
+            divc.innerHTML = '<button type="button" class="chbt chundo" onclick="recommend_ch_scroll(1)"><img class="ch-bt" src="/util/undo.svg"></button><button type="button" class="chbt chnext" onclick="recommend_ch_scroll(0)"><img class="ch-bt" src="/util/nextbt.svg"></button>';
             if (kind===""){
                 document.getElementById("descc").innerHTML = '<hr><p class="other_music">他のおすすめのVtuber</p>';
             }

@@ -423,7 +423,54 @@ background-color: #38a1db;
     }
 }
 
+.musicbt{
+    height: 100px;
+}
+
+.musicundo{
+    position: absolute;
+    top: 150px;
+}
+
+.musicnext{
+    position: absolute;
+    right: 0;
+    top: 150px;
+}
+
+.music-bt{
+    height: 98px;
+}
+
+.ch-bt{
+    height:58px;
+}
+
+.chbt{
+    height:60px;
+}
+
+.chundo{
+    position: absolute;
+    top: 480px;
+    left: 0px;
+}
+
+.chnext{
+    position: absolute;
+    right: 0px;
+    top: 480px;
+}
+
+.pos-re{
+    position: relative;
+}
+
 @media screen and (max-width:1000px) {
+    .musicbt{
+        display: none;
+    }
+
     .yt-meta {
         min-width: 75px !important;
         max-width: calc(97vw - 500px) !important

@@ -500,7 +500,7 @@ def make_music_page_v2(music_name,mode=0):
             share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
         share_html_a('<div id="sum-viewer"></div>')
         share_html_a("<table id='video_data_t'>")
-        share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""" + music_control_html)
+        share_html_a("""</table></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
     music_videos_id = music_list(music_name)
     tbdata = []
     tbdata_ex = tbdata.extend
@@ -633,7 +633,7 @@ def make_chpage_v2(nick_name,mode=0):
     share_html_a('<main><div class="for_center"><div id="sum-viewer"></div>')
     share_html_a("<table id='video_data_t'>")
     #ここの6番目にデータは入れてね
-    share_html_a("""</table></div><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></main>""" + music_control_html)
+    share_html_a("""</table></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
     tbdata = []
     tbdata_ex = tbdata.extend
     for g in range(math.ceil(len(videolist_id)/10)):
@@ -753,7 +753,7 @@ def make_all_chpage(mode=0):
 
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
-    cur.execute("select KEY_MUSIC_NAME from MUSIC_SONG_DB")
+    cur.execute("select KEY_MUSIC_NAME from MUSIC_SONG_DB where KEY_MUSIC_NAME is not null")
     music_list = []
     music_list_a = music_list.append
     for x in cur.fetchall():
@@ -777,7 +777,7 @@ def music_recommend_page():
 
 def channel_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/ch/"
-    cur.execute("select nick_name_1,picture_url from ch_id where ig = 0")
+    cur.execute("select nick_name_1,picture_url from ch_id where ig = 0 and NICK_NAME_1 is not null")
     ch_data_k = cur.fetchall()
     len_ch_data = len(ch_data_k)
     #chdataを加工
