@@ -19,6 +19,11 @@ try:
     folder_path = ev.folder_path
 except:
     folder_path = "public/"
+cgi_bin_dir = ""
+try:
+    cgi_bin_dir = ev.cgi_bin_path
+except:
+    cgi_bin_dir = "public/vsong.fans"
 
 def conect_close():#接続切るよう
     con.close()
@@ -858,19 +863,21 @@ def make_search_index():
                 else:#2使えってくる
                     for r in range(2):
                         search_index_a([nowret[r].replace(" ",""),nst,"/watch?v=" + n[0]])
-    with open(folder_path + siteurl + "/cgi-bin/search_index.json","w") as f:
+    with open(cgi_bin_dir + "/cgi-bin/search_index.json","w") as f:
         json.dump({"index":search_index},f,indent=4)
     k_ar = list(itertools.chain.from_iterable(search_index))
-    with open(folder_path + siteurl + "/cgi-bin/search_index_a.json","w") as f:
+    with open(cgi_bin_dir + "/cgi-bin/search_index_a.json","w") as f:
         json.dump({"index":k_ar},f)
-    with open(folder_path + siteurl + "/cgi-bin/search_index_a.rcsv","w",encoding="utf-8") as f:
+    with open(cgi_bin_dir + "/cgi-bin/search_index_a.rcsv","w",encoding="utf-8") as f:
         f.write("@".join(k_ar))
+    """
     connection_l = MySQLdb.connect(host="localhost",user="root",passwd="mysqlroot",db="vsong")
     cur_l = connection_l.cursor()
     for r in search_index:
         cur_l.execute("INSERT INTO vsong_search (main_index_key,index_print_name,index_url) VALUES('" + r[0] + "','" + str(r[1]).replace("'","''") + "','" + r[2] + "')")
     connection_l.commit()
     connection_l.close()
+    """
 
 def make_video_random():
     cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
