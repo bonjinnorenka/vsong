@@ -1,5 +1,4 @@
-import itertools
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv,shutil,itertools
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
@@ -27,6 +26,30 @@ try:
     cgi_bin_dir = ev.cgi_bin_path
 except:
     cgi_bin_dir = "public/vsong.fans"
+
+def cp_lib():#ライブラリのデータを配置
+    shutil.copy2("jslibrary/main.js",folder_path + siteurl + "/library/main.js")
+    shutil.copy2("jslibrary/main.css",folder_path + siteurl + "/library/main.css")
+    shutil.copy2("jslibrary/search.cpp",folder_path + siteurl + "/library/search.cpp")
+
+def ps_lib():#ライブラリのデータを本番環境から移す
+    shutil.copy2(folder_path + siteurl + "/library/main.js","jslibrary/main.js")
+    shutil.copy2(folder_path + siteurl + "/library/main.css","jslibrary/main.css")
+    shutil.copy2(folder_path + siteurl + "/library/search.cpp","jslibrary/search.cpp")
+
+def cp_htm():#basic_pageのデータを本番の場所にペースト
+    shutil.copy2("basic_page/watch-index.html",folder_path + siteurl + "/watch/index.html")
+    shutil.copy2("basic_page/search-index.html",folder_path + siteurl + "/search/index.html")
+    shutil.copy2("basic_page/today-index.html",folder_path + siteurl + "/today/index.html")
+    shutil.copy2("basic_page/toppage-index.html",folder_path + siteurl + "/index.html")
+    shutil.copy2("basic_page/musictop-index.html",folder_path + siteurl + "/music/index.html")
+
+def ps_htm():#本番環境からbasic_pageに配置
+    shutil.copy2(folder_path + siteurl + "/watch/index.html","basic_page/watch-index.html")
+    shutil.copy2(folder_path + siteurl + "/search/index.html","basic_page/search-index.html")
+    shutil.copy2(folder_path + siteurl + "/today/index.html","basic_page/today-index.html")
+    shutil.copy2(folder_path + siteurl + "/index.html","basic_page/toppage-index.html")
+    shutil.copy2(folder_path + siteurl + "/music/index.html","basic_page/musictop-index.html")
 
 def conect_close():#接続切るよう
     con.close()

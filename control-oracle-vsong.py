@@ -39,6 +39,23 @@ while True:
         ov.add_music_data()
         print("データの整合性をチェックしています")
         ov.true_check()
+    elif nowcommand=="cplib":
+        inpst = input("本当にライブラリデータを本番環境に反映してよろしいですか?(y/n)")
+        if inpst=="y":
+            ov.cp_lib()
+            print("別途search.cppをg++等でコンパイルしてください")
+    elif nowcommand=="pslib":
+        inpst = input("本当に本番環境のライブラリデータを配布用ディレクトリに反映してよろしいですか?(y/n)")
+        if inpst=="y":
+            ov.ps_lib()
+    elif nowcommand=="cphtml":
+        inpst = input("本当に固定HTMLデータを本番環境に反映してよろしいですか?(y/n)")
+        if inpst=="y":
+            ov.cp_htm()
+    elif nowcommand=="pshtml":
+        inpst = input("本当に本番環境の固定HTMLデータを配布用ディレクトリに反映してよろしいですか?(y/n)")
+        if inpst=="y":
+            ov.ps_htm()
     else:
         print("exit:終了\nhelp:今のコマンド\nupdate_vdata:動画の統計情報を更新します\nupdate_vlist:プレイリストから最新の動画idを取得します\nadd_chdata:足りないチャンネルを取得します\
         \nadd_gname:足りないグループ名を追加します\nadd_mdata:足りない音楽データを追加します\ntrue_check:データが正常に登録されているか確認します\nmake_page:ページを生成します\
