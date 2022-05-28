@@ -1,6 +1,5 @@
 import itertools
 import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv
-import MySQLdb
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
