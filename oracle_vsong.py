@@ -14,7 +14,11 @@ cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
 #webサイト用変数設定
 siteurl = "vsong.fans"
 header = """<header><h2 class="Top"><a href="/" onClick='page_ajax_load("/");return false'>VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search/" onClick='page_ajax_load("/search/");return false'>検索</a><li><a href="/today/" onClick='page_ajax_load("/today/");return false'>今日の人気</a></ul></nav></header>"""
-folder_path = "public/"
+folder_path = ""
+try:
+    folder_path = ev.folder_path
+except:
+    folder_path = "public/"
 
 def conect_close():#接続切るよう
     con.close()
@@ -975,4 +979,3 @@ def make_music_top():
         with open(folder_path + siteurl + "/ajax/music-top/mct-" + str(r) + ".json","w") as f:
             json.dump({"index":karilist},f)
 
-make_music_top()
