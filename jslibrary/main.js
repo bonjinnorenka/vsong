@@ -740,8 +740,14 @@ function load_youtubeapi_player(now_video_id){
         ytembed_el.classList.add("float_right");
     }
     else{
-        now_player.loadVideoById({videoId:now_video_id});
+        now_player.loadVideoById({videoId:now_video_id,startSeconds:0});
+        if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
+            yt_display();
+        }
         now_player.playVideo();
+        if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
+            yt_display();
+        }
         yt_music_display();
     }
 }
