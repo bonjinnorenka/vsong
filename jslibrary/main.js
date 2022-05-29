@@ -680,6 +680,31 @@ customElements.define('lite-youtube', LiteYTEmbed);
 let now_player = "";
 let before_playing = "";
 
+function youtube_embed_preload(){
+    let ytembed_el = document.getElementById("ytembed");
+    if(ytembed_el.innerHTML=='<div id=\"youtube-iframe\"></div>'||now_player==""){
+        let vw = window.innerWidth;
+        let yt_window_size;
+        if (vw<600){//スマホ向け　全力表示
+            yt_window_size = Math.floor(vw*0.98);
+        }
+        else{//タブレット向け
+            yt_window_size = 500;
+        }
+        now_player = new YT.Player("youtube-iframe", {
+            width: yt_window_size,
+            height: Math.floor(yt_window_size * 0.5625),
+            videoId: "Snqom63tY_4",
+            host: 'https://www.youtube-nocookie.com',
+            events: {
+                'onStateChange': yt_state_change,
+                'onReady': yt_sm_play
+            }
+        })
+        ytembed_el.classList.add("float_right");
+    }
+}
+
 function load_youtubeapi_player(now_video_id){
     if (before_playing!=""){
         try{
@@ -717,6 +742,7 @@ function load_youtubeapi_player(now_video_id){
     }
     else{
         now_player.loadVideoById({videoId:now_video_id});
+        now_player.playVideo();
         yt_music_display();
     }
 }
@@ -863,7 +889,9 @@ let watch_page_st = 0;
 function watch_page_load(){
     document.getElementById("yt_ch_dismode").title = "小さな画面で表示";
     try{
-        document.getElementById("ytembed").classList.remove("dis_none");;
+        document.getElementById("youtube-iframe").classList.add("watch_yt_center");
+        document.getElementById("ytembed").classList.remove("float_right");
+        document.getElementById("ytembed").classList.remove("dis_none");
         document.getElementById("control_panel").classList.remove("dis_none");
     }
     catch{}
@@ -919,6 +947,9 @@ function watch_page_load(){
             yt_music_display();
         }
         else{
+            let yt_el = document.getElementById("youtube-iframe");
+            yt_el.width = yt_emb_width;
+            yt_el.height = Math.floor(yt_emb_width * 0.5625);
             now_player.loadVideoById({'videoId': now_demand});
             yt_music_display();
         }
@@ -1046,3 +1077,4 @@ window.addEventListener('popstate', function(e) {//バックボタン対策
     let now_url = String(location.href).replace(location.origin,"");
     page_ajax_load(now_url,1);
 });
+youtube_embed_preload();

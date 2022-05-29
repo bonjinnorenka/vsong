@@ -250,7 +250,7 @@ nav ul li {
 .sticky_c {
     position: sticky;
     bottom: 0;
-    display: block;
+    display: inline-block;
 }
 
 .sticky_c_yt{
@@ -262,6 +262,7 @@ nav ul li {
 .yt-progress{
     width: 98vw;
     height:5px;
+    pointer-events: none;
 }
 
 .flex_box{
