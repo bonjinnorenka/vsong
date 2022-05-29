@@ -471,6 +471,10 @@ background-color: #38a1db;
         display: none;
     }
 
+    .chbt{
+        display: none;
+    }
+
     .yt-meta {
         min-width: 75px !important;
         max-width: calc(97vw - 500px) !important
@@ -484,9 +488,11 @@ background-color: #38a1db;
         margin-left: auto !important;
         margin-right: auto !important
     }
+
     .watch_yt_center{
         margin-left: 12.5vw !important; 
     }
+
     .control_icon{
         width: 50px;
     }
