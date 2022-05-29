@@ -697,8 +697,7 @@ function youtube_embed_preload(){
             videoId: "Snqom63tY_4",
             host: 'https://www.youtube-nocookie.com',
             events: {
-                'onStateChange': yt_state_change,
-                'onReady': yt_sm_play
+                'onStateChange': yt_state_change
             }
         })
         ytembed_el.classList.add("float_right");
