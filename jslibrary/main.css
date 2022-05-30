@@ -467,6 +467,11 @@ background-color: #38a1db;
     position: relative;
 }
 
+.fit-cut{
+    object-fit: cover;
+    overflow: hidden;
+}
+
 @media screen and (max-width:1000px) {
     .musicbt{
         display: none;
@@ -544,5 +549,13 @@ background-color: #38a1db;
 
     .sticky_c_yt{
         bottom: 70px !important;
+    }
+
+    #autoload_check{
+        display: none;
+    }
+
+    .shuffle{
+        display: none;
     }
 }

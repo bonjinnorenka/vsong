@@ -15,6 +15,14 @@ function dt(video_id) {
     }
 };
 
+const shuffle = ([...array]) => {
+    for (let i = array.length - 1; i >= 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
 let chart_instance = {};
 
 function Chart_cleater_v2(id_c, label, vc, lc, cc) {
@@ -390,8 +398,8 @@ function recommend(kind=""){
             }
             for (let i = 0; i < 20; i++) {
                 divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][1] +
-                    "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "/\");return false' title='" + res_mr[i][0] + "'>" + res_mr[i][0] + "<img src='https://i.ytimg.com/vi/" +
-                    res_mr[i][2] + "/mqdefault.jpg' alt='" + res_mr[i][0] + "' width='320' height='180'></a>";
+                    "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "/\");return false' title='" + res_mr[i][0] + "'>" + res_mr[i][0] + "<img class='fit-cut' src='https://i.ytimg.com/vi/" +
+                    res_mr[i][2] + "/hqdefault.jpg' alt='" + res_mr[i][0] + "' width='320' height='180'></a>";
             }
         };
         let request_cr = new XMLHttpRequest();
@@ -1040,6 +1048,10 @@ function hotchange(){
 function dir_replace(n_str){
     let n_rep_st = String(n_str).replaceAll("\\","").replaceAll(",","").replaceAll(".","").replaceAll(":","").replaceAll(";","").replaceAll("?","").replaceAll("/","").replaceAll("<","").replaceAll(">","").replaceAll("*","").replaceAll("|","").replaceAll("+","").replaceAll("=","").replaceAll("[","").replaceAll("]","").replaceAll('"',"").replaceAll("(","").replaceAll(")","").replaceAll("^","").replaceAll("!","").replaceAll("$","").replaceAll("'","").replaceAll("%","").replaceAll("&","").replaceAll("～","")
     return n_rep_st
+}
+
+function yt_pl_shuffle(){
+    now_playlist = shuffle(now_playlist);
 }
 
 function page_load(){//ページロード時の処理
