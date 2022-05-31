@@ -21,6 +21,9 @@ def oracle_time(datetime_obj):
 
 def pro_log(lebel,fn_name,argv_data,erdesc):
     cur_ms.execute(f"INSERT INTO pro_er_log (log_date,log_author,log_origin,function_name,argv_data,er_name,label) VALUES ('{oracle_time(datetime.datetime.now())}','{now_origin}','program','{fn_name}','{argv_data}','{erdesc}','{lebel}')")
+    con_ms.commit()
+    if lebel=="error":
+        print(f"{fn_name} エラー発生　{argv_data} 時 エラー状態 {erdesc}")
 
 pro_log("log","mysql-login","","login success")
 
