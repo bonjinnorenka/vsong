@@ -19,6 +19,7 @@ while True:
     elif nowcommand=="make_page":
         ov.make_all_musicpage()
         ov.make_all_chpage()
+        ov.makesitemap()
     elif nowcommand=="re_pic":
         ov.reloadpeople_picture()
     elif nowcommand=="se_index":
@@ -38,6 +39,8 @@ while True:
         ov.add_ch_data()
         ov.add_groupe_name()
         ov.add_music_data()
+        ov.music_modify_update()
+        ov.ch_modify_update()
         print("データの整合性をチェックしています")
         ov.true_check()
     elif nowcommand=="cplib":
@@ -59,8 +62,11 @@ while True:
             ov.ps_htm()
     elif nowcommand=="make_sitemap":
         ov.makesitemap()
+    elif nowcommand=="reload_status":
+        ov.music_modify_update()
+        ov.ch_modify_update()
     else:
         print("exit:終了\nhelp:今のコマンド\nupdate_vdata:動画の統計情報を更新します\nupdate_vlist:プレイリストから最新の動画idを取得します\nadd_chdata:足りないチャンネルを取得します\
         \nadd_gname:足りないグループ名を追加します\nadd_mdata:足りない音楽データを追加します\ntrue_check:データが正常に登録されているか確認します\nmake_page:ページを生成します\
-        \nre_pic:チャンネルの顔画像を更新します\nse_index:検索用索引を生成\nrandom_gen:おすすめデータ生成\nhot:人気動画ランキング生成\nmake_sitemap:サイトマップ生成\
+        \nre_pic:チャンネルの顔画像を更新します\nse_index:検索用索引を生成\nrandom_gen:おすすめデータ生成\nhot:人気動画ランキング生成\nmake_sitemap:サイトマップ生成\nreload_status:視聴できるかの状態を確認\
         \nalways_do:定期的に実行するコマンドをまとめたもの")
