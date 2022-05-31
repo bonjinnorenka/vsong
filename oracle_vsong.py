@@ -1,14 +1,37 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv,shutil,itertools
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv,shutil,itertools,MySQLdb,sys
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
 import ev
 import xml.etree.ElementTree as ET
 
-con = cx_Oracle.connect(ev.oracle_user, ev.oracle_ps, ev.oracle_connect_string)
-print("Database version:", con.version + "\tデータベースに正常に接続できました。")
-cur = con.cursor()
-cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
+try:
+    con_ms = MySQLdb.connect(host=ev.mysql_host,user=ev.mysql_user,passwd=ev.mysql_ps,db="vsong")
+    cur_ms = con_ms.cursor()
+except:
+    print("エラー記録用データベース(mysql)に接続できませんでした")
+
+try:#引数にあれば登録
+    now_origin = sys.argv[1]
+except:
+    now_origin = "anynomous"
+
+def oracle_time(datetime_obj):
+    return str(datetime_obj.year) + "-" + str(datetime_obj.month) + "-" + str(datetime_obj.day) + " " + str(datetime_obj.hour) + ":" + str(datetime_obj.minute) + ":" + str(datetime_obj.second)
+
+def pro_log(lebel,fn_name,argv_data,erdesc):
+    cur_ms.execute(f"INSERT INTO pro_er_log (log_date,log_author,log_origin,function_name,argv_data,er_name,label) VALUES ('{oracle_time(datetime.datetime.now())}','{now_origin}','program','{fn_name}','{argv_data}','{erdesc}','{lebel}')")
+
+pro_log("log","mysql-login","","login success")
+
+try:
+    con = cx_Oracle.connect(ev.oracle_user, ev.oracle_ps, ev.oracle_connect_string)
+    print("Database version:", con.version + "\tデータベースに正常に接続できました。")
+    cur = con.cursor()
+    cur.execute("alter session set nls_date_format='YYYY-MM-DD HH24:MI:SS'")
+except:
+    pro_log("error","oracle-login","","failed oracle login->stop program")
+    sys.exit("failed oracle login")
 
 #webサイト用変数設定
 header = """<header><h2 class="Top"><a href="/" onClick='page_ajax_load("/");return false'>VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search/" onClick='page_ajax_load("/search/");return false'>検索</a><li><a href="/today/" onClick='page_ajax_load("/today/");return false'>今日の人気</a></ul></nav></header>"""
@@ -140,35 +163,41 @@ def add_groupe_name():
     con.commit()
 
 def video2data_v2(video_id):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME FROM VIDEO_ID WHERE VIDEO_ID = :video_id",video_id=video_id)
-    video_info = cur.fetchone()
-    song_info = [video_info[0],search_musicdata(video_info[3])]
-    if video_info[4]==None:#投稿者が一人で歌っている場合
-        song_info.append(1)
-        cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID ci WHERE CH_ID = :ch_id",ch_id=video_info[1])
-        song_info.append(list(cur.fetchone()))
-    else:#グループで歌っているパターン
-        menlist = groupe_name2men_namev2(video_info[4])
-        if len(menlist)==1:
+    try:
+        cur.execute("SELECT VIDEO_ID,CHANNEL_ID,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME FROM VIDEO_ID WHERE VIDEO_ID = :video_id",video_id=video_id)
+        video_info = cur.fetchone()
+        song_info = [video_info[0],search_musicdata(video_info[3])]
+        if video_info[4]==None:#投稿者が一人で歌っている場合
             song_info.append(1)
-            cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID WHERE (NICK_NAME_1 in (:nick_name) OR NICK_NAME_2 in (:nick_name)) and ig = 0",nick_name=menlist[0])
+            cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID ci WHERE CH_ID = :ch_id",ch_id=video_info[1])
             song_info.append(list(cur.fetchone()))
-        else:
-            song_info.extend([len(menlist),search_chdata_list_bf(menlist)])
-    song_info.append(video_info)
-    return song_info
+        else:#グループで歌っているパターン
+            menlist = groupe_name2men_namev2(video_info[4])
+            if len(menlist)==1:
+                song_info.append(1)
+                cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID WHERE (NICK_NAME_1 in (:nick_name) OR NICK_NAME_2 in (:nick_name)) and ig = 0",nick_name=menlist[0])
+                song_info.append(list(cur.fetchone()))
+            else:
+                song_info.extend([len(menlist),search_chdata_list_bf(menlist)])
+        song_info.append(video_info)
+        return song_info
+    except:
+        pro_log("error","video2data_v2",video_id,"unknown error->continue")
 
 def groupe_name2men_namev2(groupe_name):#v2のテーブルにアクセス
-    songer_list = []
-    songer_list_a = songer_list.append
-    cur.execute("select MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,MN_7,MN_8,MN_9,MN_10,MN_11,MN_12,MN_13,MN_14,MN_15,MN_16,MN_17,MN_18,MN_19,MN_20,MN_21,MN_22,MN_23,MN_24,MN_25,MN_26,MN_27,MN_28,MN_29,MN_30,MN_31,MN_32,MN_33,MN_34,MN_35,MN_36,MN_37,MN_38,MN_39 from PAIR_LIST_SECOND where groupe_name = :group_name",group_name=groupe_name.replace("'","''"))
-    k_gndata = cur.fetchone()
-    for r in k_gndata:
-        if r!=None:#データあり
-            songer_list_a(r)
-        else:
-            break
-    return songer_list
+    try:
+        songer_list = []
+        songer_list_a = songer_list.append
+        cur.execute("select MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,MN_7,MN_8,MN_9,MN_10,MN_11,MN_12,MN_13,MN_14,MN_15,MN_16,MN_17,MN_18,MN_19,MN_20,MN_21,MN_22,MN_23,MN_24,MN_25,MN_26,MN_27,MN_28,MN_29,MN_30,MN_31,MN_32,MN_33,MN_34,MN_35,MN_36,MN_37,MN_38,MN_39 from PAIR_LIST_SECOND where groupe_name = :group_name",group_name=groupe_name.replace("'","''"))
+        k_gndata = cur.fetchone()
+        for r in k_gndata:
+            if r!=None:#データあり
+                songer_list_a(r)
+            else:
+                break
+        return songer_list
+    except:
+        pro_log("error","groupe_name2men_namev2",groupe_name,"unknown error->continue")
 
 def add_music_data():
     cur.execute("SELECT DISTINCT MUSIC_NAME FROM VIDEO_ID WHERE MUSIC_NAME IS NOT NULL AND MUSIC_NAME NOT IN (SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB WHERE KEY_MUSIC_NAME IS NOT NULL)")
@@ -182,69 +211,73 @@ def add_music_data():
     con.commit()
 
 def true_check():
-    _faul = 0
-    #chidのニックネームの重複チェック
-    cur.execute("select nick_name_1 from ch_id where NICK_NAME_1 is not null and ig = 0 group by nick_name_1 having COUNT(nick_name_1) > 1")
-    nmlist_1 = cur.fetchall()
-    for x in nmlist_1:
-        print(str(x)[2:-3] + "\tは文字列が重複しています at CH_ID nick_name1")
-    _faul += len(nmlist_1)
-    cur.execute("select nick_name_2 from ch_id where NICK_NAME_2 is not null and ig = 0 group by nick_name_2 having COUNT(nick_name_2) > 1")
-    nm_list_2 = cur.fetchall()
-    for x in nm_list_2:
-        print(str(x) + "\tは文字列が重複しています at CH_ID nick_name2")
-    _faul += len(nm_list_2)
-    cur.execute("select nick_name_1 from ch_id where nick_name_1 is not null and nick_name_1 in (select nick_name_2 from ch_id where nick_name_2 is not null) UNION select nick_name_2 from ch_id where nick_name_2 is not null and  nick_name_2 in (select nick_name_1 from ch_id where nick_name_1 is not null)")
-    kb_nmlist = cur.fetchall()
-    for x in kb_nmlist:
-        print(str(x) + "\tは文字列が重複しています at CH_ID nick_name")
-    _faul += len(kb_nmlist)
-    cur.execute("select distinct groupe_name from video_id where not exists ( select GROUPE_NAME from PAIR_LIST_SECOND where video_id.GROUPE_NAME=PAIR_LIST_SECOND.groupe_name) and groupe_name is not null")
-    n_glist = cur.fetchall()
-    for x in n_glist:
-        print(str(x)[2:-3] + "の情報がありません at pair_list_second.groupe_name")
-    #pair_listの登録されていないニックネームを検出と同じグループ名内でのニックネームの重複チェック
-    cur.execute("SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE IG = 0")
-    groupe_list = cur.fetchall()
-    cur.execute("select nick_name_1 from ch_id where nick_name_1 is not null union all select nick_name_2 from ch_id where nick_name_2 is not null")
-    k_nlist = []
-    k_nlist_a = k_nlist.append
-    for t in cur.fetchall():
-        k_nlist_a(str(t)[2:-3])
-    s_nickname_list = set(k_nlist)
-    for x in range(len(groupe_list)):
-        n_glist = groupe_name2men_namev2(str(groupe_list[x])[2:-3])
-        kari = [k for k, v in collections.Counter(n_glist).items() if v > 1]
-        for x in range(len(kari)):#重複チェック
-            _faul += 1
-            print(str(kari[x]) + "\tは文字列が重複しています at pair_list")
-        er = list(set(n_glist) - s_nickname_list)
-        if len(er)!=0:#データベースに登録なし
-            for r in range(len(er)):
+    try:
+        _faul = 0
+        #chidのニックネームの重複チェック
+        cur.execute("select nick_name_1 from ch_id where NICK_NAME_1 is not null and ig = 0 group by nick_name_1 having COUNT(nick_name_1) > 1")
+        nmlist_1 = cur.fetchall()
+        for x in nmlist_1:
+            print(str(x)[2:-3] + "\tは文字列が重複しています at CH_ID nick_name1")
+        _faul += len(nmlist_1)
+        cur.execute("select nick_name_2 from ch_id where NICK_NAME_2 is not null and ig = 0 group by nick_name_2 having COUNT(nick_name_2) > 1")
+        nm_list_2 = cur.fetchall()
+        for x in nm_list_2:
+            print(str(x) + "\tは文字列が重複しています at CH_ID nick_name2")
+        _faul += len(nm_list_2)
+        cur.execute("select nick_name_1 from ch_id where nick_name_1 is not null and nick_name_1 in (select nick_name_2 from ch_id where nick_name_2 is not null) UNION select nick_name_2 from ch_id where nick_name_2 is not null and  nick_name_2 in (select nick_name_1 from ch_id where nick_name_1 is not null)")
+        kb_nmlist = cur.fetchall()
+        for x in kb_nmlist:
+            print(str(x) + "\tは文字列が重複しています at CH_ID nick_name")
+        _faul += len(kb_nmlist)
+        cur.execute("select distinct groupe_name from video_id where not exists ( select GROUPE_NAME from PAIR_LIST_SECOND where video_id.GROUPE_NAME=PAIR_LIST_SECOND.groupe_name) and groupe_name is not null")
+        n_glist = cur.fetchall()
+        for x in n_glist:
+            print(str(x)[2:-3] + "の情報がありません at pair_list_second.groupe_name")
+        #pair_listの登録されていないニックネームを検出と同じグループ名内でのニックネームの重複チェック
+        cur.execute("SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE IG = 0")
+        groupe_list = cur.fetchall()
+        cur.execute("select nick_name_1 from ch_id where nick_name_1 is not null union all select nick_name_2 from ch_id where nick_name_2 is not null")
+        k_nlist = []
+        k_nlist_a = k_nlist.append
+        for t in cur.fetchall():
+            k_nlist_a(str(t)[2:-3])
+        s_nickname_list = set(k_nlist)
+        for x in range(len(groupe_list)):
+            n_glist = groupe_name2men_namev2(str(groupe_list[x])[2:-3])
+            kari = [k for k, v in collections.Counter(n_glist).items() if v > 1]
+            for x in range(len(kari)):#重複チェック
                 _faul += 1
-                print(er[r] + "\tはデータベースに登録されていません at pair_list")
-    #動画の投稿者が存在するか確認
-    cur.execute("select distinct channel_id from VIDEO_ID vid where not exists ( select 1 from ch_id ch where vid.CHANNEL_ID = ch.ch_id ) and channel_id is not null")
-    ch_list = cur.fetchall()
-    for x in ch_list:
-        print(str(x)[2:-3] + "\tの情報がデータベースにありません at ch_id ch_id")
-    _faul += len(ch_list)
-    #音楽データが存在するか検索
-    cur.execute("SELECT DISTINCT MUSIC_NAME FROM VIDEO_ID vid where ig = 0 and not exists ( select 1 from MUSIC_SONG_DB md where vid.MUSIC_NAME = md.KEY_MUSIC_NAME) and MUSIC_NAME IS NOT NULL")
-    m_name = cur.fetchall()
-    for x in m_name:
-        print(str(x)[2:-3] + "\tの情報がデータベースにありません at music_db")
-    _faul += len(m_name)
-    #CHIDのLINK先が存在するか確認
-    cur.execute("select distinct LINK from ch_id where link != CH_ID")
-    link_er = cur.fetchall()
-    for x in link_er:
-        print(str(x)[2:-3] + "\tの情報がデータベースにありません at ch_id link")
-    _faul += len(link_er)
-    if _faul==0:
-        print("すべてのチェックを通過しました。")
-    else:
-        print(str(_faul) + "件のエラーが発生しています")
+                print(str(kari[x]) + "\tは文字列が重複しています at pair_list")
+            er = list(set(n_glist) - s_nickname_list)
+            if len(er)!=0:#データベースに登録なし
+                for r in range(len(er)):
+                    _faul += 1
+                    print(er[r] + "\tはデータベースに登録されていません at pair_list")
+        #動画の投稿者が存在するか確認
+        cur.execute("select distinct channel_id from VIDEO_ID vid where not exists ( select 1 from ch_id ch where vid.CHANNEL_ID = ch.ch_id ) and channel_id is not null")
+        ch_list = cur.fetchall()
+        for x in ch_list:
+            print(str(x)[2:-3] + "\tの情報がデータベースにありません at ch_id ch_id")
+        _faul += len(ch_list)
+        #音楽データが存在するか検索
+        cur.execute("SELECT DISTINCT MUSIC_NAME FROM VIDEO_ID vid where ig = 0 and not exists ( select 1 from MUSIC_SONG_DB md where vid.MUSIC_NAME = md.KEY_MUSIC_NAME) and MUSIC_NAME IS NOT NULL")
+        m_name = cur.fetchall()
+        for x in m_name:
+            print(str(x)[2:-3] + "\tの情報がデータベースにありません at music_db")
+        _faul += len(m_name)
+        #CHIDのLINK先が存在するか確認
+        cur.execute("select distinct LINK from ch_id where link != CH_ID")
+        link_er = cur.fetchall()
+        for x in link_er:
+            print(str(x)[2:-3] + "\tの情報がデータベースにありません at ch_id link")
+        _faul += len(link_er)
+        if _faul==0:
+            print("すべてのチェックを通過しました。")
+        else:
+            print(str(_faul) + "件のエラーが発生しています")
+        pro_log("log","true_check","",str(_faul) + "件のエラーが発生しています")
+    except:
+        pro_log("error","true_check","","failed yrue_check->continue")
 
 def music_list(music_name):
     cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE MUSIC_NAME = :music_name and ig = 0 ORDER BY UPLOAD_TIME DESC",music_name=music_name.replace("'","''"))#投稿が新しい順に並び変え
@@ -254,9 +287,6 @@ def music_list(music_name):
     for x in range(len(m_vid)):
         mlist_a(str(m_vid[x])[2:-3])
     return mlist
-
-def oracle_time(datetime_obj):
-    return str(datetime_obj.year) + "-" + str(datetime_obj.month) + "-" + str(datetime_obj.day) + " " + str(datetime_obj.hour) + ":" + str(datetime_obj.minute) + ":" + str(datetime_obj.second)
 
 def nomsec_time(datetime_obj):
     return str(datetime_obj.year) + "-" + str(datetime_obj.month) + "-" + str(datetime_obj.day) + "T" + str(datetime_obj.hour) + ":" + str(datetime_obj.minute) + ":" + str(datetime_obj.second) + "+09:00"
@@ -451,7 +481,7 @@ def get_ch_vdata(nickname,mode=0):
     else:
         nclist = [str(chdata[0]).replace("'","''")]
     menlist = str(nclist).replace("[","").replace("]","")
-    cur.execute("select video_id from video_id where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = '" + chdata[1] + "' UNION ALL SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (:menl) OR MN_2 in (:menl) OR MN_3 in (:menl) OR MN_4 in (:menl) OR MN_5 in (:menl) OR MN_6 in (:menl) OR MN_7 in (:menl) OR MN_8 in (:menl) OR MN_9 in (:menl) OR MN_10 in (:menl) OR MN_11 in (:menl) OR MN_12 in (:menl) OR MN_13 in (:menl) OR MN_14 in (:menl) OR MN_15 in (:menl) OR MN_16 in (:menl) OR MN_17 in (:menl) OR MN_18 in (:menl) OR MN_19 in (:menl) OR MN_20 in (:menl) OR MN_21 in (:menl) OR MN_22 in (:menl) OR MN_23 in (:menl) OR MN_24 in (:menl) OR MN_25 in (:menl) OR MN_26 in (:menl) OR MN_27 in (:menl) OR MN_28 in (:menl) OR MN_29 in (:menl) OR MN_30 in (:menl) OR MN_31 in (:menl) OR MN_32 in (:menl) OR MN_33 in (:menl) OR MN_34 in (:menl) OR MN_35 in (:menl) OR MN_36 in (:menl) OR MN_37 in (:menl) OR MN_38 in (:menl) OR MN_39 in (:menl) ) UNION ALL select video_id from video_id where channel_id in (select CH_ID from CH_ID where LINK='" + chdata[1] + "')) and music_name is not null ORDER BY UPLOAD_TIME DESC",menl=menlist)
+    cur.execute("select video_id from video_id where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = '" + chdata[1] + "' UNION ALL SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (:menl) OR MN_2 in (:menl) OR MN_3 in (:menl) OR MN_4 in (:menl) OR MN_5 in (:menl) OR MN_6 in (:menl) OR MN_7 in (:menl) OR MN_8 in (:menl) OR MN_9 in (:menl) OR MN_10 in (:menl) OR MN_11 in (:menl) OR MN_12 in (:menl) OR MN_13 in (:menl) OR MN_14 in (:menl) OR MN_15 in (:menl) OR MN_16 in (:menl) OR MN_17 in (:menl) OR MN_18 in (:menl) OR MN_19 in (:menl) OR MN_20 in (:menl) OR MN_21 in (:menl) OR MN_22 in (:menl) OR MN_23 in (:menl) OR MN_24 in (:menl) OR MN_25 in (:menl) OR MN_26 in (:menl) OR MN_27 in (:menl) OR MN_28 in (:menl) OR MN_29 in (:menl) OR MN_30 in (:menl) OR MN_31 in (:menl) OR MN_32 in (:menl) OR MN_33 in (:menl) OR MN_34 in (:menl) OR MN_35 in (:menl) OR MN_36 in (:menl) OR MN_37 in (:menl) OR MN_38 in (:menl) OR MN_39 in (:menl) ) UNION ALL select video_id from video_id where channel_id in (select CH_ID from CH_ID where LINK='" + chdata[1] + "')) and music_name is not null AND STATUS = 0 ORDER BY UPLOAD_TIME DESC",menl=menlist)
     vidlist = cur.fetchall()
     vdata = []
     vdata_a = vdata.append
@@ -482,274 +512,280 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
-    if os.path.isdir(n_html_path)==False:
-        os.mkdir(n_html_path)
-    share_html = []
-    share_html_a = share_html.append
-    if mode==0:
-        music_data = search_musicdata(music_name)
-        share_html_a(html_import_lib)
-        share_html_a(header)
-        description = "Vtuberの" + music_name + "の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
-        page_title = "Vtuberの歌う" + music_name
-        share_html_a('<main><div class="for_center">')
-        if music_data[1]==None:
-            music_data[1] = "不明"
-        if music_data[2] and music_data[3]!=None:#spotifyもyoutubeも存在する場合
-            share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + music_data[3] + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + """</p><td><a href='https://open.spotify.com/track/""" + music_data[2] + """'>Spotifyで再生</a></td></tr></table>""")
-        elif music_data[2]==None and music_data[3]!=None:#spotifyにはないがyoutubeにはある場合
-            share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + music_data[3] + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-        elif music_data[2]!=None and music_data[3]==None:#spotifyにありyoutubeにないパターン
-            share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + """</p><td><a href='https://open.spotify.com/track/""" + music_data[2] + """'>Spotifyで再生</a></td></tr></table>""")
-        else:#spotifyにもyoutubeにもないパターン
-            share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-        share_html_a('<div id="sum-viewer"></div>')
-        share_html_a("<table id='video_data_t'>")
-        share_html_a("""</table></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
-    music_videos_id = music_list(music_name)
-    tbdata = []
-    tbdata_ex = tbdata.extend
-    for g in range(math.ceil(len(music_videos_id)/10)):
-        tbdata_ex(["<tbody id='tbd-" + str(g) + "'>","</tbody>"])
-    statistics_data = {}
-    v_data = []
-    for x in music_videos_id:
-        v_data.append(video2data_v2(x))
-    for r in range(math.ceil(len(music_videos_id)/10)):
-        nowvid = []
-        page_html_data_mdata = []
-        phdm_a = page_html_data_mdata.append
-        json_pagedata = {"music_name":dir_name_replace(music_name),"pageid":r,"max-length":math.ceil(len(music_videos_id)/10)}
-        nowpgdata = copy.deepcopy(share_html)
-        json_count = 0
-        if 10*(r+1) > len(music_videos_id):
-            max_len = len(music_videos_id)
-        else:
-            max_len = 10*(r+1)
-        for x in range(10*r,max_len,1):
-            x_list = []
-            x_list_a = x_list.append
-            if r==0 and x==0:
-                statistics_data["music"] = view_music_graph(music_name,dt=1)
-            if r==0 and x==0 and mode==0:
-                #初回分だけ特殊データ登録
-                json_pagedata["first"] = '<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>"
-                page_html_data_mdata.append('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
-            can_d,sclist = view_graph(video_id=v_data[x][0],dt=4,scope=7)#統計情報取得
-            statistics_data[v_data[x][0]] = sclist#統計データを辞書に登録
-            if mode==0:#この場合HTMLデータも生成
-                nowvid.append(v_data[x][0])
-                #メンバーリストをエラーが出ないよう訂正そして画像のURLもついでに最適化
-                men_of_list = []
-                if v_data[x][2]==1:#歌い手が１人
-                    if v_data[x][3][5]==None:
-                        v_data[x][3][5] = "個人"
-                    men_of_list = [str(v_data[x][3][0]).replace(" ",""),v_data[x][3][5]]
-                    #url-rewrite
-                    if "https://yt" in v_data[x][3][3]:#画像ソースがyoutubeの場合
-                        v_data[x][3][3] = v_data[x][3][3] + "=s75-c-k-c0x00ffffff-no-rj"
-                    elif "https://pbs.twimg.com" in v_data[x][3][3]:#twitter
-                        v_data[x][3][3] = str(v_data[x][3][3])[:-11] + "200x200" + str(v_data[x][3][3])[-4:]
-                else:#複数人
-                    for w in range(v_data[x][2]):
-                        if v_data[x][3][w][0] not in men_of_list:
-                            men_of_list.append(str(v_data[x][3][w][0]).replace(" ",""))
-                        if v_data[x][3][w][5]==None:
-                            v_data[x][3][w][5] = "個人"
-                        if v_data[x][3][w][5] not in men_of_list:
-                            men_of_list.append(v_data[x][3][w][5])
-                        if "https://yt" in v_data[x][3][w][3]:#ソースyoutube
-                            v_data[x][3][w][3] = v_data[x][3][w][3] + "=s75-c-k-c0x00ffffff-no-rj"
-                        elif "https://pbs.twimg.com" in v_data[x][3][w][3]:
-                            v_data[x][3][w][3] = str(v_data[x][3][w][3])[:-11] + "200x200" + str(v_data[x][3][w][3])[-4:]
-                #行のデータ
-                x_list_a("<tr class='" + " ".join(men_of_list) + "'><td><lite-youtube videoid='" + v_data[x][0] + "' playlabel='Play'></lite-youtube></td><td class='yt-meta' id='" + v_data[x][0] + "_td'><details id='" + v_data[x][0] + "_dt' class='mdata-dt'><summary class='music_title'>" + v_data[x][4][2] + "</summary>" + f'<group class="inline-radio" onchange="change_graph_music(\'{v_data[x][0]}\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra"><label class="radio-page-label">コメント数</label></div></group>' + can_d + "<div class='vtuber_sing'>")
-                #人データ追加
-                if v_data[x][2]==1:#歌い手が１人
-                    x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
-                else:#歌い手が複数人
-                    for u in range(v_data[x][2]):
-                        x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][u][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][u][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][u][3] + "' alt='" + v_data[x][3][u][0] + "' title='" + v_data[x][3][u][0] + "'></a>")
-                x_list_a("</div></details></td></tr>")
-                json_pagedata[json_count] = "".join(x_list)
-                json_count += 1
-                phdm_a(copy.copy(x_list))
+    try:
+        n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
+        if os.path.isdir(n_html_path)==False:
+            os.mkdir(n_html_path)
+        share_html = []
+        share_html_a = share_html.append
         if mode==0:
-            k_tbdata = copy.deepcopy(tbdata)
-            k_tbdata.insert((2*r)+1,page_html_data_mdata)
-            nowpgdata.insert(6,k_tbdata)
-            nowpgdata.append("<script src='/library/main.js'></script>")
-            head_data = []
-            stapass_preload = "<link rel='preload' href='/music/" + music_name + "/statistics.json' as='fetch'>"
-            if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '">')
-                head_data.append('<link rel="next" href="/music/' + music_name + '/page2/">')
-                head_data.append(stapass_preload + "</head>")#閉じタグちゃん
-            elif r==0 and r==math.ceil(len(v_data)/10):#初回ページのみ
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '">' + stapass_preload + '</head>')
-            elif r==math.ceil(len(v_data)/10):#最後のページ
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '">' + stapass_preload)
-                if r!=1:
-                    head_data.append('<link rel="prev" href="/music/' + music_name + '/page' + str(math.ceil(len(v_data)/10)-1) + '/">')
-                else:
-                    head_data.append('<link rel="prev" href="/music/' + music_name + '/">')
-                head_data.append("</head>")#閉じタグちゃん
-            else:
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '">' + stapass_preload)
-                if r==1:#２ページ目の場合初回ページが前
-                    head_data.append('<link rel="prev" href="/music/' + music_name + '/">')
-                else:
-                    head_data.append('<link rel="prev" href="/music/' + music_name + '/page' + str(r) + '/">')
-                head_data.append('<link rel="next" href="/music/' + music_name + '/page' + str(r+2) + '/">')
-                head_data.append("</head>")#閉じタグちゃん
-            head_data.append("<body>")
-            nowpgdata.insert(0,"".join(head_data))
-            nowpgdata.append("</body></html>")
-            json_pagedata["videoidlist"] = nowvid
-            #ファイル保存パッチ            
-            if r==0:
-                html_fp = ""
-            else:
-                if os.path.isdir(n_html_path + "page" + str(r+1) + "/")==False:#フォルダがなければ生成
-                    os.mkdir(n_html_path + "page" + str(r+1) + "/")
-                html_fp = "page" + str(r+1) + "/"
-            with open(n_html_path + html_fp + "data.json","w") as f:#テーブルのデータ
-                    json.dump(json_pagedata,f,indent=4)
-            with open(n_html_path + html_fp + "index.html","wb") as f:
-                f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
-    with open(n_html_path + "statistics.json","w") as f:
-        json.dump(statistics_data,f,indent=4)
-
-def make_chpage_v2(nick_name,mode=0):
-    site_nick_name = dir_name_replace(nick_name)
-    n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
-    if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
-        os.mkdir(n_html_path)
-    if mode==0:
-        v_data,page_fc_date,videolist_id,page_lmod = get_ch_vdata(nick_name)
-    elif mode==1:
-        videolist_id = get_ch_vdata(nickname=nick_name,mode=1)
-    share_html = []
-    share_html_a = share_html.append
-    description = "Vtuberの" + nick_name + "が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
-    page_title = nick_name + "の歌った曲集"
-    share_html_a(html_import_lib)
-    share_html_a(header)
-    share_html_a('<main><div class="for_center"><div id="sum-viewer"></div>')
-    share_html_a("<table id='video_data_t'>")
-    #ここの6番目にデータは入れてね
-    share_html_a("""</table></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
-    tbdata = []
-    tbdata_ex = tbdata.extend
-    for g in range(math.ceil(len(videolist_id)/10)):
-        tbdata_ex(["<tbody id='tbd-" + str(g) + "'>","</tbody>"])
-    statistics_data = {}
-    for r in range(math.ceil(len(videolist_id)/10)):#メインデータ生成
-        if mode==0:
+            music_data = search_musicdata(music_name)
+            share_html_a(html_import_lib)
+            share_html_a(header)
+            description = "Vtuberの" + music_name + "の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
+            page_title = "Vtuberの歌う" + music_name
+            share_html_a('<main><div class="for_center">')
+            if music_data[1]==None:
+                music_data[1] = "不明"
+            if music_data[2] and music_data[3]!=None:#spotifyもyoutubeも存在する場合
+                share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + music_data[3] + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + """</p><td><a href='https://open.spotify.com/track/""" + music_data[2] + """'>Spotifyで再生</a></td></tr></table>""")
+            elif music_data[2]==None and music_data[3]!=None:#spotifyにはないがyoutubeにはある場合
+                share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + music_data[3] + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
+            elif music_data[2]!=None and music_data[3]==None:#spotifyにありyoutubeにないパターン
+                share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + """</p><td><a href='https://open.spotify.com/track/""" + music_data[2] + """'>Spotifyで再生</a></td></tr></table>""")
+            else:#spotifyにもyoutubeにもないパターン
+                share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
+            share_html_a('<div id="sum-viewer"></div>')
+            share_html_a("<table id='video_data_t'>")
+            share_html_a("""</table></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
+        music_videos_id = music_list(music_name)
+        tbdata = []
+        tbdata_ex = tbdata.extend
+        for g in range(math.ceil(len(music_videos_id)/10)):
+            tbdata_ex(["<tbody id='tbd-" + str(g) + "'>","</tbody>"])
+        statistics_data = {}
+        v_data = []
+        for x in music_videos_id:
+            v_data.append(video2data_v2(x))
+        for r in range(math.ceil(len(music_videos_id)/10)):
             nowvid = []
             page_html_data_mdata = []
             phdm_a = page_html_data_mdata.append
-            json_pagedata = {"nick_name":dir_name_replace(nick_name),"pageid":r,"max-length":math.ceil(len(v_data)/10)}
+            json_pagedata = {"music_name":dir_name_replace(music_name),"pageid":r,"max-length":math.ceil(len(music_videos_id)/10)}
             nowpgdata = copy.deepcopy(share_html)
             json_count = 0
-        if 10*(r+1) > len(videolist_id):
-            max_len = len(videolist_id)
-        else:
-            max_len = 10*(r+1)
-        for x in range(10*r,max_len,1):
-            x_list = []
-            x_list_a = x_list.append
-            if r==0 and x==0:
-                statistics_data["channel"] = view_vlist_graph(videolist_id,data=1)
-            if r==0 and x==0 and mode==0:
-                #初回分だけ特殊データ登録
-                json_pagedata["first"] = ("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + nick_name + "</h1>" + '<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
-                page_html_data_mdata.append("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + nick_name + "</h1>"  + '<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
-            can_d,sclist = view_graph(video_id=videolist_id[x],dt=4,scope=7)#統計情報取得
-            statistics_data[videolist_id[x]] = sclist#統計データを辞書に登録
-            if mode==0:#この場合HTMLデータも生成
-                nowvid.append(v_data[x][0])
-                #メンバーリストをエラーが出ないよう訂正そして画像のURLもついでに最適化
-                men_of_list = []
-                if v_data[x][2]==1:#歌い手が１人
-                    if v_data[x][3][5]==None:
-                        v_data[x][3][5] = "個人"
-                    men_of_list = [str(v_data[x][3][0]).replace(" ",""),v_data[x][3][5]]
-                    #url-rewrite
-                    if "https://yt" in v_data[x][3][3]:#画像ソースがyoutubeの場合
-                        v_data[x][3][3] = v_data[x][3][3] + "=s75-c-k-c0x00ffffff-no-rj"
-                    elif "https://pbs.twimg.com" in v_data[x][3][3]:#twitter
-                        v_data[x][3][3] = str(v_data[x][3][3])[:-11] + "200x200" + str(v_data[x][3][3])[-4:]
-                else:#複数人
-                    for w in range(v_data[x][2]):
-                        if v_data[x][3][w][0] not in men_of_list:
-                            men_of_list.append(str(v_data[x][3][w][0]).replace(" ",""))
-                        if v_data[x][3][w][5]==None:
-                            v_data[x][3][w][5] = "個人"
-                        if v_data[x][3][w][5] not in men_of_list:
-                            men_of_list.append(v_data[x][3][w][5])
-                        if "https://yt" in v_data[x][3][w][3]:#ソースyoutube
-                            v_data[x][3][w][3] = v_data[x][3][w][3] + "=s75-c-k-c0x00ffffff-no-rj"
-                        elif "https://pbs.twimg.com" in v_data[x][3][w][3]:
-                            v_data[x][3][w][3] = str(v_data[x][3][w][3])[:-11] + "200x200" + str(v_data[x][3][w][3])[-4:]
-                #行のデータ
-                x_list_a("<tr class='" + " ".join(men_of_list) + "'><td><lite-youtube videoid='" + v_data[x][0] + "' playlabel='Play'></lite-youtube></td><td class='yt-meta' id='" + v_data[x][0] + "_td'><details id='" + v_data[x][0] + "_dt' class='mdata-dt'><summary id='" + v_data[x][0] + "_sum' class='music_title'><a id='" + v_data[x][0] + "_music_a' href='/music/"+ dir_name_replace(v_data[x][1][0]) + "/' onClick='page_ajax_load(\"/music/" + dir_name_replace(v_data[x][1][0]) + "/\");return false'>" + v_data[x][1][0] + "</a></summary>" + f'<group class="inline-radio" onchange="change_graph_ch(\'{v_data[x][0]}\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra"><label class="radio-page-label">コメント数</label></div></group>' + can_d + "<div class='vtuber_sing'>")
-                #人データ追加
-                if v_data[x][2]==1:#歌い手が１人
-                    x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
-                else:#歌い手が複数人
-                    for u in range(v_data[x][2]):
-                        x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][u][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][u][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][u][3] + "' alt='" + v_data[x][3][u][0] + "' title='" + v_data[x][3][u][0] + "'></a>")
-                x_list_a("</div></details></td></tr>")
-                json_pagedata[json_count] = "".join(x_list)
-                json_count += 1
-                phdm_a(copy.copy(x_list))
+            if 10*(r+1) > len(music_videos_id):
+                max_len = len(music_videos_id)
+            else:
+                max_len = 10*(r+1)
+            for x in range(10*r,max_len,1):
+                x_list = []
+                x_list_a = x_list.append
+                if r==0 and x==0:
+                    statistics_data["music"] = view_music_graph(music_name,dt=1)
+                if r==0 and x==0 and mode==0:
+                    #初回分だけ特殊データ登録
+                    json_pagedata["first"] = '<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>"
+                    page_html_data_mdata.append('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
+                can_d,sclist = view_graph(video_id=v_data[x][0],dt=4,scope=7)#統計情報取得
+                statistics_data[v_data[x][0]] = sclist#統計データを辞書に登録
+                if mode==0:#この場合HTMLデータも生成
+                    nowvid.append(v_data[x][0])
+                    #メンバーリストをエラーが出ないよう訂正そして画像のURLもついでに最適化
+                    men_of_list = []
+                    if v_data[x][2]==1:#歌い手が１人
+                        if v_data[x][3][5]==None:
+                            v_data[x][3][5] = "個人"
+                        men_of_list = [str(v_data[x][3][0]).replace(" ",""),v_data[x][3][5]]
+                        #url-rewrite
+                        if "https://yt" in v_data[x][3][3]:#画像ソースがyoutubeの場合
+                            v_data[x][3][3] = v_data[x][3][3] + "=s75-c-k-c0x00ffffff-no-rj"
+                        elif "https://pbs.twimg.com" in v_data[x][3][3]:#twitter
+                            v_data[x][3][3] = str(v_data[x][3][3])[:-11] + "200x200" + str(v_data[x][3][3])[-4:]
+                    else:#複数人
+                        for w in range(v_data[x][2]):
+                            if v_data[x][3][w][0] not in men_of_list:
+                                men_of_list.append(str(v_data[x][3][w][0]).replace(" ",""))
+                            if v_data[x][3][w][5]==None:
+                                v_data[x][3][w][5] = "個人"
+                            if v_data[x][3][w][5] not in men_of_list:
+                                men_of_list.append(v_data[x][3][w][5])
+                            if "https://yt" in v_data[x][3][w][3]:#ソースyoutube
+                                v_data[x][3][w][3] = v_data[x][3][w][3] + "=s75-c-k-c0x00ffffff-no-rj"
+                            elif "https://pbs.twimg.com" in v_data[x][3][w][3]:
+                                v_data[x][3][w][3] = str(v_data[x][3][w][3])[:-11] + "200x200" + str(v_data[x][3][w][3])[-4:]
+                    #行のデータ
+                    x_list_a("<tr class='" + " ".join(men_of_list) + "'><td><lite-youtube videoid='" + v_data[x][0] + "' playlabel='Play'></lite-youtube></td><td class='yt-meta' id='" + v_data[x][0] + "_td'><details id='" + v_data[x][0] + "_dt' class='mdata-dt'><summary class='music_title'>" + v_data[x][4][2] + "</summary>" + f'<group class="inline-radio" onchange="change_graph_music(\'{v_data[x][0]}\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra"><label class="radio-page-label">コメント数</label></div></group>' + can_d + "<div class='vtuber_sing'>")
+                    #人データ追加
+                    if v_data[x][2]==1:#歌い手が１人
+                        x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
+                    else:#歌い手が複数人
+                        for u in range(v_data[x][2]):
+                            x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][u][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][u][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][u][3] + "' alt='" + v_data[x][3][u][0] + "' title='" + v_data[x][3][u][0] + "'></a>")
+                    x_list_a("</div></details></td></tr>")
+                    json_pagedata[json_count] = "".join(x_list)
+                    json_count += 1
+                    phdm_a(copy.copy(x_list))
+            if mode==0:
+                k_tbdata = copy.deepcopy(tbdata)
+                k_tbdata.insert((2*r)+1,page_html_data_mdata)
+                nowpgdata.insert(6,k_tbdata)
+                nowpgdata.append("<script src='/library/main.js'></script>")
+                head_data = []
+                stapass_preload = "<link rel='preload' href='/music/" + music_name + "/statistics.json' as='fetch'>"
+                if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
+                    head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '">')
+                    head_data.append('<link rel="next" href="/music/' + music_name + '/page2/">')
+                    head_data.append(stapass_preload + "</head>")#閉じタグちゃん
+                elif r==0 and r==math.ceil(len(v_data)/10):#初回ページのみ
+                    head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '">' + stapass_preload + '</head>')
+                elif r==math.ceil(len(v_data)/10):#最後のページ
+                    head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '">' + stapass_preload)
+                    if r!=1:
+                        head_data.append('<link rel="prev" href="/music/' + music_name + '/page' + str(math.ceil(len(v_data)/10)-1) + '/">')
+                    else:
+                        head_data.append('<link rel="prev" href="/music/' + music_name + '/">')
+                    head_data.append("</head>")#閉じタグちゃん
+                else:
+                    head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '">' + stapass_preload)
+                    if r==1:#２ページ目の場合初回ページが前
+                        head_data.append('<link rel="prev" href="/music/' + music_name + '/">')
+                    else:
+                        head_data.append('<link rel="prev" href="/music/' + music_name + '/page' + str(r) + '/">')
+                    head_data.append('<link rel="next" href="/music/' + music_name + '/page' + str(r+2) + '/">')
+                    head_data.append("</head>")#閉じタグちゃん
+                head_data.append("<body>")
+                nowpgdata.insert(0,"".join(head_data))
+                nowpgdata.append("</body></html>")
+                json_pagedata["videoidlist"] = nowvid
+                #ファイル保存パッチ            
+                if r==0:
+                    html_fp = ""
+                else:
+                    if os.path.isdir(n_html_path + "page" + str(r+1) + "/")==False:#フォルダがなければ生成
+                        os.mkdir(n_html_path + "page" + str(r+1) + "/")
+                    html_fp = "page" + str(r+1) + "/"
+                with open(n_html_path + html_fp + "data.json","w") as f:#テーブルのデータ
+                        json.dump(json_pagedata,f,indent=4)
+                with open(n_html_path + html_fp + "index.html","wb") as f:
+                    f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
+        with open(n_html_path + "statistics.json","w") as f:
+            json.dump(statistics_data,f,indent=4)
+    except:
+        pro_log("error","make_chpage_v2",music_name,"unknown error->continue")
+
+def make_chpage_v2(nick_name,mode=0):
+    try:
+        site_nick_name = dir_name_replace(nick_name)
+        n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
+        if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
+            os.mkdir(n_html_path)
         if mode==0:
-            k_tbdata = copy.deepcopy(tbdata)
-            k_tbdata.insert((2*r)+1,page_html_data_mdata)
-            nowpgdata.insert(4,k_tbdata)
-            nowpgdata.append("<script src='/library/main.js'></script>")
-            head_data = []
-            stapass_preload = "<link rel='preload' href='/ch/" + nick_name + "/statistics.json' as='fetch'>"
-            if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '">')
-                head_data.append('<link rel="next" href="/ch/' + nick_name + '/page2/">')
-                head_data.append(stapass_preload + "</head>")#閉じタグちゃん
-            elif r==0 and r==math.ceil(len(v_data)/10):#初回ページのみ
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '">' + stapass_preload + '</head>')
-            elif r==math.ceil(len(v_data)/10):#最後のページ
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '">' + stapass_preload)
-                if r!=1:
-                    head_data.append('<link rel="prev" href="/ch/' + nick_name + '/page' + str(math.ceil(len(v_data)/10)-1) + '/">')
-                else:
-                    head_data.append('<link rel="prev" href="/ch/' + nick_name + '/">')
-                head_data.append("</head>")#閉じタグちゃん
+            v_data,page_fc_date,videolist_id,page_lmod = get_ch_vdata(nick_name)
+        elif mode==1:
+            videolist_id = get_ch_vdata(nickname=nick_name,mode=1)
+        share_html = []
+        share_html_a = share_html.append
+        description = "Vtuberの" + nick_name + "が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
+        page_title = nick_name + "の歌った曲集"
+        share_html_a(html_import_lib)
+        share_html_a(header)
+        share_html_a('<main><div class="for_center"><div id="sum-viewer"></div>')
+        share_html_a("<table id='video_data_t'>")
+        #ここの6番目にデータは入れてね
+        share_html_a("""</table></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
+        tbdata = []
+        tbdata_ex = tbdata.extend
+        for g in range(math.ceil(len(videolist_id)/10)):
+            tbdata_ex(["<tbody id='tbd-" + str(g) + "'>","</tbody>"])
+        statistics_data = {}
+        for r in range(math.ceil(len(videolist_id)/10)):#メインデータ生成
+            if mode==0:
+                nowvid = []
+                page_html_data_mdata = []
+                phdm_a = page_html_data_mdata.append
+                json_pagedata = {"nick_name":dir_name_replace(nick_name),"pageid":r,"max-length":math.ceil(len(v_data)/10)}
+                nowpgdata = copy.deepcopy(share_html)
+                json_count = 0
+            if 10*(r+1) > len(videolist_id):
+                max_len = len(videolist_id)
             else:
-                head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '">' + stapass_preload)
-                if r==1:#２ページ目の場合初回ページが前
-                    head_data.append('<link rel="prev" href="/ch/' + nick_name + '/">')
+                max_len = 10*(r+1)
+            for x in range(10*r,max_len,1):
+                x_list = []
+                x_list_a = x_list.append
+                if r==0 and x==0:
+                    statistics_data["channel"] = view_vlist_graph(videolist_id,data=1)
+                if r==0 and x==0 and mode==0:
+                    #初回分だけ特殊データ登録
+                    json_pagedata["first"] = ("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + nick_name + "</h1>" + '<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
+                    page_html_data_mdata.append("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + nick_name + "</h1>"  + '<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
+                can_d,sclist = view_graph(video_id=videolist_id[x],dt=4,scope=7)#統計情報取得
+                statistics_data[videolist_id[x]] = sclist#統計データを辞書に登録
+                if mode==0:#この場合HTMLデータも生成
+                    nowvid.append(v_data[x][0])
+                    #メンバーリストをエラーが出ないよう訂正そして画像のURLもついでに最適化
+                    men_of_list = []
+                    if v_data[x][2]==1:#歌い手が１人
+                        if v_data[x][3][5]==None:
+                            v_data[x][3][5] = "個人"
+                        men_of_list = [str(v_data[x][3][0]).replace(" ",""),v_data[x][3][5]]
+                        #url-rewrite
+                        if "https://yt" in v_data[x][3][3]:#画像ソースがyoutubeの場合
+                            v_data[x][3][3] = v_data[x][3][3] + "=s75-c-k-c0x00ffffff-no-rj"
+                        elif "https://pbs.twimg.com" in v_data[x][3][3]:#twitter
+                            v_data[x][3][3] = str(v_data[x][3][3])[:-11] + "200x200" + str(v_data[x][3][3])[-4:]
+                    else:#複数人
+                        for w in range(v_data[x][2]):
+                            if v_data[x][3][w][0] not in men_of_list:
+                                men_of_list.append(str(v_data[x][3][w][0]).replace(" ",""))
+                            if v_data[x][3][w][5]==None:
+                                v_data[x][3][w][5] = "個人"
+                            if v_data[x][3][w][5] not in men_of_list:
+                                men_of_list.append(v_data[x][3][w][5])
+                            if "https://yt" in v_data[x][3][w][3]:#ソースyoutube
+                                v_data[x][3][w][3] = v_data[x][3][w][3] + "=s75-c-k-c0x00ffffff-no-rj"
+                            elif "https://pbs.twimg.com" in v_data[x][3][w][3]:
+                                v_data[x][3][w][3] = str(v_data[x][3][w][3])[:-11] + "200x200" + str(v_data[x][3][w][3])[-4:]
+                    #行のデータ
+                    x_list_a("<tr class='" + " ".join(men_of_list) + "'><td><lite-youtube videoid='" + v_data[x][0] + "' playlabel='Play'></lite-youtube></td><td class='yt-meta' id='" + v_data[x][0] + "_td'><details id='" + v_data[x][0] + "_dt' class='mdata-dt'><summary id='" + v_data[x][0] + "_sum' class='music_title'><a id='" + v_data[x][0] + "_music_a' href='/music/"+ dir_name_replace(v_data[x][1][0]) + "/' onClick='page_ajax_load(\"/music/" + dir_name_replace(v_data[x][1][0]) + "/\");return false'>" + v_data[x][1][0] + "</a></summary>" + f'<group class="inline-radio" onchange="change_graph_ch(\'{v_data[x][0]}\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="{v_data[x][0]}_ra"><label class="radio-page-label">コメント数</label></div></group>' + can_d + "<div class='vtuber_sing'>")
+                    #人データ追加
+                    if v_data[x][2]==1:#歌い手が１人
+                        x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][3] + "' alt='" + v_data[x][3][0] + "' title='" + v_data[x][3][0] + "'></a>")
+                    else:#歌い手が複数人
+                        for u in range(v_data[x][2]):
+                            x_list_a("<a href='/ch/" + dir_name_replace(v_data[x][3][u][0]) + "' onclick='page_ajax_load(\"/ch/" + dir_name_replace(v_data[x][3][u][0]) + "/\");return false'><img loading='lazy' width='75' height='75' class='v_face' src='" + v_data[x][3][u][3] + "' alt='" + v_data[x][3][u][0] + "' title='" + v_data[x][3][u][0] + "'></a>")
+                    x_list_a("</div></details></td></tr>")
+                    json_pagedata[json_count] = "".join(x_list)
+                    json_count += 1
+                    phdm_a(copy.copy(x_list))
+            if mode==0:
+                k_tbdata = copy.deepcopy(tbdata)
+                k_tbdata.insert((2*r)+1,page_html_data_mdata)
+                nowpgdata.insert(4,k_tbdata)
+                nowpgdata.append("<script src='/library/main.js'></script>")
+                head_data = []
+                stapass_preload = "<link rel='preload' href='/ch/" + nick_name + "/statistics.json' as='fetch'>"
+                if r==0 and r!=math.ceil(len(v_data)/10):#初回ページかつ次のページがある
+                    head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '">')
+                    head_data.append('<link rel="next" href="/ch/' + nick_name + '/page2/">')
+                    head_data.append(stapass_preload + "</head>")#閉じタグちゃん
+                elif r==0 and r==math.ceil(len(v_data)/10):#初回ページのみ
+                    head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '">' + stapass_preload + '</head>')
+                elif r==math.ceil(len(v_data)/10):#最後のページ
+                    head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '">' + stapass_preload)
+                    if r!=1:
+                        head_data.append('<link rel="prev" href="/ch/' + nick_name + '/page' + str(math.ceil(len(v_data)/10)-1) + '/">')
+                    else:
+                        head_data.append('<link rel="prev" href="/ch/' + nick_name + '/">')
+                    head_data.append("</head>")#閉じタグちゃん
                 else:
-                    head_data.append('<link rel="prev" href="/ch/' + nick_name + '/page' + str(r) + '/">')
-                head_data.append('<link rel="next" href="/ch/' + nick_name + '/page' + str(r+2) + '/">')
-                head_data.append("</head>")#閉じタグちゃん
-            head_data.append("<body>")
-            nowpgdata.insert(0,"".join(head_data))
-            nowpgdata.append("</body></html>")
-            json_pagedata["videoidlist"] = nowvid
-            #ファイル保存パッチ            
-            if r==0:
-                html_fp = ""
-            else:
-                if os.path.isdir(n_html_path + "page" + str(r+1) + "/")==False:#フォルダがなければ生成
-                    os.mkdir(n_html_path + "page" + str(r+1) + "/")
-                html_fp = "page" + str(r+1) + "/"
-            with open(n_html_path + html_fp + "data.json","w") as f:#テーブルのデータ
-                    json.dump(json_pagedata,f,indent=4)
-            with open(n_html_path + html_fp + "index.html","wb") as f:
-                f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
-    with open(n_html_path + "statistics.json","w") as f:
-        json.dump(statistics_data,f,indent=4)
+                    head_data.append('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '">' + stapass_preload)
+                    if r==1:#２ページ目の場合初回ページが前
+                        head_data.append('<link rel="prev" href="/ch/' + nick_name + '/">')
+                    else:
+                        head_data.append('<link rel="prev" href="/ch/' + nick_name + '/page' + str(r) + '/">')
+                    head_data.append('<link rel="next" href="/ch/' + nick_name + '/page' + str(r+2) + '/">')
+                    head_data.append("</head>")#閉じタグちゃん
+                head_data.append("<body>")
+                nowpgdata.insert(0,"".join(head_data))
+                nowpgdata.append("</body></html>")
+                json_pagedata["videoidlist"] = nowvid
+                #ファイル保存パッチ            
+                if r==0:
+                    html_fp = ""
+                else:
+                    if os.path.isdir(n_html_path + "page" + str(r+1) + "/")==False:#フォルダがなければ生成
+                        os.mkdir(n_html_path + "page" + str(r+1) + "/")
+                    html_fp = "page" + str(r+1) + "/"
+                with open(n_html_path + html_fp + "data.json","w") as f:#テーブルのデータ
+                        json.dump(json_pagedata,f,indent=4)
+                with open(n_html_path + html_fp + "index.html","wb") as f:
+                    f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
+        with open(n_html_path + "statistics.json","w") as f:
+            json.dump(statistics_data,f,indent=4)
+    except:
+        pro_log("error","make_chpage_v2",nick_name,"unknown error->continue")
 
 def make_all_chpage(mode=0):
     cur.execute("select nick_name_1 from ch_id where ig = 0 and nick_name_1 is not null")
@@ -774,7 +810,7 @@ def music_recommend_page():
                 k_ranlist.append(k)
         for x in range(len(k_ranlist)):
             nmusic_name = music_list[k_ranlist[x]]
-            cur.execute("select video_id from video_id where music_name = '" + nmusic_name.replace("'","''") + "' order by upload_time desc FETCH FIRST 1 ROWS ONLY")
+            cur.execute("select video_id from video_id where music_name = '" + nmusic_name.replace("'","''") + "' AND STATUS = 0 order by upload_time desc FETCH FIRST 1 ROWS ONLY")
             n_vid = str(cur.fetchone())[2:-3]
             k_ar = [nmusic_name,dir_name_replace(nmusic_name),n_vid]
             n_dict[x] = k_ar
@@ -856,10 +892,10 @@ def make_search_index():
         else:#2使えってくる
             for r in range(2):
                 search_index_a([nowret[r],nst,"/ch/" + dir_name_replace(nst) + "/"])
-    cur.execute("SELECT CH_ID,NICK_NAME_1 FROM CH_ID WHERE EXISTS (SELECT DISTINCT CHANNEL_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME IS NULL and CH_ID.CH_ID = CHANNEL_ID)")#一人で歌っているチャンネルを取得
+    cur.execute("SELECT CH_ID,NICK_NAME_1 FROM CH_ID WHERE EXISTS (SELECT DISTINCT CHANNEL_ID FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0 AND GROUPE_NAME IS NULL and CH_ID.CH_ID = CHANNEL_ID)")#一人で歌っているチャンネルを取得
     single_ch_list = cur.fetchall()
     for n_chid in single_ch_list:
-        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE CHANNEL_ID = '" + n_chid[0] + "'AND IG = 0 AND GROUPE_NAME IS NULL AND MUSIC_NAME IS NOT NULL")
+        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE CHANNEL_ID = '" + n_chid[0] + "'AND IG = 0 AND GROUPE_NAME IS NULL AND STATUS = 0 AND MUSIC_NAME IS NOT NULL")
         for n in cur.fetchall():
             nst = n_chid[1] + " " + n[1]
             nowret = KanjiToKana(nst)
@@ -875,12 +911,12 @@ def make_search_index():
             else:#2使えってくる
                 for r in range(2):
                     search_index_a([nowret[r].replace(" ",""),nst,"/watch?v=" + n[0]])
-    cur.execute("SELECT DISTINCT GROUPE_NAME FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME IS NOT NULL")#使われているgroupe name抽出
+    cur.execute("SELECT DISTINCT GROUPE_NAME FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0 AND GROUPE_NAME IS NOT NULL")#使われているgroupe name抽出
     gname_v = cur.fetchall()
     for n_gn in gname_v:
         now_gname = str(n_gn)[2:-3]
         now_g_list = groupe_name2men_namev2(now_gname)
-        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE GROUPE_NAME = '" + now_gname + "' AND IG = 0")
+        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE GROUPE_NAME = '" + now_gname + "' AND IG = 0 AND STATUS = 0")
         for n in cur.fetchall():
             for z in now_g_list:
                 nst = z + " " + n[1]
@@ -912,7 +948,7 @@ def make_search_index():
     """
 
 def make_video_random():
-    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID AND STATUS = 0")
     vid_list = []
     vid_list_a = vid_list.append
     for x in cur.fetchall():
@@ -1002,7 +1038,7 @@ def wikipedia_all():#没
     wikipedia_info(k_nclist)
 
 def make_music_top():
-    cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE IG = 0")
+    cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0")
     vlist = []
     vlist_a = vlist.append
     for x in cur.fetchall():
@@ -1075,3 +1111,8 @@ def makesitemap():#もちろん5万件以上対応
         loc = ET.SubElement(sitemap_el, "loc")
         loc.text = f"https://{siteurl}/sitemap/sitemap{str(r)}.xml"
     tree.write(folder_path + siteurl + "/sitemap_index.xml",encoding='utf-8', xml_declaration=True)
+
+def yt_status_ex():#0なら見れる1なら見れない
+    cur.execute("UPDATE VIDEO_ID vid SET STATUS = 1 WHERE NOT EXISTS(SELECT 1 FROM VIDEO_V_DATA vvd WHERE vvd.RELOAD_TIME > SYSDATE-1 AND vvd.VIDEO_ID = vid.VIDEO_ID)")
+    cur.execute("UPDATE VIDEO_ID vid SET STATUS = 0 WHERE EXISTS(SELECT 1 FROM VIDEO_V_DATA vvd WHERE vvd.RELOAD_TIME > SYSDATE-1 AND vvd.VIDEO_ID = vid.VIDEO_ID)")
+    con.commit()

@@ -57,7 +57,10 @@ while True:
         inpst = input("本当に本番環境の固定HTMLデータを配布用ディレクトリに反映してよろしいですか?(y/n)")
         if inpst=="y":
             ov.ps_htm()
+    elif nowcommand=="make_sitemap":
+        ov.makesitemap()
     else:
         print("exit:終了\nhelp:今のコマンド\nupdate_vdata:動画の統計情報を更新します\nupdate_vlist:プレイリストから最新の動画idを取得します\nadd_chdata:足りないチャンネルを取得します\
         \nadd_gname:足りないグループ名を追加します\nadd_mdata:足りない音楽データを追加します\ntrue_check:データが正常に登録されているか確認します\nmake_page:ページを生成します\
-        \nre_pic:チャンネルの顔画像を更新します\nse_index:検索用索引を生成\nrandom_gen:おすすめデータ生成\nhot:人気動画ランキング生成\nalways_do:定期的に実行するコマンドをまとめたもの")
+        \nre_pic:チャンネルの顔画像を更新します\nse_index:検索用索引を生成\nrandom_gen:おすすめデータ生成\nhot:人気動画ランキング生成\nmake_sitemap:サイトマップ生成\
+        \nalways_do:定期的に実行するコマンドをまとめたもの")
