@@ -41,6 +41,7 @@ while True:
         ov.add_music_data()
         ov.music_modify_update()
         ov.ch_modify_update()
+        ov.yt_status_ex()
         print("データの整合性をチェックしています")
         ov.true_check()
     elif nowcommand=="cplib":
