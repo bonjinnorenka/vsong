@@ -655,7 +655,7 @@ def make_music_page_v2(music_name,mode=0):
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
     except:
-        pro_log("error","make_chpage_v2",music_name,"unknown error->continue")
+        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue")
 
 def make_chpage_v2(nick_name,mode=0):
     try:
