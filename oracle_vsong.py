@@ -658,7 +658,7 @@ def make_music_page_v2(music_name,mode=0):
         pro_log("error","make_musicpage_v2",music_name,"unknown error->continue")
 
 def make_chpage_v2(nick_name,mode=0):
-    #try:
+    try:
         site_nick_name = dir_name_replace(nick_name)
         n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
         if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
@@ -787,8 +787,8 @@ def make_chpage_v2(nick_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    #except:
-        #pro_log("error","make_chpage_v2",nick_name,"unknown error->continue")
+    except:
+        pro_log("error","make_chpage_v2",nick_name,"unknown error->continue")
 
 def make_all_chpage(mode=0):
     cur.execute("select nick_name_1 from ch_id where ig = 0 and nick_name_1 is not null and content_count > 0")
