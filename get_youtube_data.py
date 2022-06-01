@@ -5,6 +5,7 @@ import math
 from pytube import Playlist
 import MySQLdb
 import ev
+import os
 
 #基本情報取得
 ypath = "youtube-dl"#yt-dlpでも動くはず
@@ -28,7 +29,7 @@ def highper_vidFromPlaylist(playlist_id,iglist=[]):#subprocessを利用し無理
     proc_list = []
     loop_num = len(playlist_id)
     for n in range(loop_num):
-        proc = subprocess.Popen([ev.python_call,'get_youtube_playlist.py',str(playlist_id[n])])
+        proc = subprocess.Popen([ev.python_call,os.path.dirname(os.path.abspath(__file__)) + '/get_youtube_playlist.py',str(playlist_id[n])])
         proc_list.append(proc)
     for subproc in proc_list:
         subproc.wait()
