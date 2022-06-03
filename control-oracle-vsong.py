@@ -33,6 +33,7 @@ while True:
         ov.music_recommend_page()
         ov.channel_recommend_page()
         ov.make_music_top()
+        ov.make_video_random()
     elif nowcommand=="hot":
         ov.todays_hot()
     elif nowcommand=="always_do":
@@ -66,6 +67,7 @@ while True:
         ov.music_recommend_page()
         ov.channel_recommend_page()
         ov.make_music_top()
+        ov.make_video_random()
     elif nowcommand=="cplib":
         inpst = input("本当にライブラリデータを本番環境に反映してよろしいですか?(y/n)")
         if inpst=="y":
