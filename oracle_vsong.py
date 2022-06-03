@@ -951,7 +951,7 @@ def make_search_index():
     """
 
 def make_video_random():
-    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID AND STATUS = 0")
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE STATUS = 0")
     vid_list = []
     vid_list_a = vid_list.append
     for x in cur.fetchall():
