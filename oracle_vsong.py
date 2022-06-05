@@ -136,7 +136,7 @@ def correct_video_list():
     for x in range(len(v_data)):
         if v_data[x][0] not in v_id_l:#万が一の重複に備え更なる重複チェックをする
             kvar += 1
-            cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,VIDEO_DESCRIPTION) VALUES('" + v_data[x][0] + "','" + v_data[x][1] + "','" + str(v_data[x][2])[:-1].replace("T"," ") + "','" + str(v_data[x][3]).replace("'","''") + "','" + str(v_data[x][4]).replace("'","''") + "')")
+            cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME) VALUES('" + v_data[x][0] + "','" + v_data[x][1] + "','" + str(v_data[x][2])[:-1].replace("T"," ") + "','" + str(v_data[x][3]).replace("'","''") + "')")
     con.commit()
     print(str(kvar) + "個のデータを追加しています")
 
