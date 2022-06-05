@@ -749,11 +749,11 @@ function load_youtubeapi_player(now_video_id){
     }
     else{
         now_player.loadVideoById({videoId:now_video_id,startSeconds:0});
-        if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
+        if (navigator.userAgent.match(/iPhone|Android.+Mobile|Mobile/)||(navigator.userAgent.match(/Macintosh/)&&'ontouchend' in document)) {
             yt_display();
         }
         now_player.playVideo();
-        if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
+        if (navigator.userAgent.match(/iPhone|Android.+Mobile|Mobile/)||(navigator.userAgent.match(/Macintosh/)&&'ontouchend' in document)) {
             yt_display();
         }
         yt_music_display();
@@ -982,46 +982,79 @@ function yt_watchmode_ch(){
     }
 }
 
-function today_load(kind=-1){
+function today_load(kind=-1,doc_kind="index"){
     let url_parm = new URL(window.location.href).searchParams;
     let urp = new URLSearchParams(new URL(window.location.href));
-    let now_demand = url_parm.get("p");
+    let now_demand = url_parm.get("m");
+    let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot"];
     if ((now_demand==null&&kind!=-1)||(now_demand!=kind&&kind!=-1)){
-        urp.append("p",kind);
+        urp.append("m",kind);
+        if(url_parm.get("p")!=null){
+            urp.append("p",url_parm.get("p"));
+        }
         history.replaceState(null,null,"?"+urp.toString());
-        let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot"];
         document.getElementById(nowidlist[kind]).checked = true;
     }
     else if(now_demand!=null&&kind==-1){
         kind = now_demand;
-        let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot"];
         document.getElementById(nowidlist[kind]).checked = true;
     }
     if (kind==-1){
         kind = 0;
         document.getElementById("radio-todayhot").checked = true;
     }
+    doc_kind = dir_replace(doc_kind);
+    if (doc_kind!="index"){
+        urp.append("p",doc_kind);
+        if(url_parm.get("m")!=null){
+            urp.append("m",url_parm.get("m"));
+        }
+        history.replaceState(null,null,"?"+urp.toString());
+    }
+    else if(doc_kind=="index"&&url_parm.get("p")!=null){
+        doc_kind = url_parm.get("p");
+    }
+    if(doc_kind=="inde"){
+        doc_kind = "index";
+    }
     var today_xhr = new XMLHttpRequest();
     if(kind==0){
-        today_xhr.open("GET","index_diff.json");
+        today_xhr.open("GET",doc_kind + "_diff.json");
     }
     else if(kind==1){
-        today_xhr.open("GET","index_daydiff.json");
+        today_xhr.open("GET",doc_kind + "_daydiff.json");
     }
     else if(kind==2){
-        today_xhr.open("GET","index_weekdiff.json");
+        today_xhr.open("GET",doc_kind + "_weekdiff.json");
     }
     else if(kind==3){
-        today_xhr.open("GET","index_monthdiff.json");
+        today_xhr.open("GET",doc_kind + "_monthdiff.json");
     }
     today_xhr.responseType = "json";
     today_xhr.send();
     today_xhr.onload = function(){
         let now_j_g = today_xhr.response;
-        now_j = now_j_g["index"];
+        let now_j = now_j_g["index"];
+        let h1_tag = document.querySelector("h1");
+        if (now_j_g["kind"]=="diff"||now_j_g["kind"]=="daydiff"){
+            h1_tag.innerHTML = "今日の人気曲"
+        }
+        else if (now_j_g["kind"]=="weekdiff"){
+            h1_tag.innerHTML = "今週の人気曲"
+        }
+        else if (now_j_g["kind"]=="monthdiff"){
+            h1_tag.innerHTML = "今月の人気曲"
+        }
+        if (doc_kind!="index"){
+            h1_tag.innerHTML = h1_tag.innerHTML + "\t" + doc_kind;
+        }
         let p_doc = document.getElementById("today_hot");
         p_doc.innerHTML = "";
-        for(let r = 0;r<50;r++){
+        let object_length = 50;
+        if (Object.keys(now_j).length < object_length){
+            object_length = Object.keys(now_j).length;
+        }
+        for(let r = 0;r<object_length;r++){
             var now_el = document.createElement("div");
             now_el.classList.add("today_hot_space");
             if (now_j_g["kind"]=="diff"){
@@ -1036,6 +1069,15 @@ function today_load(kind=-1){
     document.getElementById("radio-range").addEventListener("change",hotchange);
 }
 
+function hot_change_office(){
+    let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot"];
+    for (let nown = 0;nown<nowidlist.length;nown++){
+        if(document.getElementById(nowidlist[nown]).checked){
+            today_load(kind=nown,document.getElementById("select-office").value);
+        }
+    }
+}
+
 function hotchange(){
     let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot"];
     for (let nown = 0;nown<nowidlist.length;nown++){
@@ -1045,8 +1087,35 @@ function hotchange(){
     }
 }
 
+function hot_chose_load(){
+    var today_select_xhr = new XMLHttpRequest();
+    today_select_xhr.open("GET","index_list.json");
+    today_select_xhr.responseType = "json";
+    today_select_xhr.send();
+    today_select_xhr.onload = function(){
+        //要素を作りh1の次に追加
+        let now_js = today_select_xhr.response;
+        let select_el = document.getElementById("select-office");
+        let nowjs_keys = now_js["index"];
+        let url_parm = new URL(window.location.href).searchParams;
+        for (let x = 0;x<nowjs_keys.length;x++){
+            let now_op_el = document.createElement("option");
+            now_op_el.innerText = nowjs_keys[x];
+            now_op_el.value = nowjs_keys[x];
+            if (nowjs_keys[x]=="全体"){
+                now_op_el.value = "inde";
+            }
+            if(url_parm.get("p")==now_op_el.value){
+                now_op_el.selected = true;
+            }
+            select_el.appendChild(now_op_el);
+        }
+        select_el.addEventListener("change",hot_change_office);
+    }
+}
+
 function dir_replace(n_str){
-    let n_rep_st = String(n_str).replaceAll("\\","").replaceAll(",","").replaceAll(".","").replaceAll(":","").replaceAll(";","").replaceAll("?","").replaceAll("/","").replaceAll("<","").replaceAll(">","").replaceAll("*","").replaceAll("|","").replaceAll("+","").replaceAll("=","").replaceAll("[","").replaceAll("]","").replaceAll('"',"").replaceAll("(","").replaceAll(")","").replaceAll("^","").replaceAll("!","").replaceAll("$","").replaceAll("'","").replaceAll("%","").replaceAll("&","").replaceAll("～","")
+    let n_rep_st = String(n_str).replaceAll("\\","").replaceAll(",","").replaceAll(".","").replaceAll(":","").replaceAll(";","").replaceAll("?","").replaceAll("/","").replaceAll("<","").replaceAll(">","").replaceAll("*","").replaceAll("|","").replaceAll("+","").replaceAll("=","").replaceAll("[","").replaceAll("]","").replaceAll('"',"").replaceAll("(","").replaceAll(")","").replaceAll("^","").replaceAll("!","").replaceAll("$","").replaceAll("'","").replaceAll("%","").replaceAll("&","").replaceAll("～","").replaceAll("#","")
     return n_rep_st
 }
 
@@ -1087,6 +1156,7 @@ function page_load(){//ページロード時の処理
     }
     else if (location.pathname==="/today/"){//今日の人気
         today_load();
+        hot_chose_load();
     }
 }
 page_load();

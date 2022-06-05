@@ -472,6 +472,14 @@ background-color: #38a1db;
     overflow: hidden;
 }
 
+#select-office{
+    position: absolute;
+    right: 0;
+    top: 200px;
+    width: 200px;
+    height: 40px;
+}
+
 @media screen and (max-width:1000px) {
     .musicbt{
         display: none;

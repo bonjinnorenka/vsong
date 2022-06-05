@@ -19,8 +19,18 @@ except:
 def oracle_time(datetime_obj):
     return str(datetime_obj.year) + "-" + str(datetime_obj.month) + "-" + str(datetime_obj.day) + " " + str(datetime_obj.hour) + ":" + str(datetime_obj.minute) + ":" + str(datetime_obj.second)
 
-def pro_log(lebel,fn_name,argv_data,erdesc):
-    cur_ms.execute(f"INSERT INTO pro_er_log (log_date,log_author,log_origin,function_name,argv_data,er_name,label) VALUES ('{oracle_time(datetime.datetime.now())}','{now_origin}','program','{fn_name}','{argv_data}','{erdesc}','{lebel}')")
+def sql_escape(nowst):
+    nowst = str(nowst)
+    return nowst.replace("'","''").replace('"','""')
+
+def pro_log(lebel,fn_name,argv_data,erdesc,ermessage=""):
+    if len(ermessage) > 2800:
+        ermessage = ermessage[0:2800] + "\toverflow!"
+    else:
+        ermessage = sql_escape(ermessage)
+    if ermessage=="":
+        ermessage = None
+    cur_ms.execute(f"INSERT INTO pro_er_log (log_date,log_author,log_origin,function_name,argv_data,er_name,label,er_message) VALUES ('{oracle_time(datetime.datetime.now())}','{now_origin}','program','{fn_name}','{argv_data}','{sql_escape(erdesc)}','{lebel}','{ermessage}')")
     con_ms.commit()
     if lebel=="error":
         print(f"{fn_name} エラー発生　{argv_data} 時 エラー状態 {erdesc}")
@@ -518,7 +528,7 @@ def make_music_page_v2(music_name,mode=0):
     try:
         n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
         if os.path.isdir(n_html_path)==False:
-            os.mkdir(n_html_path)
+            os.makedirs(n_html_path)
         share_html = []
         share_html_a = share_html.append
         if mode==0:
@@ -654,8 +664,8 @@ def make_music_page_v2(music_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    except:
-        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue")
+    except Exception as e:
+        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
 
 def make_chpage_v2(nick_name,mode=0):
     try:
@@ -787,8 +797,8 @@ def make_chpage_v2(nick_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    except:
-        pro_log("error","make_chpage_v2",nick_name,"unknown error->continue")
+    except Exception as e:
+        pro_log("error","make_chpage_v2",nick_name,"unknown error->continue",str(e))
 
 def make_all_chpage(mode=0):
     cur.execute("select nick_name_1 from ch_id where ig = 0 and nick_name_1 is not null and content_count > 0")
@@ -1067,7 +1077,7 @@ def music_modify_update():
 
 def ch_modify_update():
     cur.execute("UPDATE CH_ID SET CLEATE_PAGE_DATE = SYSDATE + 9/24 WHERE CLEATE_PAGE_DATE is null and ig = 0")
-    #実行時間長すぎ　要効率化 1000件で1つ2.7~3秒(oracle autonomousdatabase 無料枠で) 効率化したプルリクエスト待ってます
+    #実行時間長すぎ　効率化したプルリクエスト待ってます
     cur.execute("UPDATE CH_ID chi SET LAST_MODIFIED = SYSDATE + 9 / 24 WHERE chi.CONTENT_COUNT != (select count(1) from video_id vid where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = chi.ch_id UNION SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0))) UNION (select video_id from video_id where channel_id = chi.LINK)) and music_name is not null)")
     cur.execute("UPDATE CH_ID chi SET CONTENT_COUNT = (select count(1) from video_id vid where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = chi.ch_id UNION SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0))) UNION (select video_id from video_id where channel_id = chi.LINK)) and music_name is not null)")
     con.commit()
@@ -1119,3 +1129,34 @@ def yt_status_ex():#0なら見れる1なら見れない
     cur.execute("UPDATE VIDEO_ID vid SET STATUS = 1 WHERE NOT EXISTS(SELECT 1 FROM VIDEO_V_DATA vvd WHERE vvd.RELOAD_TIME > SYSDATE-1 AND vvd.VIDEO_ID = vid.VIDEO_ID)")
     cur.execute("UPDATE VIDEO_ID vid SET STATUS = 0 WHERE EXISTS(SELECT 1 FROM VIDEO_V_DATA vvd WHERE vvd.RELOAD_TIME > SYSDATE-1 AND vvd.VIDEO_ID = vid.VIDEO_ID)")
     con.commit()
+
+def office_hot():
+    #まずは箱リスト作成
+    cur.execute("select distinct BELONG_OFFICE from CH_ID chi where exists(select 1 from VIDEO_ID vid where vid.CHANNEL_ID = chi.CH_ID) and chi.BELONG_OFFICE IS NOT NULL")
+    video_office_list = [x[0] for x in cur.fetchall()]
+    video_office_list.insert(0,"全体")
+    with open(folder_path + siteurl + "/today/index_list.json","w") as f:
+        json.dump({"index":video_office_list},f)
+    #箱リストをもとに本番実装
+    video_office_list.remove("全体")
+    nowday_d = datetime.date.today()
+    for r in video_office_list:
+        #なんかこのSQL動作遅いんです　プルリクエスト待ってます でもなんかexists->inにしたら100倍早くなった なんで？
+        cur.execute("SELECT VIDEO_ID, (SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID) video_name, RELOAD_TIME, NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0) / NULLIF((lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME) - lag(VIEW_C, 2) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), - 1000) - 1 DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - 3 AND vvd.VIDEO_ID in (select VIDEO_ID from video_id vid where exists (select * from ch_id chi where vid.CHANNEL_ID = chi.CH_ID and chi.BELONG_OFFICE = :office_name) or exists (select * from PAIR_LIST_SECOND pls where vid.GROUPE_NAME = pls.GROUPE_NAME and (exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and (pls.MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)))))) or exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and vid.CHANNEL_ID = chi.LINK)) ORDER BY RELOAD_TIME DESC, DIFF DESC FETCH FIRST 100 ROWS ONLY",office_name=r)
+        kalist = cur.fetchall()
+        rank_list = []
+        for i in kalist:
+            if i[2].date()==nowday_d and i[3] > 0:
+                rank_list.append([i[0],i[1],math.floor(i[3]*100)])
+        with open(folder_path + siteurl + f"/today/{dir_name_replace(r)}_diff.json","w") as f:
+            json.dump({"kind":"diff","index":rank_list},f)
+        diff_list = [[1,"daydiff"],[7,"weekdiff"],[30,"monthdiff"]]
+        for n in diff_list:
+            cur.execute("SELECT VIDEO_ID, (SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID), RELOAD_TIME, NVL(NULLIF((VIEW_C - lag(VIEW_C, :day_diff) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), - 1) AS DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - :day_diff_p AND vvd.VIDEO_ID in (select VIDEO_ID from video_id vid where exists (select * from ch_id chi where vid.CHANNEL_ID = chi.CH_ID and chi.BELONG_OFFICE = :office_name) or exists (select * from PAIR_LIST_SECOND pls where vid.GROUPE_NAME = pls.GROUPE_NAME and (exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and (pls.MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)))))) or exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and vid.CHANNEL_ID = chi.LINK)) ORDER BY RELOAD_TIME DESC, DIFF DESC FETCH FIRST 100 ROWS ONLY",office_name=r,day_diff=n[0],day_diff_p=n[0]+1)
+            kalist = cur.fetchall()
+            rank_list = []
+            for i in kalist:
+                if i[2].date()==nowday_d and i[3] > 0:
+                    rank_list.append([i[0],i[1],i[3]])
+            with open(folder_path + siteurl + f"/today/{dir_name_replace(r)}_{n[1]}.json","w") as f:
+                json.dump({"kind":n[1],"index":rank_list},f)
