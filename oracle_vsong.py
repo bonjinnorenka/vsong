@@ -1160,3 +1160,19 @@ def office_hot():
                     rank_list.append([i[0],i[1],i[3]])
             with open(folder_path + siteurl + f"/today/{dir_name_replace(r)}_{n[1]}.json","w") as f:
                 json.dump({"kind":n[1],"index":rank_list},f)
+
+def groupname_slash():
+    cur.execute("select GROUPE_NAME from PAIR_LIST_SECOND where GROUPE_NAME LIKE '%/%' and MN_1 is null and ig = 0")#まだ入力がなされていないスラッシュ付きのやつを抽出
+    k_now_slasher_list = cur.fetchall()
+    if k_now_slasher_list==[]:
+        print("no-srash")
+        return
+    now_slasher_list = [t[0] for t in k_now_slasher_list]
+    for r in now_slasher_list:
+        slash_list = str(r).split("/")
+        k_now_mnlist = [["MN_"+str(y+1),"'"+slash_list[y]+"'"] for y in range(len(slash_list))]
+        now_mnlist = []
+        for q in k_now_mnlist:
+            now_mnlist.append("=".join(q))
+        cur.execute(f"UPDATE PAIR_LIST_SECOND SET {','.join(now_mnlist)} WHERE GROUPE_NAME = '{r}'")
+    con.commit()
