@@ -530,7 +530,7 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    try:
+    #try:
         n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
         if os.path.isdir(n_html_path)==False:
             os.makedirs(n_html_path)
@@ -669,8 +669,8 @@ def make_music_page_v2(music_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    except Exception as e:
-        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
+    #except Exception as e:
+        #pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
 
 def make_chpage_v2(nick_name,mode=0):
     try:
@@ -813,7 +813,7 @@ def make_all_chpage(mode=0):
 
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
-    cur.execute("select KEY_MUSIC_NAME from MUSIC_SONG_DB where KEY_MUSIC_NAME is not null")
+    cur.execute("select * from MUSIC_SONG_DB msd where exists(select * from VIDEO_ID vid where msd.KEY_MUSIC_NAME = vid.music_name having count(*) > 0)")
     music_list = []
     music_list_a = music_list.append
     for x in cur.fetchall():
@@ -1185,3 +1185,5 @@ def groupname_slash():
 def remove_topic():
     cur.execute("UPDATE CH_ID set ig = 1 where NAM like '%Topic%'")
     con.commit()
+
+make_music_page_v2("Happy… Good day!")
