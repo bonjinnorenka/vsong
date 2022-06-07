@@ -539,7 +539,7 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    #try:
+    try:
         n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
         if os.path.isdir(n_html_path)==False:
             os.makedirs(n_html_path)
@@ -678,8 +678,8 @@ def make_music_page_v2(music_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    #except Exception as e:
-        #pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
+    except Exception as e:
+        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
 
 def make_chpage_v2(nick_name,mode=0):
     try:
@@ -1193,4 +1193,8 @@ def groupname_slash():
 
 def remove_topic():
     cur.execute("UPDATE CH_ID set ig = 1 where NAM like '%Topic%'")
+    con.commit()
+
+def igch_tig():#無視するチャンネル上がっていてグループ名が設定されていないものを一時無視に追加
+    cur.execute("update VIDEO_ID vid set ig = 2 where exists(select * from CH_ID chi where ig = 1 and chi.CH_ID=vid.CHANNEL_ID) and vid.GROUPE_NAME is null and ig = 0")
     con.commit()
