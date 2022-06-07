@@ -161,17 +161,19 @@ def add_ch_data():
     con.commit()
 
 def add_ch_data_self(chid_list):#めんどいので一つずつ
-    st_chidlist = str(chid_list).replace("[","").replace("]","")
-    cur.execute("select distinct ch_id from ch_id where ch_id in (" + st_chidlist + ")")
-    if cur.fetchone()!=None:
-        print("もうすでにある可能性があります")
-        return#処理終了
-    else:
-        rt_ch = gy.ExtremeChidToInfo(chid_list)
-        for x in range(len(rt_ch)):
-            cur.execute("INSERT INTO CH_ID (CH_ID,NAM,PICTURE_URL) VALUES ('" + rt_ch[x][0] + "','" + str(rt_ch[x][1]).replace("'","''") + "','" + rt_ch[x][2] + "')")
-        con.commit()
-        print("データ追加完了")
+    ok_id_list = []
+    for x in chid_list:
+        cur.execute("select distinct ch_id from ch_id where ch_id = :nid",nid=x)
+        n = cur.fetchone()
+        if n == None:
+            ok_id_list.append(x)
+    if len(ok_id_list)==0:
+        return
+    rt_ch = gy.ExtremeChidToInfo(ok_id_list)
+    for x in range(len(rt_ch)):
+        cur.execute("INSERT INTO CH_ID (CH_ID,NAM,PICTURE_URL) VALUES ('" + rt_ch[x][0] + "','" + str(rt_ch[x][1]).replace("'","''") + "','" + rt_ch[x][2] + "')")
+    con.commit()
+    print("データ追加完了")
 
 def add_groupe_name():
     #テーブルA=ペアリスト テーブルB=動画IDリスト　参考https://www.projectgroup.info/tips/Oracle/SQL/SQL000001.html
@@ -528,7 +530,7 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    #try:
+    try:
         n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
         if os.path.isdir(n_html_path)==False:
             os.makedirs(n_html_path)
@@ -667,8 +669,8 @@ def make_music_page_v2(music_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    #except Exception as e:
-        #pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
+    except Exception as e:
+        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
 
 def make_chpage_v2(nick_name,mode=0):
     try:
@@ -1183,6 +1185,3 @@ def groupname_slash():
 def remove_topic():
     cur.execute("UPDATE CH_ID set ig = 1 where NAM like '%Topic%'")
     con.commit()
-
-video2data_v2("VMSkmQOShOg")
-#make_music_page_v2("うまぴょい伝説")

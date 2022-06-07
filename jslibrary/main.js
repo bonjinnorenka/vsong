@@ -308,7 +308,7 @@ function musittop_load(){
         for(let r = 0;r<50;r++){
             var now_el = document.createElement("div");
             now_el.classList.add("music_top_space");
-            now_el.innerHTML = '<a href="' + now_j[r][2] + '" onClick="page_ajax_load(\"' + now_j[r][2] + '\");return false"><span class="ofoverflow_320" title="' + now_j[r][1] +'">' + now_j[r][1] + '</span><br><img src="https://i.ytimg.com/vi/' + now_j[r][0] + '/mqdefault.jpg"</a>';
+            now_el.innerHTML = '<a href="' + now_j[r][2] + '" onClick="page_ajax_load(\"' + now_j[r][2] + '\");return false"><span class="ofoverflow_320" title="' + now_j[r][1] +'">' + now_j[r][1] + '</span><br><img src="https://i.ytimg.com/vi_webp/' + now_j[r][0] + '/mqdefault.webp"</a>';
             p_doc.appendChild(now_el);
         }
     }
@@ -398,8 +398,8 @@ function recommend(kind=""){
             }
             for (let i = 0; i < 20; i++) {
                 divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][1] +
-                    "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "/\");return false' title='" + res_mr[i][0] + "'>" + res_mr[i][0] + "<img class='fit-cut' src='https://i.ytimg.com/vi/" +
-                    res_mr[i][2] + "/hqdefault.jpg' alt='" + res_mr[i][0] + "' width='320' height='180'></a>";
+                    "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "/\");return false' title='" + res_mr[i][0] + "'>" + res_mr[i][0] + "<img class='fit-cut' src='https://i.ytimg.com/vi_webp/" +
+                    res_mr[i][2] + "/hqdefault.webp' alt='" + res_mr[i][0] + "' width='320' height='180'></a>";
             }
         };
         let request_cr = new XMLHttpRequest();
@@ -643,7 +643,7 @@ class LiteYTEmbed extends HTMLElement {
         this.playLabel = (playBtnEl && playBtnEl.textContent.trim()) || this.getAttribute('playlabel') || 'Play';
         this.id = "iframe-" + this.videoId;
         if (!this.style.backgroundImage) {
-          this.style.backgroundImage = `url("https://i.ytimg.com/vi/${this.videoId}/hqdefault.jpg")`;
+          this.style.backgroundImage = `url("https://i.ytimg.com/vi_webp/${this.videoId}/hqdefault.webp")`;
         }
         if (!playBtnEl) {
             playBtnEl = document.createElement('button');

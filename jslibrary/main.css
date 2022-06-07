@@ -513,6 +513,11 @@ background-color: #38a1db;
 }
 
 @media screen and (max-width:600px) {
+    #select-office{
+        position: static;
+        margin-left: calc(49vw - 100px) !important;
+    }
+
     #video_data_t td {
         padding: 4px 12px;
         display: block;
