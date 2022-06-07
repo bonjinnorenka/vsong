@@ -289,11 +289,16 @@ def true_check():
         for x in link_er:
             print(str(x)[2:-3] + "\tの情報がデータベースにありません at ch_id link")
         _faul += len(link_er)
+        cur.execute("SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 is null and ig = 0")
+        gn_n1none = cur.fetchall()
+        for r in gn_n1none:
+            print(r[0] * "\tのメンバーが登録されていません at pairlist")
         if _faul==0:
             print("すべてのチェックを通過しました。")
+            pro_log("log","true_check","","異常なし")
         else:
             print(str(_faul) + "件のエラーが発生しています")
-        pro_log("log","true_check","",str(_faul) + "件のエラーが発生しています")
+            pro_log("log","true_check","",str(_faul) + "件のエラーが発生しています")
     except:
         pro_log("error","true_check","","failed yrue_check->continue")
 
@@ -530,7 +535,7 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    #try:
+    try:
         n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
         if os.path.isdir(n_html_path)==False:
             os.makedirs(n_html_path)
@@ -669,8 +674,8 @@ def make_music_page_v2(music_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    #except Exception as e:
-        #pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
+    except Exception as e:
+        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
 
 def make_chpage_v2(nick_name,mode=0):
     try:
@@ -1185,5 +1190,3 @@ def groupname_slash():
 def remove_topic():
     cur.execute("UPDATE CH_ID set ig = 1 where NAM like '%Topic%'")
     con.commit()
-
-make_music_page_v2("Happy… Good day!")
