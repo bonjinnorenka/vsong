@@ -248,7 +248,7 @@ def true_check():
         cur.execute("select distinct groupe_name from video_id where not exists ( select GROUPE_NAME from PAIR_LIST_SECOND where video_id.GROUPE_NAME=PAIR_LIST_SECOND.groupe_name) and groupe_name is not null")
         n_glist = cur.fetchall()
         for x in n_glist:
-            print(str(x)[2:-3] + "の情報がありません at pair_list_second.groupe_name")
+            print(x[0] + "の情報がありません at pair_list_second.groupe_name")
         #pair_listの登録されていないニックネームを検出と同じグループ名内でのニックネームの重複チェック
         cur.execute("SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE IG = 0")
         groupe_list = cur.fetchall()
@@ -259,7 +259,7 @@ def true_check():
             k_nlist_a(str(t)[2:-3])
         s_nickname_list = set(k_nlist)
         for x in range(len(groupe_list)):
-            n_glist = groupe_name2men_namev2(str(groupe_list[x])[2:-3])
+            n_glist = groupe_name2men_namev2(groupe_list[x][0])
             kari = [k for k, v in collections.Counter(n_glist).items() if v > 1]
             for x in range(len(kari)):#重複チェック
                 _faul += 1
@@ -268,12 +268,12 @@ def true_check():
             if len(er)!=0:#データベースに登録なし
                 for r in range(len(er)):
                     _faul += 1
-                    print(er[r] + "\tはデータベースに登録されていません at pair_list")
+                    print(er[r] + "\tはデータベースに登録されていません at pair_list グループ名:" + groupe_list[x][0])
         #動画の投稿者が存在するか確認
         cur.execute("select distinct channel_id from VIDEO_ID vid where not exists ( select 1 from ch_id ch where vid.CHANNEL_ID = ch.ch_id ) and channel_id is not null")
         ch_list = cur.fetchall()
         for x in ch_list:
-            print(str(x)[2:-3] + "\tの情報がデータベースにありません at ch_id ch_id")
+            print(x[0] + "\tの情報がデータベースにありません at ch_id ch_id")
         _faul += len(ch_list)
         #音楽データが存在するか検索
         cur.execute("SELECT DISTINCT MUSIC_NAME FROM VIDEO_ID vid where ig = 0 and not exists ( select 1 from MUSIC_SONG_DB md where vid.MUSIC_NAME = md.KEY_MUSIC_NAME) and MUSIC_NAME IS NOT NULL")
@@ -528,7 +528,7 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    try:
+    #try:
         n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
         if os.path.isdir(n_html_path)==False:
             os.makedirs(n_html_path)
@@ -667,8 +667,8 @@ def make_music_page_v2(music_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    except Exception as e:
-        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
+    #except Exception as e:
+        #pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
 
 def make_chpage_v2(nick_name,mode=0):
     try:
@@ -1183,3 +1183,6 @@ def groupname_slash():
 def remove_topic():
     cur.execute("UPDATE CH_ID set ig = 1 where NAM like '%Topic%'")
     con.commit()
+
+video2data_v2("VMSkmQOShOg")
+#make_music_page_v2("うまぴょい伝説")
