@@ -296,7 +296,7 @@ def true_check():
         cur.execute("SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 is null and ig = 0")
         gn_n1none = cur.fetchall()
         for r in gn_n1none:
-            print(r[0] * "\tのメンバーが登録されていません at pairlist")
+            print(r[0] + "\tのメンバーが登録されていません at pairlist")
         if _faul==0:
             print("すべてのチェックを通過しました。")
             pro_log("log","true_check","","異常なし")
@@ -304,7 +304,7 @@ def true_check():
             print(str(_faul) + "件のエラーが発生しています")
             pro_log("log","true_check","",str(_faul) + "件のエラーが発生しています")
     except:
-        pro_log("error","true_check","","failed yrue_check->continue")
+        pro_log("error","true_check","","failed true_check->continue")
 
 def music_list(music_name):
     cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE MUSIC_NAME = :music_name and ig = 0 ORDER BY UPLOAD_TIME DESC",music_name=music_name.replace("'","''"))#投稿が新しい順に並び変え
@@ -539,7 +539,7 @@ def get_ch_vdata(nickname,mode=0):
         return vid_list
 
 def make_music_page_v2(music_name,mode=0):
-    try:
+    #try:
         n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
         if os.path.isdir(n_html_path)==False:
             os.makedirs(n_html_path)
@@ -678,8 +678,8 @@ def make_music_page_v2(music_name,mode=0):
                     f.write("".join(list(flatten(nowpgdata))).encode("utf-8"))#windows対策
         with open(n_html_path + "statistics.json","w") as f:
             json.dump(statistics_data,f,indent=4)
-    except Exception as e:
-        pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
+    #except Exception as e:
+        #pro_log("error","make_musicpage_v2",music_name,"unknown error->continue",str(e))
 
 def make_chpage_v2(nick_name,mode=0):
     try:
