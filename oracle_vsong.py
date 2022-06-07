@@ -30,8 +30,11 @@ def pro_log(lebel,fn_name,argv_data,erdesc,ermessage=""):
         ermessage = sql_escape(ermessage)
     if ermessage=="":
         ermessage = None
-    cur_ms.execute(f"INSERT INTO pro_er_log (log_date,log_author,log_origin,function_name,argv_data,er_name,label,er_message) VALUES ('{oracle_time(datetime.datetime.now())}','{now_origin}','program','{fn_name}','{argv_data}','{sql_escape(erdesc)}','{lebel}','{ermessage}')")
-    con_ms.commit()
+    try:
+        cur_ms.execute(f"INSERT INTO pro_er_log (log_date,log_author,log_origin,function_name,argv_data,er_name,label,er_message) VALUES ('{oracle_time(datetime.datetime.now())}','{now_origin}','program','{fn_name}','{argv_data}','{sql_escape(erdesc)}','{lebel}','{ermessage}')")
+        con_ms.commit()
+    except:
+        print("unknown error log skipped on MySql error")
     if lebel=="error":
         print(f"{fn_name} エラー発生　{argv_data} 時 エラー状態 {erdesc}")
 
@@ -201,7 +204,7 @@ def groupe_name2men_namev2(groupe_name):#v2のテーブルにアクセス
     try:
         songer_list = []
         songer_list_a = songer_list.append
-        cur.execute("select MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,MN_7,MN_8,MN_9,MN_10,MN_11,MN_12,MN_13,MN_14,MN_15,MN_16,MN_17,MN_18,MN_19,MN_20,MN_21,MN_22,MN_23,MN_24,MN_25,MN_26,MN_27,MN_28,MN_29,MN_30,MN_31,MN_32,MN_33,MN_34,MN_35,MN_36,MN_37,MN_38,MN_39 from PAIR_LIST_SECOND where groupe_name = :group_name",group_name=groupe_name.replace("'","''"))
+        cur.execute("select MN_1,MN_2,MN_3,MN_4,MN_5,MN_6,MN_7,MN_8,MN_9,MN_10,MN_11,MN_12,MN_13,MN_14,MN_15,MN_16,MN_17,MN_18,MN_19,MN_20,MN_21,MN_22,MN_23,MN_24,MN_25,MN_26,MN_27,MN_28,MN_29,MN_30,MN_31,MN_32,MN_33,MN_34,MN_35,MN_36,MN_37,MN_38,MN_39 from PAIR_LIST_SECOND where groupe_name = :group_name",group_name=groupe_name)
         k_gndata = cur.fetchone()
         for r in k_gndata:
             if r!=None:#データあり
@@ -905,7 +908,7 @@ def make_search_index():
         else:#2使えってくる
             for r in range(2):
                 search_index_a([nowret[r],nst,"/ch/" + dir_name_replace(nst) + "/"])
-    cur.execute("SELECT CH_ID,NICK_NAME_1 FROM CH_ID WHERE EXISTS (SELECT DISTINCT CHANNEL_ID FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0 AND GROUPE_NAME IS NULL and CH_ID.CH_ID = CHANNEL_ID)")#一人で歌っているチャンネルを取得
+    cur.execute("SELECT CH_ID,NICK_NAME_1 FROM CH_ID WHERE ig = 0 and NAM not like '%Topic%' and EXISTS (SELECT DISTINCT CHANNEL_ID FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0 AND GROUPE_NAME IS NULL and CH_ID.CH_ID = CHANNEL_ID)")#一人で歌っているチャンネルを取得
     single_ch_list = cur.fetchall()
     for n_chid in single_ch_list:
         cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE CHANNEL_ID = '" + n_chid[0] + "'AND IG = 0 AND GROUPE_NAME IS NULL AND STATUS = 0 AND MUSIC_NAME IS NOT NULL")
@@ -929,7 +932,7 @@ def make_search_index():
     for n_gn in gname_v:
         now_gname = str(n_gn)[2:-3]
         now_g_list = groupe_name2men_namev2(now_gname)
-        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE GROUPE_NAME = '" + now_gname + "' AND IG = 0 AND STATUS = 0")
+        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE GROUPE_NAME = :gname AND IG = 0 AND STATUS = 0",gname=now_gname)
         for n in cur.fetchall():
             for z in now_g_list:
                 nst = z + " " + n[1]
@@ -1175,4 +1178,8 @@ def groupname_slash():
         for q in k_now_mnlist:
             now_mnlist.append("=".join(q))
         cur.execute(f"UPDATE PAIR_LIST_SECOND SET {','.join(now_mnlist)} WHERE GROUPE_NAME = '{r}'")
+    con.commit()
+
+def remove_topic():
+    cur.execute("UPDATE CH_ID set ig = 1 where NAM like '%Topic%'")
     con.commit()
