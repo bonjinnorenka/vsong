@@ -822,11 +822,8 @@ def make_all_chpage(mode=0):
 
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
-    cur.execute("select * from MUSIC_SONG_DB msd where exists(select * from VIDEO_ID vid where msd.KEY_MUSIC_NAME = vid.music_name having count(*) > 0)")
-    music_list = []
-    music_list_a = music_list.append
-    for x in cur.fetchall():
-        music_list_a(str(x)[2:-3])
+    cur.execute("select key_music_name,(select VIDEO_ID from VIDEO_ID vid where vid.MUSIC_NAME = msd.KEY_MUSIC_NAME AND STATUS = 0 order by upload_time desc FETCH FIRST 1 ROWS ONLY) from MUSIC_SONG_DB msd where exists(select * from VIDEO_ID vid where msd.KEY_MUSIC_NAME = vid.music_name having count(*) > 0)")
+    music_list = [[x[0],x[1]] for x in cur.fetchall()]
     len_mlist = len(music_list)
     for n in range(100):#おすすめを100件生成
         k_ranlist = []
@@ -836,10 +833,8 @@ def music_recommend_page():
             if k not in k_ranlist:
                 k_ranlist.append(k)
         for x in range(len(k_ranlist)):
-            nmusic_name = music_list[k_ranlist[x]]
-            cur.execute("select video_id from video_id where music_name = '" + nmusic_name.replace("'","''") + "' AND STATUS = 0 order by upload_time desc FETCH FIRST 1 ROWS ONLY")
-            n_vid = str(cur.fetchone())[2:-3]
-            k_ar = [nmusic_name,dir_name_replace(nmusic_name),n_vid]
+            nmusic_name = music_list[k_ranlist[x]][0]
+            k_ar = [nmusic_name,dir_name_replace(nmusic_name),music_list[k_ranlist[x]][1]]
             n_dict[x] = k_ar
         with open(ajax_path + "mr-" + str(n) + ".json","w") as f:
             json.dump(n_dict,f,indent=4)
