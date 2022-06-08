@@ -986,7 +986,7 @@ function today_load(kind=-1,doc_kind="index"){
     let url_parm = new URL(window.location.href).searchParams;
     let urp = new URLSearchParams(new URL(window.location.href));
     let now_demand = url_parm.get("m");
-    let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot"];
+    let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot","radio-wholehot"];
     if ((now_demand==null&&kind!=-1)||(now_demand!=kind&&kind!=-1)){
         urp.append("m",kind);
         if(url_parm.get("p")!=null){
@@ -1030,6 +1030,9 @@ function today_load(kind=-1,doc_kind="index"){
     else if(kind==3){
         today_xhr.open("GET",doc_kind + "_monthdiff.json");
     }
+    else if(kind==4){
+        today_xhr.open("GET",doc_kind + "_wholediff.json")
+    }
     today_xhr.responseType = "json";
     today_xhr.send();
     today_xhr.onload = function(){
@@ -1044,6 +1047,9 @@ function today_load(kind=-1,doc_kind="index"){
         }
         else if (now_j_g["kind"]=="monthdiff"){
             h1_tag.innerHTML = "今月の人気曲"
+        }
+        else if (now_j_g["kind"]=="wholediff"){
+            h1_tag.innerHTML = "全期間人気曲"
         }
         if (doc_kind!="index"){
             h1_tag.innerHTML = h1_tag.innerHTML + "\t" + doc_kind;
@@ -1060,7 +1066,7 @@ function today_load(kind=-1,doc_kind="index"){
             if (now_j_g["kind"]=="diff"){
                 now_el.innerHTML = '<span class="ofoverflow_320" title="' + now_j[r][1] +'">' + now_j[r][1] + '<br>' + now_j[r][2].toLocaleString() + '%増</span><br><lite-youtube videoid="' + now_j[r][0] +'" width="320" height="180"></lite-youtube>';
             }
-            else if(now_j_g["kind"]=="daydiff"||now_j_g["kind"]=="weekdiff"||now_j_g["kind"]=="monthdiff"){
+            else if(now_j_g["kind"]=="daydiff"||now_j_g["kind"]=="weekdiff"||now_j_g["kind"]=="monthdiff"||now_j_g["kind"]=="wholediff"){
                 now_el.innerHTML = '<span class="ofoverflow_320" title="' + now_j[r][1] +'">' + now_j[r][1] + '<br>' + now_j[r][2].toLocaleString() + '回増</span><br><lite-youtube videoid="' + now_j[r][0] +'" width="320" height="180"></lite-youtube>';
             }
             p_doc.appendChild(now_el);
@@ -1070,7 +1076,7 @@ function today_load(kind=-1,doc_kind="index"){
 }
 
 function hot_change_office(){
-    let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot"];
+    let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot","radio-wholehot"];
     for (let nown = 0;nown<nowidlist.length;nown++){
         if(document.getElementById(nowidlist[nown]).checked){
             today_load(kind=nown,document.getElementById("select-office").value);
@@ -1079,7 +1085,7 @@ function hot_change_office(){
 }
 
 function hotchange(){
-    let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot"];
+    let nowidlist = ["radio-todayhot","radio-todayhotter","radio-weekhot","radio-monthhot","radio-wholehot"];
     for (let nown = 0;nown<nowidlist.length;nown++){
         if(document.getElementById(nowidlist[nown]).checked){
             today_load(kind=nown);
