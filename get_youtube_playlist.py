@@ -6,8 +6,8 @@ connection = MySQLdb.connect(host=ev.mysql_host,user=ev.mysql_user,passwd=ev.mys
 cur = connection.cursor()
 playlist_id = str(sys.argv[1])
 playlist = Playlist("https://www.youtube.com/playlist?list=" + playlist_id)
-for n in range(len(playlist)):
-    cur.execute("INSERT INTO vsong.tmp_vid (videoid) VALUES ('" + (str(playlist[n])[32:]) + "')")
+ins_playlist = [str(playlist[x])[32:] for x in range(len(playlist))]
+cur.executemany("INSERT INTO vsong.tmp_vid (videoid) VALUES (%s)",ins_playlist)
 connection.commit()
 cur.close()
 connection.close()
