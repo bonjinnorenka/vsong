@@ -6,6 +6,7 @@ from pytube import Playlist
 import MySQLdb
 import ev
 import os
+import isodate
 
 #基本情報取得
 ypath = "youtube-dl"#yt-dlpでも動くはず
@@ -85,11 +86,12 @@ def videoid_lToMInfo(videoid_list):
         for x in range(length):
             k_vlist_a(videoid_list[x+50*n])
         n_list = str(k_vlist).replace("'","").replace(" ","").replace("[","").replace("]","")
-        jsong = requests.get("https://www.googleapis.com/youtube/v3/videos?id=" + n_list + "&key=" + api_key + "&part=snippet")
+        jsong = requests.get("https://www.googleapis.com/youtube/v3/videos?id=" + n_list + "&key=" + api_key + "&part=snippet,contentDetails")
         new_json = jsong.json()
         for r in range(new_json["pageInfo"]["totalResults"]):
+            dtps = isodate.parse_duration(new_json["items"][r]["contentDetails"]["duration"])
             n_j = new_json["items"][r]["snippet"]
-            info_v_a([new_json["items"][r]["id"],n_j["channelId"],n_j["publishedAt"],n_j["title"],n_j["description"]])
+            info_v_a([new_json["items"][r]["id"],n_j["channelId"],n_j["publishedAt"],n_j["title"],n_j["description"],dtps.total_seconds()])
     return info_v
         
 def VideoidToManyInfo(Video_id):#api使用1日1万回まで
@@ -208,6 +210,3 @@ def Channnelid_listToInfo(ch_id):
         pic_url = pic_url_k[0:pic_url_k.find("=")]
         ch_list.append([_ch_id,ch_name,pic_url])
     return ch_list
-#print(timeit.timeit('VideoidFromPlaylist("PL_0A0t0-Y0AMGFPCuKDZ3o8PMVpKcNvOQ")', number=1, globals=globals()))#19.2414402 youtube-dl
-#print(timeit.timeit('VideoidFromPlaylist("PL_0A0t0-Y0AMGFPCuKDZ3o8PMVpKcNvOQ")', number=1, globals=globals()))#25.480206
-#print(timeit.timeit("evolution_VideoidFromPlaylist(['PL_0A0t0-Y0AMGFPCuKDZ3o8PMVpKcNvOQ'])", number=1, globals=globals()))#8.508521
