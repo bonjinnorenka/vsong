@@ -64,6 +64,10 @@ while True:
         ov.make_search_index()
         ov.make_all_musicpage()
         ov.make_all_chpage()
+        ov.make_api_video_data()
+        ov.make_api_ch_data()
+        ov.make_api_music_data()
+        ov.make_api_group_data(strict=1)
         ov.makesitemap()
         ov.music_recommend_page()
         ov.channel_recommend_page()
@@ -97,6 +101,11 @@ while True:
         ov.groupname_slash()
     elif nowcommand=="remove_topic":
         ov.remove_topic()
+    elif nowcommand=="reload_api":
+        ov.make_api_video_data()
+        ov.make_api_ch_data()
+        ov.make_api_music_data()
+        ov.make_api_group_data(strict=1)
     else:
         print("exit:終了\nhelp:今のコマンド\nupdate_vdata:動画の統計情報を更新します\nupdate_vlist:プレイリストから最新の動画idを取得します\nadd_chdata:足りないチャンネルを取得します\
         \nadd_gname:足りないグループ名を追加します\nadd_mdata:足りない音楽データを追加します\ntrue_check:データが正常に登録されているか確認します\nmake_page:ページを生成します\
