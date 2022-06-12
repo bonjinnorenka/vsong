@@ -320,6 +320,12 @@ background-color: #38a1db;
     background-color: var(--music-bg);
 }
 
+.nbt_noborder{
+    outline: none;
+    border: none;
+    background-color: var(--main-bg);
+}
+
 .beside_gr{
     display: block;
     height: 30px;
@@ -478,6 +484,22 @@ background-color: #38a1db;
     top: 200px;
     width: 200px;
     height: 40px;
+}
+
+#music_flex,#ch_flex{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.music_flex_ly{
+    width:320px;
+    margin: 10px;
+}
+
+.minmg{
+    margin-top: 10px;
 }
 
 @media screen and (max-width:1000px) {
