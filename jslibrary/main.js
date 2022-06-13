@@ -70,6 +70,16 @@ function recommend_music_scroll(kind=0){
     }
 }
 
+function latest_music_scroll(kind=0){
+    let maindoc = document.getElementById("latest_music");
+    if(kind==0){//進
+        maindoc.scrollBy(window.innerWidth-100,0);
+    }
+    else if (kind==1){//戻る
+        maindoc.scrollBy(100 - window.innerWidth,0);
+    }
+}
+
 function recommend_ch_scroll(kind=0){
     let maindoc = document.getElementById("ch_recommend");
     if(kind==0){//進
@@ -262,6 +272,23 @@ function recommend(kind=""){
                     "/' onclick='page_ajax_load(\"/ch/" + res_cr[i][1] + "/\");return false' title='" + res_cr[i][0] + "'><span class='ofoverflow'>" + res_cr[i][0] +
                     "</span><img class='recommend-ch' src='" + res_cr[i][2] + "' alt='" + res_cr[i][0] +
                     "' width='120' height='120'></a>";
+            }
+        }
+        if (kind=="top"){
+            let latestapi_xhr = new XMLHttpRequest();
+            latestapi_xhr.open("GET","/api/latest.json");
+            latestapi_xhr.responseType = "json";
+            latestapi_xhr.send();
+            latestapi_xhr.onload = function(){
+                let now_j = latestapi_xhr.response;
+                let nowlong = now_j["index"].length;
+                let nowdoc = document.getElementById("latest_music");
+                for (let x = 0;x<nowlong;x++){
+                    nowdoc.innerHTML = nowdoc.innerHTML + "<a href='/watch?v=" + now_j["index"][x][0] + "' onclick='page_ajax_load(\/watch?v=" + now_j["index"][x][0] + ");return false' title='" + now_j["index"][x][1] + "'>" + 
+                    "<span class='ofoverflow_320'>" + now_j["index"][x][1] + "</span><img class='fit-cut' src='https://i.ytimg.com/vi_webp/" + now_j["index"][x][0] + "/hqdefault.webp'" +
+                    "width='320' height='180' alt='" + now_j["index"][x][1] + "'></a>";
+                }
+                nowdoc.innerHTML = nowdoc.innerHTML + '<button type="button" class="musicbt latestundo" onclick="latest_music_scroll(1)"><img class="music-bt" src="/util/undo.svg"></button><button type="button" class="musicbt latestnext" onclick="latest_music_scroll(0)"><img class="music-bt" src="/util/nextbt.svg"></button>';
             }
         }
     }

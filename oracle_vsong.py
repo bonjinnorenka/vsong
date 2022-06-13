@@ -635,11 +635,11 @@ def make_chpage_v3(nick_name):
     except Exception as e:
         pro_log("error","make_chpage_v3",nick_name,"unknown error->continue",str(e))
 
-def make_all_chpage(mode=0):
+def make_all_chpage():
     cur.execute("select nick_name_1 from ch_id where ig = 0 and nick_name_1 is not null and content_count > 0")
     chid_list = cur.fetchall()
     for i in chid_list:
-        make_chpage_v3(str(i)[2:-3],mode=mode)
+        make_chpage_v3(str(i)[2:-3])
 
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
@@ -1068,3 +1068,9 @@ def remove_topic():
 def igch_tig():#無視するチャンネル上がっていてグループ名が設定されていないものを一時無視に追加
     cur.execute("update VIDEO_ID vid set ig = 2 where exists(select * from CH_ID chi where ig = 1 and chi.CH_ID=vid.CHANNEL_ID) and vid.GROUPE_NAME is null and ig = 0")
     con.commit()
+
+def make_api_latestmovie():
+    cur.execute("SELECT VIDEO_ID,VIDEO_NAME FROM VIDEO_ID WHERE IG = 0 ORDER BY UPLOAD_TIME DESC FETCH FIRST 20 ROWS ONLY")
+    kalist = [[x[0],x[1]] for x in cur.fetchall()]
+    with open(folder_path + siteurl + "/api/latest.json","w") as f:
+        json.dump({"index":kalist},f)
