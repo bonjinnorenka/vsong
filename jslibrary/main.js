@@ -554,7 +554,8 @@ function load_youtubeapi_player(now_video_id){
             playerVars: {'autoplay': 1},
             events: {
                 'onStateChange': yt_state_change,
-                'onReady': yt_sm_play
+                'onReady': yt_sm_play,
+                'onError': yt_skip
             }
         })
         ytembed_el.classList.add("float_right");
@@ -620,15 +621,13 @@ function yt_state_change(){//再生の状態に応じてバーを更新するか
 }
 
 function yt_music_display(){
-    let yt_md_xhr = new XMLHttpRequest();
-    yt_md_xhr.open("GET","https://www.youtube-nocookie.com/oembed?url=https://www.youtube.com/watch?v=" + before_playing + "&format=json");
-    yt_md_xhr.responseType = "json";
-    yt_md_xhr.send();
-    yt_md_xhr.onload = function(){
-        let yt_md_json = yt_md_xhr.response;
-        let now_yt_title = yt_md_json["title"] + "/" + yt_md_json["author_name"];
-        console.log(now_yt_title);
-        document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + now_yt_title + "</p>";
+    let vidapi_xhr = new XMLHttpRequest();
+    vidapi_xhr.open("GET","/api/videoid/" + before_playing + ".json");
+    vidapi_xhr.responseType = "json";
+    vidapi_xhr.send();
+    vidapi_xhr.onload = function(){
+        let nowjson = vidapi_xhr.response;
+        document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["videoname"] + "</p>"
     }
 }
 
@@ -768,7 +767,8 @@ function watch_page_load(){
                 playerVars: {'autoplay': 1},
                 events: {
                     'onStateChange': yt_state_change,
-                    'onReady': yt_sm_play
+                    'onReady': yt_sm_play,
+                    'onError': yt_skip
                 }
             });
             document.getElementById("youtube-iframe").classList.add("watch_yt_center");
