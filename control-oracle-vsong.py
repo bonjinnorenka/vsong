@@ -11,9 +11,9 @@ while True:
         break
     elif nowcommand=="update_vdata":
         ov.update_videodata()
-        ov.make_api_latestmovie()
     elif nowcommand=="update_vlist":
         ov.correct_video_list()
+        ov.make_api_latestmovie()
     elif nowcommand=="add_chdata":
         ov.add_ch_data()
     elif nowcommand=="add_gname":
