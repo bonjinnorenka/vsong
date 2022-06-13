@@ -284,7 +284,7 @@ function recommend(kind=""){
                 let nowlong = now_j["index"].length;
                 let nowdoc = document.getElementById("latest_music");
                 for (let x = 0;x<nowlong;x++){
-                    nowdoc.innerHTML = nowdoc.innerHTML + "<a href='/watch?v=" + now_j["index"][x][0] + "' onclick='page_ajax_load(\/watch?v=" + now_j["index"][x][0] + ");return false' title='" + now_j["index"][x][1] + "'>" + 
+                    nowdoc.innerHTML = nowdoc.innerHTML + "<a href='/watch?v=" + now_j["index"][x][0] + "' onclick='page_ajax_load(\"\/watch/?v=" + now_j["index"][x][0] + "\");return false' title='" + now_j["index"][x][1] + "'>" + 
                     "<span class='ofoverflow_320'>" + now_j["index"][x][1] + "</span><img class='fit-cut' src='https://i.ytimg.com/vi_webp/" + now_j["index"][x][0] + "/hqdefault.webp'" +
                     "width='320' height='180' alt='" + now_j["index"][x][1] + "'></a>";
                 }
@@ -1072,7 +1072,7 @@ function page_load(){//ページロード時の処理
         }
         search_index_load();
     }
-    else if (location.pathname==="/watch"){//動画視聴
+    else if (location.pathname==="/watch/"){//動画視聴
         watch_page_load();
     }
     else if (location.pathname==="/today/"){//今日の人気
