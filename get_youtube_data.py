@@ -36,11 +36,7 @@ def highper_vidFromPlaylist(playlist_id,iglist=[]):#subprocessを利用し無理
         subproc.wait()
     proc_list = []
     cur.execute("SELECT DISTINCT videoid FROM vsong.tmp_vid")
-    kk_vid = cur.fetchall()
-    k_vid = []
-    k_a = k_vid.append
-    for w in range(len(kk_vid)):
-        k_a(str(kk_vid[w])[2:-3])
+    k_vid = [x[0] for x in cur.fetchall()]
     cur.close()
     connection.close()
     n_vid_l = list(set(k_vid) - set(iglist))

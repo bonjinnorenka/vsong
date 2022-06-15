@@ -95,7 +95,10 @@ def ps_htm():#本番環境からbasic_pageに配置
     shutil.copy2(folder_path + siteurl + "/music/index.html","basic_page/musictop-index.html")
 
 def conect_close():#接続切るよう
+    cur.close()
     con.close()
+    cur_ms.close()
+    con_ms.close()
     print("接続を切りました")
 
 def flatten(l):
@@ -117,7 +120,7 @@ def update_videodata():
     dt_now = datetime.datetime.now()
     dt_str = str(dt_now.year) + "-" + str(dt_now.month) + "-" + str(dt_now.day) + " " + str(dt_now.hour) + ":" + str(dt_now.minute) + ":" + str(dt_now.second)
     for x in range(len(v_st)):
-        cur.execute("INSERT INTO VIDEO_V_DATA (VIDEO_ID,RELOAD_TIME,VIEW_C,LIKE_C,COMMENT_C) VALUES('" + v_st[x][0] + "','" + dt_str + "','" + str(v_st[x][1]) + "','" + str(v_st[x][2]) + "','" + str(v_st[x][3]) + "')")
+        cur.execute("INSERT INTO VIDEO_V_DATA (VIDEO_ID,RELOAD_TIME,VIEW_C,LIKE_C,COMMENT_C) VALUES(:vid,:ndt,:vc,:lc,:cc)",vid=v_st[x[0]],ndt=dt_str,vc=v_st[x[1]],lc=v_st[x][2],cc=v_st[x][3])
     con.commit()
 
 def correct_video_list():
@@ -140,7 +143,7 @@ def correct_video_list():
         if v_data[x][0] not in v_id_l:#万が一の重複に備え更なる重複チェックをする
             kvar += 1
             #cur.execute(f"INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME) VALUES('{v_data[x][0]}','{v_data[x][1]}','{str(v_data[x][2])[:-1].replace('T',' ')}','{str(v_data[x][3]).replace('\'','\'\'')}','{v_data[x][5]}')")
-            cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME) VALUES(:vid,:chid,:ut,:vname,:mt)",vid=v_data[x][0],chid=v_data[x][1],ut=str(v_data[x][2])[:-1].replace('T',' '),vname=v_data[x][3],mt=v_data[x][5])
+            cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME,IG) VALUES(:vid,:chid,:ut,:vname,:mt,2)",vid=v_data[x][0],chid=v_data[x][1],ut=str(v_data[x][2])[:-1].replace('T',' '),vname=v_data[x][3],mt=v_data[x][5])
     con.commit()
     print(str(kvar) + "個のデータを追加しています")
 
@@ -1070,7 +1073,7 @@ def igch_tig():#無視するチャンネル上がっていてグループ名が�
     con.commit()
 
 def make_api_latestmovie():
-    cur.execute("SELECT VIDEO_ID,VIDEO_NAME FROM VIDEO_ID WHERE IG = 0 ORDER BY UPLOAD_TIME DESC FETCH FIRST 20 ROWS ONLY")
+    cur.execute("SELECT VIDEO_ID,VIDEO_NAME FROM VIDEO_ID WHERE IG = 0 OR IG = 2 ORDER BY UPLOAD_TIME DESC FETCH FIRST 20 ROWS ONLY")
     kalist = [[x[0],x[1]] for x in cur.fetchall()]
     with open(folder_path + siteurl + "/api/latest.json","w") as f:
         json.dump({"index":kalist},f)

@@ -166,19 +166,30 @@ body {
 #ch_recommend{
     overflow-x: auto;
     display: flex;
-    height: 160px;
+    height: 180px;
+    scrollbar-width: none;
 }
 
 #music_recommend {
     overflow-x: auto;
     display: flex;
     height: 230px;
+    scrollbar-width: none;
 }
 
 #latest_music {
     overflow-x: auto;
     display: flex;
     height: 230px;
+    scrollbar-width: none;
+}
+
+.pos-none{
+    position: static !important;
+}
+
+#ch_recommend::-webkit-scrollbar,#music_recommend::-webkit-scrollbar,#latest_music::-webkit-scrollbar{
+    display: none;
 }
 
 a {
@@ -261,20 +272,23 @@ nav ul li {
 
 .sticky_c_yt{
     position: sticky;
-    bottom: 50px;
+    bottom: 36px;
     display: block;
 }
 
 .yt-progress{
-    width: 98vw;
-    height:5px;
+    width: 99vw;
+    height: 5px;
     pointer-events: none;
+    bottom: 37px;
+    position: absolute;
 }
 
 .flex_box{
     display: flex;
     background-color: var(--music-bg);
     height: 37px;
+    width: 99vw;
 }
 
 .play_center{
@@ -599,8 +613,12 @@ background-color: #38a1db;
         height: 70px !important;
     }
 
-    .sticky_c_yt{
+    .yt-progress{
         bottom: 70px !important;
+    }
+
+    .sticky_c_yt{
+        bottom: 73px !important;
     }
 
     #autoload_check{
@@ -609,5 +627,9 @@ background-color: #38a1db;
 
     .shuffle{
         display: none;
+    }
+
+    #youtube-iframe{
+        max-width: 96vw;
     }
 }
