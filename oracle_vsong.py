@@ -120,7 +120,8 @@ def update_videodata():
     dt_now = datetime.datetime.now()
     dt_str = str(dt_now.year) + "-" + str(dt_now.month) + "-" + str(dt_now.day) + " " + str(dt_now.hour) + ":" + str(dt_now.minute) + ":" + str(dt_now.second)
     for x in range(len(v_st)):
-        cur.execute("INSERT INTO VIDEO_V_DATA (VIDEO_ID,RELOAD_TIME,VIEW_C,LIKE_C,COMMENT_C) VALUES(:vid,:ndt,:vc,:lc,:cc)",vid=v_st[x[0]],ndt=dt_str,vc=v_st[x[1]],lc=v_st[x][2],cc=v_st[x][3])
+        #cur.execute("INSERT INTO VIDEO_V_DATA (VIDEO_ID,RELOAD_TIME,VIEW_C,LIKE_C,COMMENT_C) VALUES(:vid,:ndt,:vc,:lc,:cc)",vid=v_st[x[0]],ndt=dt_str,vc=str(v_st[x[1]]),lc=str(v_st[x][2]),cc=str(v_st[x][3]))
+        cur.execute("INSERT INTO VIDEO_V_DATA (VIDEO_ID,RELOAD_TIME,VIEW_C,LIKE_C,COMMENT_C) VALUES('" + v_st[x][0] + "','" + dt_str + "','" + str(v_st[x][1]) + "','" + str(v_st[x][2]) + "','" + str(v_st[x][3]) + "')")
     con.commit()
 
 def correct_video_list():
