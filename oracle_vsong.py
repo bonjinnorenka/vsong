@@ -140,11 +140,24 @@ def correct_video_list():
     print("プレイリスト取得中")
     v_data = gy.videoid_lToMInfo(gy.highper_vidFromPlaylist(pid_l,v_id_l))
     kvar = 0
+    #先にプレミア関係をすることで処理量を削減
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 3")#プレミア用一次処理したのを抽出
+    kalist = cur.fetchall()
+    if len(kalist)!=0:#プレミア用の何かがあった->ステータス取得
+        now_list = [x[0] for x in kalist]
+        v_data = gy.videoid_lToMInfo(now_list)
+        for r in v_data:
+            if r[6]==False:
+                cur.execute("UPDATE VIDEO_ID SET IG = 2 WHERE VIDEO_ID = :nvidid",nvidid=r[0])
     for x in range(len(v_data)):
         if v_data[x][0] not in v_id_l:#万が一の重複に備え更なる重複チェックをする
             kvar += 1
             #cur.execute(f"INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME) VALUES('{v_data[x][0]}','{v_data[x][1]}','{str(v_data[x][2])[:-1].replace('T',' ')}','{str(v_data[x][3]).replace('\'','\'\'')}','{v_data[x][5]}')")
-            cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME,IG) VALUES(:vid,:chid,:ut,:vname,:mt,2)",vid=v_data[x][0],chid=v_data[x][1],ut=str(v_data[x][2])[:-1].replace('T',' '),vname=v_data[x][3],mt=v_data[x][5])
+            if v_data[x][6]:
+                ig = 3
+            else:
+                ig = 2
+            cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME,IG) VALUES(:vid,:chid,:ut,:vname,:mt,:ign)",vid=v_data[x][0],chid=v_data[x][1],ut=str(v_data[x][2])[:-1].replace('T',' '),vname=v_data[x][3],mt=v_data[x][5],ign=ig)
     con.commit()
     print(str(kvar) + "個のデータを追加しています")
 
@@ -1078,5 +1091,3 @@ def make_api_latestmovie():
     kalist = [[x[0],x[1]] for x in cur.fetchall()]
     with open(folder_path + siteurl + "/api/latest.json","w") as f:
         json.dump({"index":kalist},f)
-
-make_chpage_v3("ときのそら")

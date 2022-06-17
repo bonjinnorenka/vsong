@@ -82,12 +82,17 @@ def videoid_lToMInfo(videoid_list):
         for x in range(length):
             k_vlist_a(videoid_list[x+50*n])
         n_list = str(k_vlist).replace("'","").replace(" ","").replace("[","").replace("]","")
-        jsong = requests.get("https://www.googleapis.com/youtube/v3/videos?id=" + n_list + "&key=" + api_key + "&part=snippet,contentDetails")
+        jsong = requests.get("https://www.googleapis.com/youtube/v3/videos?id=" + n_list + "&key=" + api_key + "&part=snippet,contentDetails,liveStreamingDetails")
         new_json = jsong.json()
         for r in range(new_json["pageInfo"]["totalResults"]):
             dtps = isodate.parse_duration(new_json["items"][r]["contentDetails"]["duration"])
             n_j = new_json["items"][r]["snippet"]
-            info_v_a([new_json["items"][r]["id"],n_j["channelId"],n_j["publishedAt"],n_j["title"],n_j["description"],dtps.total_seconds()])
+            try:
+                new_json["items"][r]["liveStreamingDetails"]["activeLiveChatId"]#これが取得できればプレミアorライブ配信 中or前　あとからでは取得なし
+                premier = True
+            except:
+                premier = False
+            info_v_a([new_json["items"][r]["id"],n_j["channelId"],n_j["publishedAt"],n_j["title"],n_j["description"],dtps.total_seconds(),premier])
     return info_v
         
 def VideoidToManyInfo(Video_id):#api使用1日1万回まで
