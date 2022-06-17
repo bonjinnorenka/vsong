@@ -630,7 +630,7 @@ def make_chpage_v3(nick_name):
                         v_data[x][3][w][5] = "個人"
                     if v_data[x][3][w][5] not in men_of_list:
                         men_of_list.append(v_data[x][3][w][5])
-            nowdata.append(f'<div id="fb_{v_data[x][0]}" class="music_flex_ly {" ".join(men_of_list)}"><span class="ofoverflow_320" title="{v_data[x][1][0]}"><a href="{"/music/" + dir_name_replace(v_data[x][1][0])}" onclick="page_ajax_load({"/music/" + dir_name_replace(v_data[x][1][0])})">{v_data[x][1][0]}</a></span><lite-youtube videoid="{v_data[x][0]}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{v_data[x][0]}\')">詳細を表示</button></div>')
+            nowdata.append(f'<div id="fb_{v_data[x][0]}" class="music_flex_ly {" ".join(men_of_list)}"><span class="ofoverflow_320" title="{v_data[x][1][0]}"><a href="{"/music/" + dir_name_replace(v_data[x][1][0]) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(v_data[x][1][0]) + "/"}\');return false">{v_data[x][1][0]}</a></span><lite-youtube videoid="{v_data[x][0]}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{v_data[x][0]}\')">詳細を表示</button></div>')
         share_html_a(nowdata)
         share_html_a("""</div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
         share_html_a("<script src='/library/main.js'></script></body></html>")
@@ -1078,3 +1078,5 @@ def make_api_latestmovie():
     kalist = [[x[0],x[1]] for x in cur.fetchall()]
     with open(folder_path + siteurl + "/api/latest.json","w") as f:
         json.dump({"index":kalist},f)
+
+make_chpage_v3("ときのそら")
