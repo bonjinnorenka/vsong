@@ -28,9 +28,13 @@ def highper_vidFromPlaylist(playlist_id,iglist=[]):#subprocessを利用し無理
     cur.execute("delete from vsong.tmp_vid")
     connection.commit()
     proc_list = []
+    proc_list_a = proc_list.append
     loop_num = len(playlist_id)
     for n in range(loop_num):
-        proc = subprocess.Popen([ev.python_call,os.path.dirname(os.path.abspath(__file__)) + '/get_youtube_playlist.py',str(playlist_id[n])])
+        if ev.gyp_exe:
+            proc = subprocess.Popen([os.path.dirname(os.path.abspath(__file__)) + '/'+ev.gyp_exepass,str(playlist_id[n])])
+        else:
+            proc = subprocess.Popen([ev.python_call,os.path.dirname(os.path.abspath(__file__)) + '/get_youtube_playlist.py',str(playlist_id[n])])
         proc_list.append(proc)
     for subproc in proc_list:
         subproc.wait()

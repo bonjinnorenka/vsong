@@ -125,3 +125,8 @@ ev.py
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/tasks.json
+
+*.exe
+get_youtube_playlist.build/
+get_youtube_playlist.dist/
+get_youtube_playlist.onefile-build
