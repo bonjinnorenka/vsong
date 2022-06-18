@@ -42,6 +42,23 @@ def highper_vidFromPlaylist(playlist_id,iglist=[]):#subprocessを利用し無理
     n_vid_l = list(set(k_vid) - set(iglist))
     return n_vid_l
 
+def playlist_count(playlist_id_list):#youtubeapi使用
+    n_n = math.ceil(float(len(playlist_id_list)/50))
+    sta_v = []
+    sta_v_a = sta_v.append
+    for n in range(n_n):
+        if n_n==n+1:
+            length = len(playlist_id_list) - (50 * n)
+        else:
+            length = 50
+        k_vidl = [playlist_id_list[t] for t in range(50*n,50*n+length,1)]
+        n_list = ",".join(k_vidl)
+        jsong = requests.get("https://www.googleapis.com/youtube/v3/playlists?part=contentDetails&maxResults=50&id=" + n_list + "&key=" + api_key)
+        new_json = jsong.json()
+        for i in range(new_json["pageInfo"]["totalResults"]):
+            sta_v_a([new_json["items"][i]["id"],new_json["items"][i]["contentDetails"]["itemCount"]])
+    return sta_v
+
 def VideoidFromPlaylist(playlist_id):#無制限
     all_path = ypath + " -j --flat-playlist https://www.youtube.com/playlist?list=" + playlist_id
     jsong = subprocess.check_output(all_path)

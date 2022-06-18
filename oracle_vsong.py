@@ -110,12 +110,8 @@ def flatten(l):
 
 def update_videodata():
     cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
-    v_id_kl = cur.fetchall()
     #変形
-    v_id_l = []
-    v_id_a = v_id_l.append
-    for x in range(len(v_id_kl)):
-        v_id_a(str(v_id_kl[x])[2:-3])
+    v_id_l = [e[0] for e in cur.fetchall()]
     v_st = gy.ExtremeVideoToStatics(v_id_l)
     dt_now = datetime.datetime.now()
     dt_str = str(dt_now.year) + "-" + str(dt_now.month) + "-" + str(dt_now.day) + " " + str(dt_now.hour) + ":" + str(dt_now.minute) + ":" + str(dt_now.second)
@@ -125,21 +121,6 @@ def update_videodata():
     con.commit()
 
 def correct_video_list():
-    cur.execute("SELECT DISTINCT PLAYLIST_ID FROM CRAWLER_PLAYLIST")
-    pid_kl = cur.fetchall()
-    pid_l = []
-    pid_l_a = pid_l.append
-    for x in range(len(pid_kl)):
-        pid_l_a(str(pid_kl[x])[2:-3])
-    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
-    v_id_kl = cur.fetchall()
-    v_id_l = []
-    v_id_a = v_id_l.append
-    for x in range(len(v_id_kl)):
-        v_id_a(str(v_id_kl[x])[2:-3])
-    print("プレイリスト取得中")
-    v_data = gy.videoid_lToMInfo(gy.highper_vidFromPlaylist(pid_l,v_id_l))
-    kvar = 0
     #先にプレミア関係をすることで処理量を削減
     cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 3")#プレミア用一次処理したのを抽出
     kalist = cur.fetchall()
@@ -149,17 +130,26 @@ def correct_video_list():
         for r in v_data:
             if r[6]==False:
                 cur.execute("UPDATE VIDEO_ID SET IG = 2 WHERE VIDEO_ID = :nvidid",nvidid=r[0])
-    for x in range(len(v_data)):
-        if v_data[x][0] not in v_id_l:#万が一の重複に備え更なる重複チェックをする
-            kvar += 1
-            #cur.execute(f"INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME) VALUES('{v_data[x][0]}','{v_data[x][1]}','{str(v_data[x][2])[:-1].replace('T',' ')}','{str(v_data[x][3]).replace('\'','\'\'')}','{v_data[x][5]}')")
-            if v_data[x][6]:
-                ig = 3
-            else:
-                ig = 2
-            cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME,IG) VALUES(:vid,:chid,:ut,:vname,:mt,:ign)",vid=v_data[x][0],chid=v_data[x][1],ut=str(v_data[x][2])[:-1].replace('T',' '),vname=v_data[x][3],mt=v_data[x][5],ign=ig)
-    con.commit()
-    print(str(kvar) + "個のデータを追加しています")
+    pid_l = diff_playlistid()
+    if len(pid_l)==0:
+        print("プレイリスト取得スキップ")
+    else:
+        print("プレイリスト取得中")
+        cur.execute("SELECT VIDEO_ID FROM VIDEO_ID")
+        v_id_l = [e[0] for e in cur.fetchall()]
+        v_data = gy.videoid_lToMInfo(gy.highper_vidFromPlaylist(pid_l,v_id_l))
+        kvar = 0
+        for x in range(len(v_data)):
+            if v_data[x][0] not in v_id_l:#万が一の重複に備え更なる重複チェックをする
+                kvar += 1
+                #cur.execute(f"INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME) VALUES('{v_data[x][0]}','{v_data[x][1]}','{str(v_data[x][2])[:-1].replace('T',' ')}','{str(v_data[x][3]).replace('\'','\'\'')}','{v_data[x][5]}')")
+                if v_data[x][6]:
+                    ig = 3
+                else:
+                    ig = 2
+                cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME,IG) VALUES(:vid,:chid,:ut,:vname,:mt,:ign)",vid=v_data[x][0],chid=v_data[x][1],ut=str(v_data[x][2])[:-1].replace('T',' '),vname=v_data[x][3],mt=v_data[x][5],ign=ig)
+        con.commit()
+        print(str(kvar) + "個のデータを追加しています")
 
 def add_ch_data():
     cur.execute("SELECT DISTINCT CHANNEL_ID FROM VIDEO_ID")
@@ -1092,3 +1082,26 @@ def make_api_latestmovie():
     kalist = [[x[0],x[1]] for x in cur.fetchall()]
     with open(folder_path + siteurl + "/api/latest.json","w") as f:
         json.dump({"index":kalist},f)
+
+def playlist_ignore_auto():
+    cur.execute("update CRAWLER_PLAYLIST set ig = 1 where PLAYLIST_ID like 'OL%'")
+    con.commit()
+
+def diff_playlistid(force=0):
+    if force==0:
+        cur.execute("SELECT PLAYLIST_ID,CONTENT_LENGTH FROM CRAWLER_PLAYLIST WHERE IG = 0")
+    elif force==1:
+        cur.execute("SELECT PLAYLIST_ID,CONTENT_LENGTH FROM CRAWLER_PLAYLIST")
+    curcache = cur.fetchall()
+    nowls = [x[0] for x in curcache]
+    pldict = {}
+    for r in curcache:
+        pldict[r[0]] = r[1]
+    nowdata = gy.playlist_count(nowls)
+    difflist = []
+    for r in nowdata:
+        if r[1] != pldict[r[0]]:#値が違う!
+            difflist.append(r[0])
+            cur.execute("UPDATE CRAWLER_PLAYLIST SET CONTENT_LENGTH = :ncl WHERE PLAYLIST_ID = :npl",ncl=r[1],npl=r[0])
+    con.commit()
+    return difflist
