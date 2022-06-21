@@ -1,4 +1,4 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,copy,jaconv,shutil,itertools,MySQLdb,sys
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
@@ -845,7 +845,7 @@ def make_search_index():
     """
 
 def make_video_random():
-    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE STATUS = 0")
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE STATUS = 0 AND IG IN (0,2)")
     vid_list = []
     vid_list_a = vid_list.append
     for x in cur.fetchall():
@@ -1074,7 +1074,10 @@ def remove_topic():
     con.commit()
 
 def igch_tig():#無視するチャンネル上がっていてグループ名が設定されていないものを一時無視に追加
-    cur.execute("update VIDEO_ID vid set ig = 2 where exists(select * from CH_ID chi where ig = 1 and chi.CH_ID=vid.CHANNEL_ID) and vid.GROUPE_NAME is null and ig = 0")
+    cur.execute("UPDATE VIDEO_ID VID SET IG = 2 WHERE EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND VID.GROUPE_NAME IS NULL AND IG = 0")
+    cur.execute("UPDATE VIDEO_ID VID SET IG = 0 WHERE EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND VID.GROUPE_NAME IS NOT NULL AND IG = 2 AND VID.MUSIC_NAME IS NOT NULL")
+    cur.execute("UPDATE VIDEO_ID VID SET IG = 0 WHERE NOT EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND IG = 2 AND VID.MUSIC_NAME IS NOT NULL")
+    cur.execute("update VIDEO_ID set ig = 0 where MUSIC_NAME is not null and GROUPE_NAME is null and ig = 4")
     con.commit()
 
 def make_api_latestmovie():
@@ -1105,3 +1108,216 @@ def diff_playlistid(force=0):
             cur.execute("UPDATE CRAWLER_PLAYLIST SET CONTENT_LENGTH = :ncl WHERE PLAYLIST_ID = :npl",ncl=r[1],npl=r[0])
     con.commit()
     return difflist
+
+def music_helper():#曲名が長いやつに引っ張られるようになってる　ぽとかだと簡単に引っかかっちゃう
+    igch_tig()
+    cur.execute("SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB")
+    musiclist = [str(x[0]) for x in cur.fetchall()]
+    cur.execute("SELECT VIDEO_ID,VIDEO_NAME FROM VIDEO_ID WHERE IG = 2 AND MUSIC_NAME IS NULL")
+    nowvideolist = [[x[0],str(x[1])] for x in cur.fetchall()]
+    if len(nowvideolist)!=0:
+        print(str(len(nowvideolist)) + "\t回分あるから頑張れ!")
+        for r in range(len(nowvideolist)):
+            nvidname = nowvideolist[r][1]
+            nvidid = nowvideolist[r][0]
+            musicpt = []
+            for n in musiclist:
+                if n in nvidname:
+                    musicpt.append(n)
+            musicpt.sort(key=len,reverse=True)
+            if len(musicpt)>0:
+                print("動画id: " + nvidid + "\n動画名: " + nvidname + "\n推測される音楽名: " + musicpt[0] + "\n\nOK->y or 空白\tNo->n\tig->ii\tコラボカツ入力良し->c\tまちがい->音楽名を入力\n\n")
+            else:
+                print("動画id: " + nvidid + "\n動画名: " + nvidname + "\n\n音楽名を入力\n\n")
+            invalue = input("condition: ")
+            invalue = invalue.lower()
+            if invalue == "y" or invalue == "":
+                cur.execute("UPDATE VIDEO_ID SET MUSIC_NAME = :nmn WHERE VIDEO_ID = :nvid",nmn = musicpt[0],nvid=nvidid)
+            elif invalue == "ii":
+                cur.execute("UPDATE VIDEO_ID SET IG = 1 WHERE VIDEO_ID = :nvid",nvid=nvidid)
+            elif invalue == "n":
+                pass
+            elif invalue == "c":
+                cur.execute("UPDATE VIDEO_ID SET IG = 4,MUSIC_NAME = :nmn WHERE VIDEO_ID = :nvid",nvid=nvidid,nmn = musicpt[0])
+            else:
+                cur.execute("UPDATE VIDEO_ID SET MUSIC_NAME = :nmn WHERE VIDEO_ID = :nvid",nmn=invalue,nvid=nvidid)
+            con.commit()
+    else:
+        print("対象はありません")
+
+#ここから新バージョン用コード
+
+class Videodata:
+    videoid = ""
+    channelid = ""
+    uploadtime = datetime
+    videoname = ""
+    musicname = ""
+    groupname = ""
+    status = ""
+    movietime = ""
+    member = []
+
+    def generate_member(self):
+        if self.groupname==None:
+            cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,BELONG_OFFICE FROM CH_ID WHERE CH_ID = :nchid",nchid=self.channelid)
+            fetchcache = cur.fetchone()
+            nowmemberdata = Memberdata
+            nowmemberdata.nickname = fetchcache[0]
+            nowmemberdata.subnickname = fetchcache[1]
+            nowmemberdata.pictureurl = fetchcache[2]
+            nowmemberdata.belongoffice = fetchcache[3]
+            self.member = [nowmemberdata]
+        else:
+            self.member = groupname2memdata_v4(self.groupname)
+
+class Memberdata:
+    nickname = ""
+    subnickname = ""
+    pictureurl = ""
+    belongoffice = ""
+    video = []
+
+    def generate_memberdata(self):
+        cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,NVL(BELONG_OFFICE,'個人勢') FROM CH_ID WHERE NICK_NAME_1 = :nmn OR NICK_NAME_2 = :nmn",nmn=self.nickname)
+        fetchcache = cur.fetchone()
+        self.nickname = fetchcache[0]
+        self.subnickname = fetchcache[1]
+        self.pictureurl = fetchcache[2]
+        self.belongoffice = fetchcache[3]
+
+    def generate_videolist(self):
+        self.video = nickname2allvideodata_v4(self.nickname).video
+
+class Musicdata:
+    musicname = ""
+    artistname = ""
+    spotifyid = ""
+    youtubeid = ""
+    video = []
+    
+    def generate_musidata(self):
+        cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID FROM MUSIC_SONG_DB WHERE KEY_MUSIC_NAME = :nmn",nmn=self.musicname)
+        fetchcache = cur.fetchone()
+        self.artistname = fetchcache[1]
+        self.spotifyid = fetchcache[2]
+        self.youtubeid = fetchcache[3]
+
+    def generate_videolist(self):
+        self.video = music2allvideodata_v4(self.musicname).video
+
+def video2data_v4(videoid):
+    nowvideodata = Videodata
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢') FROM VIDEO_ID WHERE VIDEO_ID = :nvid",nvid=videoid)
+    fetchcache = cur.fetchone()
+
+    nowvideodata.videoid = fetchcache[0]
+    nowvideodata.channelid = fetchcache[1]
+    nowvideodata.uploadtime = fetchcache[2]
+    nowvideodata.videoname = fetchcache[3]
+    nowvideodata.musicname = fetchcache[4]
+    nowvideodata.groupname = fetchcache[5]
+    nowvideodata.status = fetchcache[6]
+    nowvideodata.movietime = fetchcache[7]
+
+    if nowvideodata.groupname==None:#グループ名なし
+        nowmemberdata = Memberdata
+
+        nowmemberdata.nickname = fetchcache[8]
+        nowmemberdata.subnickname = fetchcache[9]
+        nowmemberdata.pictureurl = fetchcache[10]
+        nowmemberdata.belongoffice = fetchcache[11]
+
+        nowvideodata.member.append(nowmemberdata)
+    else:
+        nowvideodata.generate_member(nowvideodata)
+    return nowvideodata
+    
+def groupname2memdata_v4(groupname):
+    cur.execute("SELECT (SELECT NICK_NAME_1 FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT NICK_NAME_2 FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT PICTURE_URL FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),'個人勢') from FLAT_PAIRLIST_SECOND where GROUPE_NAME = :group_name",group_name=groupname)
+    fetchcache = cur.fetchall()
+    allmemberlist = []
+    for r in fetchcache:
+        nowmemberdata = Memberdata
+        nowmemberdata.nickname = r[0]
+        nowmemberdata.subnickname = r[1]
+        nowmemberdata.pictureurl = r[2]
+        nowmemberdata.belongoffice = r[3]
+        allmemberlist.append(nowmemberdata)
+    return allmemberlist
+
+def music2allvideodata_v4(musicname):
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢') FROM VIDEO_ID WHERE MUSIC_NAME = :nmn",nmn=musicname)
+    fetchcache = cur.fetchall()
+
+    nowmusicdata = Musicdata
+    nowmusicdata.musicname = musicname
+
+    for x in fetchcache:
+        nowvideodata = Videodata
+
+        nowvideodata.videoid = x[0]
+        nowvideodata.channelid = x[1]
+        nowvideodata.uploadtime = x[2]
+        nowvideodata.videoname = x[3]
+        nowvideodata.musicname = x[4]
+        nowvideodata.groupname = x[5]
+        nowvideodata.status = x[6]
+        nowvideodata.movietime = x[7]
+
+        if nowvideodata.groupname==None:#グループ名なし
+            nowmemberdata = Memberdata
+
+            nowmemberdata.nickname = x[8]
+            nowmemberdata.subnickname = x[9]
+            nowmemberdata.pictureurl = x[10]
+            nowmemberdata.belongoffice = x[11]
+
+            nowvideodata.member.append(nowmemberdata)
+        else:
+            nowvideodata.generate_member(nowvideodata)
+        nowmusicdata.video.append(nowvideodata)
+
+    return nowmusicdata
+
+def create_pairlist_materialized():
+    cur.execute("CREATE MATERIALIZED VIEW FLAT_PAIRLIST_SECOND AS SELECT GROUPE_NAME, TO_CHAR(MN_1) MN from PAIR_LIST_SECOND WHERE MN_1 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_2) MN from PAIR_LIST_SECOND WHERE MN_2 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_3) MN from PAIR_LIST_SECOND WHERE MN_3 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_4) MN from PAIR_LIST_SECOND WHERE MN_4 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_5) MN from PAIR_LIST_SECOND WHERE MN_5 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_6) MN from PAIR_LIST_SECOND WHERE MN_6 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_7) MN from PAIR_LIST_SECOND WHERE MN_7 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_8) MN from PAIR_LIST_SECOND WHERE MN_8 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_9) MN from PAIR_LIST_SECOND WHERE MN_9 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_10) MN from PAIR_LIST_SECOND WHERE MN_10 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_11) MN from PAIR_LIST_SECOND WHERE MN_11 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_12) MN from PAIR_LIST_SECOND WHERE MN_12 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_13) MN from PAIR_LIST_SECOND WHERE MN_13 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_14) MN from PAIR_LIST_SECOND WHERE MN_14 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_15) MN from PAIR_LIST_SECOND WHERE MN_15 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_16) MN from PAIR_LIST_SECOND WHERE MN_16 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_17) MN from PAIR_LIST_SECOND WHERE MN_17 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_18) MN from PAIR_LIST_SECOND WHERE MN_18 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_19) MN from PAIR_LIST_SECOND WHERE MN_19 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_20) MN from PAIR_LIST_SECOND WHERE MN_20 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_21) MN from PAIR_LIST_SECOND WHERE MN_21 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_22) MN from PAIR_LIST_SECOND WHERE MN_22 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_23) MN from PAIR_LIST_SECOND WHERE MN_23 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_24) MN from PAIR_LIST_SECOND WHERE MN_24 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_25) MN from PAIR_LIST_SECOND WHERE MN_25 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_26) MN from PAIR_LIST_SECOND WHERE MN_26 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_27) MN from PAIR_LIST_SECOND WHERE MN_27 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_28) MN from PAIR_LIST_SECOND WHERE MN_28 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_29) MN from PAIR_LIST_SECOND WHERE MN_29 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_30 MN from PAIR_LIST_SECOND WHERE MN_30 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_31 MN from PAIR_LIST_SECOND WHERE MN_31 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_32 MN from PAIR_LIST_SECOND WHERE MN_32 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_33 MN from PAIR_LIST_SECOND WHERE MN_33 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_34 MN from PAIR_LIST_SECOND WHERE MN_34 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_35 MN from PAIR_LIST_SECOND WHERE MN_35 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_36 MN from PAIR_LIST_SECOND WHERE MN_36 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_37 MN from PAIR_LIST_SECOND WHERE MN_37 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_38 MN from PAIR_LIST_SECOND WHERE MN_38 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_39 MN from PAIR_LIST_SECOND WHERE MN_39 IS NOT NULL")
+    con.commit()
+
+def reload_pairlist_materialized():
+    cur.execute("DROP MATERIALIZED VIEW FLAT_PAIRLIST_SECOND")
+    create_pairlist_materialized()
+    #cur.execute("EXECUTE dbms_mview.refresh('FLAT_PAIRLIST_SECOND')")
+
+def nickname2allvideodata_v4(nickname):
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢') from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2)",nnc=nickname)
+    fetchcache = cur.fetchall()
+    
+    nowmainmemberdata = Memberdata
+    nowmainmemberdata.nickname = nickname
+
+    for x in fetchcache:
+        nowvideodata = Videodata
+
+        nowvideodata.videoid = x[0]
+        nowvideodata.channelid = x[1]
+        nowvideodata.uploadtime = x[2]
+        nowvideodata.videoname = x[3]
+        nowvideodata.musicname = x[4]
+        nowvideodata.groupname = x[5]
+        nowvideodata.status = x[6]
+        nowvideodata.movietime = x[7]
+
+        if nowvideodata.groupname==None:#グループ名なし
+            nowmemberdata = Memberdata
+
+            nowmemberdata.nickname = x[8]
+            nowmemberdata.subnickname = x[9]
+            nowmemberdata.pictureurl = x[10]
+            nowmemberdata.belongoffice = x[11]
+
+            nowvideodata.member.append(nowmemberdata)
+        else:
+            nowvideodata.generate_member(nowvideodata)
+        nowmainmemberdata.video.append(nowvideodata)
+    return nowmainmemberdata
