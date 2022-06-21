@@ -1176,15 +1176,19 @@ class Memberdata:
     subnickname = ""
     pictureurl = ""
     belongoffice = ""
+    createtime = datetime
+    modifytime = datetime
     video = []
 
     def generate_memberdata(self):
-        cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,NVL(BELONG_OFFICE,'個人勢') FROM CH_ID WHERE NICK_NAME_1 = :nmn OR NICK_NAME_2 = :nmn",nmn=self.nickname)
+        cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,NVL(BELONG_OFFICE,'個人勢'),CLEATE_PAGE_DATE,LAST_MODIFIED FROM CH_ID WHERE NICK_NAME_1 = :nmn OR NICK_NAME_2 = :nmn",nmn=self.nickname)
         fetchcache = cur.fetchone()
         self.nickname = fetchcache[0]
         self.subnickname = fetchcache[1]
         self.pictureurl = fetchcache[2]
         self.belongoffice = fetchcache[3]
+        self.createtime = fetchcache[4]
+        self.modifytime = fetchcache[5]
 
     def generate_videolist(self):
         self.video = nickname2allvideodata_v4(self.nickname).video
@@ -1194,21 +1198,25 @@ class Musicdata:
     artistname = ""
     spotifyid = ""
     youtubeid = ""
+    createtime = datetime
+    modifytime = datetime
     video = []
     
     def generate_musidata(self):
-        cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID FROM MUSIC_SONG_DB WHERE KEY_MUSIC_NAME = :nmn",nmn=self.musicname)
+        cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID,CLEATE_PAGE_DATE,LAST_MODIFIED FROM MUSIC_SONG_DB WHERE KEY_MUSIC_NAME = :nmn",nmn=self.musicname)
         fetchcache = cur.fetchone()
         self.artistname = fetchcache[1]
         self.spotifyid = fetchcache[2]
         self.youtubeid = fetchcache[3]
+        self.createtime = fetchcache[4]
+        self.modifytime = fetchcache[5]
 
     def generate_videolist(self):
         self.video = music2allvideodata_v4(self.musicname).video
 
 def video2data_v4(videoid):
     nowvideodata = Videodata
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢') FROM VIDEO_ID WHERE VIDEO_ID = :nvid",nvid=videoid)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE VIDEO_ID = :nvid",nvid=videoid)
     fetchcache = cur.fetchone()
 
     nowvideodata.videoid = fetchcache[0]
@@ -1227,6 +1235,8 @@ def video2data_v4(videoid):
         nowmemberdata.subnickname = fetchcache[9]
         nowmemberdata.pictureurl = fetchcache[10]
         nowmemberdata.belongoffice = fetchcache[11]
+        nowmemberdata.createtime = fetchcache[12]
+        nowmemberdata.modifytime = fetchcache[13]
 
         nowvideodata.member.append(nowmemberdata)
     else:
@@ -1234,7 +1244,7 @@ def video2data_v4(videoid):
     return nowvideodata
     
 def groupname2memdata_v4(groupname):
-    cur.execute("SELECT (SELECT NICK_NAME_1 FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT NICK_NAME_2 FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT PICTURE_URL FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),'個人勢') from FLAT_PAIRLIST_SECOND where GROUPE_NAME = :group_name",group_name=groupname)
+    cur.execute("SELECT (SELECT NICK_NAME_1 FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT NICK_NAME_2 FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT PICTURE_URL FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT LAST_MODIFIED FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN) from FLAT_PAIRLIST_SECOND where GROUPE_NAME = :group_name",group_name=groupname)
     fetchcache = cur.fetchall()
     allmemberlist = []
     for r in fetchcache:
@@ -1243,11 +1253,13 @@ def groupname2memdata_v4(groupname):
         nowmemberdata.subnickname = r[1]
         nowmemberdata.pictureurl = r[2]
         nowmemberdata.belongoffice = r[3]
+        nowmemberdata.createtime = r[4]
+        nowmemberdata.modifytime = r[5]
         allmemberlist.append(nowmemberdata)
     return allmemberlist
 
 def music2allvideodata_v4(musicname):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢') FROM VIDEO_ID WHERE MUSIC_NAME = :nmn",nmn=musicname)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE MUSIC_NAME = :nmn",nmn=musicname)
     fetchcache = cur.fetchall()
 
     nowmusicdata = Musicdata
@@ -1272,6 +1284,8 @@ def music2allvideodata_v4(musicname):
             nowmemberdata.subnickname = x[9]
             nowmemberdata.pictureurl = x[10]
             nowmemberdata.belongoffice = x[11]
+            nowmemberdata.createtime = x[12]
+            nowmemberdata.modifytime = x[13]
 
             nowvideodata.member.append(nowmemberdata)
         else:
@@ -1290,7 +1304,7 @@ def reload_pairlist_materialized():
     #cur.execute("EXECUTE dbms_mview.refresh('FLAT_PAIRLIST_SECOND')")
 
 def nickname2allvideodata_v4(nickname):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢') from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2)",nnc=nickname)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2)",nnc=nickname)
     fetchcache = cur.fetchall()
     
     nowmainmemberdata = Memberdata
@@ -1315,6 +1329,8 @@ def nickname2allvideodata_v4(nickname):
             nowmemberdata.subnickname = x[9]
             nowmemberdata.pictureurl = x[10]
             nowmemberdata.belongoffice = x[11]
+            nowmemberdata.createtime = x[12]
+            nowmemberdata.modifytime = x[13]
 
             nowvideodata.member.append(nowmemberdata)
         else:
