@@ -1,4 +1,4 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
@@ -1147,6 +1147,21 @@ def music_helper():#曲名が長いやつに引っ張られるようになって
 
 #ここから新バージョン用コード
 
+class Diffdata:
+    datelabel = []
+    viewcount = []
+    likecount = []
+    commentcount = []
+
+    def __init__(self,datalabel,viewcount,likecount,commentcount):
+        self.datelabel = datalabel
+        self.viewcount = viewcount
+        self.likecount = likecount
+        self.commentcount = commentcount
+
+    def output(self):
+        return [self.datelabel,self.viewcount,self.likecount,self.commentcount]
+
 class Videodata:
     videoid = ""
     channelid = ""
@@ -1157,6 +1172,10 @@ class Videodata:
     status = ""
     movietime = ""
     member = []
+    diffdata = Diffdata
+
+    def __init__(self) -> None:
+        pass
 
     def generate_member(self):
         if self.groupname==None:
@@ -1171,6 +1190,11 @@ class Videodata:
         else:
             self.member = groupname2memdata_v4(self.groupname)
 
+    def generate_diffdata(self):
+        cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), 0) AS DIFF, LIKE_C, COMMENT_C FROM VIDEO_V_DATA vvd WHERE VIDEO_ID = :nvid AND RELOAD_TIME > SYSDATE - 8 ORDER BY RELOAD_TIME ASC OFFSET 1 ROWS FETCH FIRST 7 ROWS ONLY",nvid=self.videoid)
+        fetchcache = cur.fetchall()
+        self.diffdata = Diffdata([x[0] for x in fetchcache],[x[1] for x in fetchcache],[x[2] for x in fetchcache],[x[3] for x in fetchcache])
+
 class Memberdata:
     nickname = ""
     subnickname = ""
@@ -1179,6 +1203,10 @@ class Memberdata:
     createtime = datetime
     modifytime = datetime
     video = []
+    diffdata = Diffdata
+
+    def __init__(self) -> None:
+        pass
 
     def generate_memberdata(self):
         cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,NVL(BELONG_OFFICE,'個人勢'),CLEATE_PAGE_DATE,LAST_MODIFIED FROM CH_ID WHERE NICK_NAME_1 = :nmn OR NICK_NAME_2 = :nmn",nmn=self.nickname)
@@ -1192,6 +1220,13 @@ class Memberdata:
 
     def generate_videolist(self):
         self.video = nickname2allvideodata_v4(self.nickname).video
+    
+    def generate_diffdata(self):
+        if self.video==[]:
+            self.generate_videolist(self)
+        videoidlist = [x.videoid for x in self.video]
+        retlist = view_vlist_graph(video_idlist=videoidlist)
+        self.diffdata = Diffdata(retlist[0],retlist[1],retlist[2],retlist[3])
 
 class Musicdata:
     musicname = ""
@@ -1201,6 +1236,10 @@ class Musicdata:
     createtime = datetime
     modifytime = datetime
     video = []
+    diffdata = Diffdata
+
+    def __init__(self) -> None:
+        pass
     
     def generate_musidata(self):
         cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID,CLEATE_PAGE_DATE,LAST_MODIFIED FROM MUSIC_SONG_DB WHERE KEY_MUSIC_NAME = :nmn",nmn=self.musicname)
@@ -1210,12 +1249,19 @@ class Musicdata:
         self.youtubeid = fetchcache[3]
         self.createtime = fetchcache[4]
         self.modifytime = fetchcache[5]
+        if self.artistname==None:
+            self.artistname = "不明"
 
     def generate_videolist(self):
         self.video = music2allvideodata_v4(self.musicname).video
+    
+    def generate_diffdata(self):
+        cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), SUM(VIEW_C), SUM(LIKE_C), SUM(COMMENT_C) FROM VIDEO_V_DATA vvd WHERE exists (SELECT * FROM VIDEO_ID vid WHERE MUSIC_NAME = :nmn AND vvd.VIDEO_ID = vid.VIDEO_ID) and vvd.RELOAD_TIME > sysdate - 8 group by vvd.RELOAD_TIME order by vvd.RELOAD_TIME asc",nmn=self.musicname)
+        fetchcache = cur.fetchall()
+        self.diffdata = Diffdata([x[0] for x in fetchcache],[x[1] for x in fetchcache],[x[2] for x in fetchcache],[x[3] for x in fetchcache])
 
 def video2data_v4(videoid):
-    nowvideodata = Videodata
+    nowvideodata = Videodata()
     cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE VIDEO_ID = :nvid",nvid=videoid)
     fetchcache = cur.fetchone()
 
@@ -1229,7 +1275,7 @@ def video2data_v4(videoid):
     nowvideodata.movietime = fetchcache[7]
 
     if nowvideodata.groupname==None:#グループ名なし
-        nowmemberdata = Memberdata
+        nowmemberdata = Memberdata()
 
         nowmemberdata.nickname = fetchcache[8]
         nowmemberdata.subnickname = fetchcache[9]
@@ -1240,15 +1286,15 @@ def video2data_v4(videoid):
 
         nowvideodata.member.append(nowmemberdata)
     else:
-        nowvideodata.generate_member(nowvideodata)
+        nowvideodata.generate_member()
     return nowvideodata
     
 def groupname2memdata_v4(groupname):
-    cur.execute("SELECT (SELECT NICK_NAME_1 FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT NICK_NAME_2 FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT PICTURE_URL FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN),(SELECT LAST_MODIFIED FROM CH_ID WHERE NICK_NAME_1 = MN OR NICK_NAME_2 = MN) from FLAT_PAIRLIST_SECOND where GROUPE_NAME = :group_name",group_name=groupname)
+    cur.execute("SELECT (SELECT NICK_NAME_1 FROM CH_ID WHERE (NICK_NAME_1 = MN OR NICK_NAME_2 = MN) AND IG = 0), (SELECT NICK_NAME_2 FROM CH_ID WHERE (NICK_NAME_1 = MN OR NICK_NAME_2 = MN) AND IG = 0), (SELECT PICTURE_URL FROM CH_ID WHERE (NICK_NAME_1 = MN OR NICK_NAME_2 = MN) AND IG = 0), NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE (NICK_NAME_1 = MN OR NICK_NAME_2 = MN) AND IG = 0), '個人勢'), (SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE (NICK_NAME_1 = MN OR NICK_NAME_2 = MN) AND IG = 0), (SELECT LAST_MODIFIED FROM CH_ID WHERE (NICK_NAME_1 = MN OR NICK_NAME_2 = MN) AND IG = 0) from FLAT_PAIRLIST_SECOND where GROUPE_NAME = :group_name",group_name=groupname)
     fetchcache = cur.fetchall()
     allmemberlist = []
     for r in fetchcache:
-        nowmemberdata = Memberdata
+        nowmemberdata = Memberdata()
         nowmemberdata.nickname = r[0]
         nowmemberdata.subnickname = r[1]
         nowmemberdata.pictureurl = r[2]
@@ -1259,14 +1305,14 @@ def groupname2memdata_v4(groupname):
     return allmemberlist
 
 def music2allvideodata_v4(musicname):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE MUSIC_NAME = :nmn",nmn=musicname)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE MUSIC_NAME = :nmn ORDER BY UPLOAD_TIME DESC",nmn=musicname)
     fetchcache = cur.fetchall()
 
-    nowmusicdata = Musicdata
+    nowmusicdata = Musicdata()
     nowmusicdata.musicname = musicname
 
     for x in fetchcache:
-        nowvideodata = Videodata
+        nowvideodata = Videodata()
 
         nowvideodata.videoid = x[0]
         nowvideodata.channelid = x[1]
@@ -1289,7 +1335,7 @@ def music2allvideodata_v4(musicname):
 
             nowvideodata.member.append(nowmemberdata)
         else:
-            nowvideodata.generate_member(nowvideodata)
+            nowvideodata.generate_member()
         nowmusicdata.video.append(nowvideodata)
 
     return nowmusicdata
@@ -1304,14 +1350,14 @@ def reload_pairlist_materialized():
     #cur.execute("EXECUTE dbms_mview.refresh('FLAT_PAIRLIST_SECOND')")
 
 def nickname2allvideodata_v4(nickname):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2)",nnc=nickname)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nnc=nickname)
     fetchcache = cur.fetchall()
     
-    nowmainmemberdata = Memberdata
+    nowmainmemberdata = Memberdata()
     nowmainmemberdata.nickname = nickname
 
     for x in fetchcache:
-        nowvideodata = Videodata
+        nowvideodata = Videodata()
 
         nowvideodata.videoid = x[0]
         nowvideodata.channelid = x[1]
@@ -1323,7 +1369,7 @@ def nickname2allvideodata_v4(nickname):
         nowvideodata.movietime = x[7]
 
         if nowvideodata.groupname==None:#グループ名なし
-            nowmemberdata = Memberdata
+            nowmemberdata = Memberdata()
 
             nowmemberdata.nickname = x[8]
             nowmemberdata.subnickname = x[9]
@@ -1334,6 +1380,69 @@ def nickname2allvideodata_v4(nickname):
 
             nowvideodata.member.append(nowmemberdata)
         else:
-            nowvideodata.generate_member(nowvideodata)
+            nowvideodata.generate_member()
         nowmainmemberdata.video.append(nowvideodata)
     return nowmainmemberdata
+
+def make_music_page_v4(musicname):
+    musicdata = music2allvideodata_v4(musicname=musicname)
+    musicdata.generate_musidata()
+    n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(musicname) + "/"
+    if os.path.isdir(n_html_path)==False:
+        os.makedirs(n_html_path)
+    share_html = []
+    share_html_a = share_html.append
+    description = f"Vtuberの{musicdata.musicname}の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
+    page_title = f"Vtuberの歌う{musicdata.musicname}"
+    share_html_a('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/music/" + dir_name_replace(musicdata.musicname) + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + nomsec_time(musicdata.createtime) + '"><meta property="article:modified_time" content="' + nomsec_time(musicdata.modifytime) + '"></head><body>')
+    share_html_a(html_import_lib)
+    share_html_a(header)
+    share_html_a('<main><div class="for_center">')
+    if musicdata.spotifyid!=None and musicdata.youtubeid!=None:
+        share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + musicdata.youtubeid + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + """</p><td><a href='https://open.spotify.com/track/""" + musicdata.spotifyid + """'>Spotifyで再生</a></td></tr></table>""")
+    elif musicdata.spotifyid==None and musicdata.youtubeid!=None:
+        share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + musicdata.youtubeid + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
+    elif musicdata.spotifyid!=None and musicdata.youtubeid==None:
+        share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + """</p><td><a href='https://open.spotify.com/track/""" + musicdata.spotifyid + """'>Spotifyで再生</a></td></tr></table>""")
+    elif musicdata.spotifyid==None and musicdata.youtubeid==None:
+        share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
+    share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
+    share_html_a('</div><div id="music_flex">')
+    for nowviddata in musicdata.video:
+        if nowviddata.movietime <= 60:
+            addclass = " yt_short"
+        else:
+            addclass = ""
+        share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}">{nowviddata.videoname}</span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
+    share_html_a("""</div></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
+    share_html_a("<script src='/library/main.js'></script></body></html>")
+    with open(n_html_path + "index.html","wb") as f:
+        f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
+
+def make_ch_page_v4(nickname):
+    chdata = nickname2allvideodata_v4(nickname)
+    chdata.generate_memberdata()
+    site_nick_name = dir_name_replace(nickname)
+    n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
+    if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
+        os.mkdir(n_html_path)
+    share_html = []
+    share_html_a = share_html.append
+    description = f"Vtuberの{chdata.nickname}が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
+    page_title = chdata.nickname + "の歌った曲集"
+    share_html_a('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + nomsec_time(chdata.createtime) + '"><meta property="article:modified_time" content="' + nomsec_time(chdata.modifytime) + '"></head><body>')
+    share_html_a(html_import_lib)
+    share_html_a(header)
+    share_html_a('<main><div class="for_center">')
+    share_html_a(f'<h1><button class="bt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>{nickname}</h1>')
+    share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div id='ch_flex'>")
+    for nowviddata in chdata.video:
+        if nowviddata.movietime <= 60:
+            addclass = " yt_short"
+        else:
+            addclass = ""
+        share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}"><a href="{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}\');return false">{nowviddata.musicname}</a></span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
+    share_html_a("""</div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
+    share_html_a("<script src='/library/main.js'></script></body></html>")
+    with open(n_html_path + "index.html","wb") as f:
+        f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
