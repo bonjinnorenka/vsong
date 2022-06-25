@@ -52,7 +52,7 @@ except:
 #webサイト用変数設定
 header = """<header><h2 class="Top"><a href="/" onClick='page_ajax_load("/");return false'>VtuberSing</a></h2><nav class="header-nav"><ul><li><a href="/search/" onClick='page_ajax_load("/search/");return false'>検索</a><li><a href="/today/" onClick='page_ajax_load("/today/");return false'>今日の人気</a></ul></nav></header>"""
 music_control_html = """<div class="sticky_c_yt dis_none" id="ytembed"><div id="youtube-iframe"></div></div><span class="sticky_c dis_none" id="control_panel"><progress class="yt-progress" id="yt-player-time" max="100" value="0"></progress><div class="flex_box"><div class="beside_gr"><div class="beside_gr_in" id="music_name_display"></div></div><div class="play_center"><button id="yt-playbt" onclick="yt_playorstop()" class="bt_noborder" title="再生"><img class="control_icon" src="/util/playbtn.svg"></button><button onclick="yt_skip()" title="スキップ" class="bt_noborder"><img class="control_icon" src="/util/skipbt.svg"></button><input title="音量を調節" type="range" id="yt_sound_volume" min="0" max="100" value="100" onchange="yt_volume_change()"><button id="yt_display" onclick="yt_display()">表示</button><button id="yt_ch_dismode" onclick='yt_watchmode_ch()' title="大画面で表示" class="bt_noborder"><img class="control_icon" src="/util/bigwindow.svg"></button><input id="autoload_check" type="checkbox">"""
-html_import_lib = '<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script><script defer src="https://cdn.jsdelivr.net/npm/instant.page@5.1.0/instantpage.min.js"></script>'
+html_import_lib = '<link rel="stylesheet" href="/library/main.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script><script src="https://www.youtube-nocookie.com/s/player/7e5c03a3/www-widgetapi.vflset/www-widgetapi.js"></script><script defer src="https://cdn.jsdelivr.net/npm/instant.page@5.1.0/instantpage.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ismobilejs@1.1.1/dist/isMobile.min.js"></script>'
 siteurl = ""
 try:
     siteurl = ev.siteurl
@@ -1172,10 +1172,13 @@ class Videodata:
     status = ""
     movietime = ""
     member = []
-    diffdata = Diffdata
+    diffdata = ""
 
     def __init__(self) -> None:
         pass
+    
+    def generate_videodata(self):
+        self = video2data_v4(self.videoid)
 
     def generate_member(self):
         if self.groupname==None:
@@ -1194,6 +1197,24 @@ class Videodata:
         cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), 0) AS DIFF, LIKE_C, COMMENT_C FROM VIDEO_V_DATA vvd WHERE VIDEO_ID = :nvid AND RELOAD_TIME > SYSDATE - 8 ORDER BY RELOAD_TIME ASC OFFSET 1 ROWS FETCH FIRST 7 ROWS ONLY",nvid=self.videoid)
         fetchcache = cur.fetchall()
         self.diffdata = Diffdata([x[0] for x in fetchcache],[x[1] for x in fetchcache],[x[2] for x in fetchcache],[x[3] for x in fetchcache])
+
+    def dictlist_mendata(self):
+        if self.member == []:
+            self.generate_member()
+        mainlist = []
+        for x in range(len(self.member)):
+            mainlist.append(self.member[x].output())
+        return mainlist
+
+    def apidata(self):
+        if self.videoname == "":
+            self.generate_videodata()
+        if self.member == []:
+            self.generate_member()
+        if self.diffdata == "":
+            self.generate_diffdata()
+        nowdic = {"videoid":self.videoid,"videoname":self.videoname,"musicname":self.musicname,"statisticsdata":self.diffdata.output(),"memberdata":self.dictlist_mendata()}
+        return nowdic
 
 class Memberdata:
     nickname = ""
@@ -1227,6 +1248,9 @@ class Memberdata:
         videoidlist = [x.videoid for x in self.video]
         retlist = view_vlist_graph(video_idlist=videoidlist)
         self.diffdata = Diffdata(retlist[0],retlist[1],retlist[2],retlist[3])
+
+    def output(self):
+        return {"nickname":self.nickname,"pictureurl":self.pictureurl,"office":self.belongoffice}
 
 class Musicdata:
     musicname = ""
@@ -1406,8 +1430,8 @@ def make_music_page_v4(musicname):
         share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + """</p><td><a href='https://open.spotify.com/track/""" + musicdata.spotifyid + """'>Spotifyで再生</a></td></tr></table>""")
     elif musicdata.spotifyid==None and musicdata.youtubeid==None:
         share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-    share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
-    share_html_a('</div><div id="music_flex">')
+    share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div>")
+    share_html_a('<div id="music_flex">')
     for nowviddata in musicdata.video:
         if nowviddata.movietime <= 60:
             addclass = " yt_short"
@@ -1435,7 +1459,7 @@ def make_ch_page_v4(nickname):
     share_html_a(header)
     share_html_a('<main><div class="for_center">')
     share_html_a(f'<h1><button class="bt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>{nickname}</h1>')
-    share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div id='ch_flex'>")
+    share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div><div id='ch_flex'>")
     for nowviddata in chdata.video:
         if nowviddata.movietime <= 60:
             addclass = " yt_short"
