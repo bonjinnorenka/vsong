@@ -102,7 +102,7 @@ function change_graph_music(g_name){
     if(g_name=="sum-yt"){
         let nowmusic_name = String(location.pathname).slice(7,-1);//すでに置き換え済み
         let musicapi_xhr = new XMLHttpRequest();
-        musicapi_xhr.open("GET","/api/music/" + nowmusic_name + ".json");
+        musicapi_xhr.open("GET","/api/v4/music/" + dir_replace(nowmusic_name) + ".json");
         musicapi_xhr.responseType = "json";
         musicapi_xhr.send();
         musicapi_xhr.onload = function(){
@@ -112,7 +112,7 @@ function change_graph_music(g_name){
     }
     else{
         let vidapi_xhr = new XMLHttpRequest();
-        vidapi_xhr.open("GET","/api/videoid/" + g_name + ".json");
+        vidapi_xhr.open("GET","/api/v4/videoid/" + g_name + ".json");
         vidapi_xhr.responseType = "json";
         vidapi_xhr.send();
         vidapi_xhr.onload = function(){
@@ -140,7 +140,7 @@ function change_graph_ch(g_name){
     if(g_name=="sum-yt"){
         let chapi_xhr = new XMLHttpRequest();
         console.log(nowchname)
-        chapi_xhr.open("GET","/api/channel/" + nowchname + ".json");
+        chapi_xhr.open("GET","/api/v4/ch/" + dir_replace(nowchname) + ".json");
         chapi_xhr.responseType = "json";
         chapi_xhr.send();
         chapi_xhr.onload = function(){
@@ -150,7 +150,7 @@ function change_graph_ch(g_name){
     }
     else{
         let vidapi_xhr = new XMLHttpRequest();
-        vidapi_xhr.open("GET","/api/videoid/" + g_name + ".json");
+        vidapi_xhr.open("GET","/api/v4/videoid/" + g_name + ".json");
         vidapi_xhr.responseType = "json";
         vidapi_xhr.send();
         vidapi_xhr.onload = function(){
@@ -163,7 +163,7 @@ function change_graph_ch(g_name){
 function ch_page_load(){
     let nowchname = decodeURI(String(location.pathname).slice(4,-1));
     let chapi_xhr = new XMLHttpRequest();
-    chapi_xhr.open("GET","/api/channel/" + nowchname + ".json");
+    chapi_xhr.open("GET","/api/v4/ch/" + dir_replace(nowchname) + ".json");
     chapi_xhr.responseType = "json";
     chapi_xhr.send();
     chapi_xhr.onload = function(){
@@ -178,7 +178,7 @@ function ch_page_load(){
 function music_page_load(){
     let nowmusic_name = decodeURI(String(location.pathname).slice(7,-1));//すでに置き換え済み
     let musicapi_xhr = new XMLHttpRequest();
-    musicapi_xhr.open("GET","/api/music/" + nowmusic_name + ".json");
+    musicapi_xhr.open("GET","/api/v4/music/" + nowmusic_name + ".json");
     musicapi_xhr.responseType = "json";
     musicapi_xhr.send();
     musicapi_xhr.onload = function(){
@@ -247,6 +247,12 @@ function recommend(kind=""){
             const res_mr = request_mr.response;
             let divm = document.getElementById("music_recommend");
             divm.innerHTML = '<button type="button" class="musicbt musicundo" onclick="recommend_music_scroll(1)"><img class="music-bt" src="/util/undo.svg"></button><button type="button" class="musicbt musicnext" onclick="recommend_music_scroll(0)"><img class="music-bt" src="/util/nextbt.svg"></button>'
+            if (isMobile.any){
+                let nowdoc = document.getElementsByClassName("musicbt");
+                for (let x = 0;x<nowdoc.length;x++){
+                    nowdoc[x].classList.add("dis_none");
+                }
+            }
             if (kind===""){
                 document.getElementById("descm").innerHTML = '<hr><p class="other_music">他のおすすめの曲</p>';
             }
@@ -264,6 +270,12 @@ function recommend(kind=""){
             const res_cr = request_cr.response;
             let divc = document.getElementById("ch_recommend");
             divc.innerHTML = '<button type="button" class="chbt chundo" onclick="recommend_ch_scroll(1)"><img class="ch-bt" src="/util/undo.svg"></button><button type="button" class="chbt chnext" onclick="recommend_ch_scroll(0)"><img class="ch-bt" src="/util/nextbt.svg"></button>';
+            if (isMobile.any){
+                let nowdoc = document.getElementsByClassName("chbt");
+                for (let x = 0;x<nowdoc.length;x++){
+                    nowdoc[x].classList.add("dis_none");
+                }
+            }
             if (kind===""){
                 document.getElementById("descc").innerHTML = '<hr><p class="other_music">他のおすすめのVtuber</p>';
             }
@@ -287,6 +299,12 @@ function recommend(kind=""){
                     nowdoc.innerHTML = nowdoc.innerHTML + "<div><span class='ofoverflow_320' title='" + now_j["index"][x][1] + "'>" + now_j["index"][x][1] + "</span><lite-youtube id='iframe-" + now_j["index"][x][0] + "' videoid='" + now_j["index"][x][0] + "' width='320' height='180'></lite-youtube></div>"
                 }
                 nowdoc.innerHTML = nowdoc.innerHTML + '<button type="button" class="musicbt latestundo" onclick="latest_music_scroll(1)"><img class="music-bt" src="/util/undo.svg"></button><button type="button" class="musicbt latestnext" onclick="latest_music_scroll(0)"><img class="music-bt" src="/util/nextbt.svg"></button>';
+                if (isMobile.any){
+                    let nowdoc = document.getElementsByClassName("musicbt");
+                    for (let x = 0;x<nowdoc.length;x++){
+                        nowdoc[x].classList.add("dis_none");
+                    }
+                }
             }
         }
     }
@@ -521,7 +539,7 @@ function youtube_embed_preload(){
             }
         })
         ytembed_el.classList.add("float_right");
-        
+        ytembed_el.classList.remove("dis_none");
     }
 }
 
@@ -568,6 +586,7 @@ function load_youtubeapi_player(now_video_id){
     }
     else{
         now_player.loadVideoById({videoId:now_video_id,startSeconds:0});
+        /*
         if (navigator.userAgent.match(/iPhone|Android.+Mobile|Mobile/)||(navigator.userAgent.match(/Macintosh/)&&'ontouchend' in document)) {
             yt_display();
         }
@@ -575,6 +594,7 @@ function load_youtubeapi_player(now_video_id){
         if (navigator.userAgent.match(/iPhone|Android.+Mobile|Mobile/)||(navigator.userAgent.match(/Macintosh/)&&'ontouchend' in document)) {
             yt_display();
         }
+        */
         yt_music_display();
     }
 }
@@ -627,16 +647,22 @@ function yt_state_change(){//再生の状態に応じてバーを更新するか
 }
 
 function yt_music_display(){
-    /*
+    
     let vidapi_xhr = new XMLHttpRequest();
-    vidapi_xhr.open("GET","/api/videoid/" + before_playing + ".json");
+    vidapi_xhr.open("GET","/api/v4/videoid/" + before_playing + ".json");
     vidapi_xhr.responseType = "json";
     vidapi_xhr.send();
     vidapi_xhr.onload = function(){
         let nowjson = vidapi_xhr.response;
-        document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["videoname"] + "</p>"
+        if (nowjson["groupname"]==""){
+            document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + nowjson["nickname"] + "</p>"
+        }
+        else{
+            document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + nowjson["groupname"] + "</p>"
+        }
     }
-    */
+    
+   /*
     let yt_md_xhr = new XMLHttpRequest();
     yt_md_xhr.open("GET","https://www.youtube-nocookie.com/oembed?url=https://www.youtube.com/watch?v=" + before_playing + "&format=json");
     yt_md_xhr.responseType = "json";
@@ -647,6 +673,7 @@ function yt_music_display(){
         console.log(now_yt_title);
         document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + now_yt_title + "</p>";
     }
+    */
 }
 
 let now_playlist = [];
@@ -991,29 +1018,33 @@ function vdt(videoid){
         vflexdiv.classList.add("vtuber_sing");
         nowdiv.appendChild(vflexdiv);
         let vdataapi_xhr = new XMLHttpRequest();
-        vdataapi_xhr.open("GET","/api/videoid/" + videoid + ".json");
+        vdataapi_xhr.open("GET","/api/v4/videoid/" + videoid + ".json");
         vdataapi_xhr.responseType = "json";
         vdataapi_xhr.send();
         vdataapi_xhr.onload = function(){
             let nowjson = vdataapi_xhr.response;
             Chart_cleater_single_v1(nowjson["videoid"],nowjson["statisticsdata"][1],nowjson["statisticsdata"][2],"視聴回数");
-            if (nowjson["groupname"]==""){
-                let now_adoc = document.createElement("button");
-                now_adoc.classList.add("nbt_noborder")
-                now_adoc.addEventListener("click",function(){page_ajax_load("/ch/" + dir_replace(nowjson["nickname"]) + "/");})
-                let nowpicel = document.createElement("img");
-                nowpicel.src = picurl2fiturl(nowjson["chphoto"],75);
-                nowpicel.classList.add("v_face");
-                nowpicel.width = 75;
-                nowpicel.height = 75;
-                nowpicel.alt = nowjson["nickname"];
-                nowpicel.title = nowjson["nickname"];
-                now_adoc.appendChild(nowpicel);
-                vflexdiv.appendChild(now_adoc);
-            }
+            //if (nowjson["groupname"]==""){
+                for (let u = 0;u<nowjson["memberdata"].length;u++){
+                    let now_adoc = document.createElement("button");
+                    now_adoc.classList.add("nbt_noborder")
+                    now_adoc.addEventListener("click",function(){page_ajax_load("/ch/" + dir_replace(nowjson["memberdata"][u]["nickname"]) + "/");})
+                    let nowpicel = document.createElement("img");
+                    nowpicel.src = picurl2fiturl(nowjson["memberdata"][u]["pictureurl"],75);
+                    nowpicel.classList.add("v_face");
+                    nowpicel.width = 75;
+                    nowpicel.height = 75;
+                    nowpicel.alt = nowjson["memberdata"][u]["nickname"];
+                    nowpicel.title = nowjson["memberdata"][u]["nickname"];
+                    now_adoc.appendChild(nowpicel);
+                    vflexdiv.appendChild(now_adoc);
+                }
+            //}
+            /*
             else{
                 load_gname("vflex",nowjson["groupname"])
             }
+            */
         }
     }
     else{
@@ -1021,6 +1052,7 @@ function vdt(videoid){
     }
 }
 
+/*
 function load_gname(id,gname){
     let gnapi_xhr = new XMLHttpRequest();
     gnapi_xhr.open("GET","/api/groupname/" + dir_replace(gname) + ".json");
@@ -1038,13 +1070,14 @@ function load_gname(id,gname){
             nowpicel.classList.add("v_face");
             nowpicel.width = 75;
             nowpicel.height = 75;
-            nowpicel.alt = nowjson["nickname"];
-            nowpicel.title = nowjson["nickname"];
+            nowpicel.alt = nowjson["groupmenlist"][x][0];
+            nowpicel.title = nowjson["groupmenlist"][x][0];
             now_adoc.appendChild(nowpicel);
             nowdiv.appendChild(now_adoc);
         }
     }
 }
+*/
 
 function picurl2fiturl(nowurl,size=75){
     let returl = nowurl;
@@ -1065,6 +1098,19 @@ function picurl2fiturl(nowurl,size=75){
         }
     }
     return returl
+}
+
+function ytshortchange(){
+    let doclist = document.getElementsByClassName("yt_short");
+    let nowswitch = document.getElementById("cmn-toggle").checked;
+    for (let x = 0;x<doclist.length;x++){
+        if (nowswitch){
+            doclist[x].classList.remove("dis_none");
+        }
+        else{
+            doclist[x].classList.add("dis_none");
+        }
+    }
 }
 
 function page_load(){//ページロード時の処理

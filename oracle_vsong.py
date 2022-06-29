@@ -789,7 +789,7 @@ def make_search_index():
         else:#2使えってくる
             for r in range(2):
                 search_index_a([nowret[r],nst,"/ch/" + dir_name_replace(nst) + "/"])
-    cur.execute("SELECT CH_ID,NICK_NAME_1 FROM CH_ID WHERE ig = 0 and NAM not like '%Topic%' and EXISTS (SELECT DISTINCT CHANNEL_ID FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0 AND GROUPE_NAME IS NULL and CH_ID.CH_ID = CHANNEL_ID)")#一人で歌っているチャンネルを取得
+    cur.execute("SELECT CH_ID,NICK_NAME_1 FROM CH_ID WHERE ig = 0 and nick_name_1 is not null and NAM not like '%Topic%' and EXISTS (SELECT DISTINCT CHANNEL_ID FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0 AND GROUPE_NAME IS NULL and CH_ID.CH_ID = CHANNEL_ID)")#一人で歌っているチャンネルを取得
     single_ch_list = cur.fetchall()
     for n_chid in single_ch_list:
         cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE CHANNEL_ID = '" + n_chid[0] + "'AND IG = 0 AND GROUPE_NAME IS NULL AND STATUS = 0 AND MUSIC_NAME IS NOT NULL")
@@ -1153,14 +1153,20 @@ class Diffdata:
     likecount = []
     commentcount = []
 
-    def __init__(self,datalabel,viewcount,likecount,commentcount):
+    def __init__(self) -> None:
+        self.datelabel = []
+        self.viewcount = []
+        self.likecount = []
+        self.commentcount = []
+
+    def _import(self,datalabel,viewcount,likecount,commentcount):
         self.datelabel = datalabel
         self.viewcount = viewcount
         self.likecount = likecount
         self.commentcount = commentcount
 
     def output(self):
-        return [self.datelabel,self.viewcount,self.likecount,self.commentcount]
+        return [None,self.datelabel,self.viewcount,self.likecount,self.commentcount]
 
 class Videodata:
     videoid = ""
@@ -1174,8 +1180,17 @@ class Videodata:
     member = []
     diffdata = ""
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self):
+        self.videoid = ""
+        self.channelid = ""
+        self.uploadtime = datetime
+        self.videoname = ""
+        self.musicname = ""
+        self.groupname = ""
+        self.status = ""
+        self.movietime = ""
+        self.member = []
+        self.diffdata = ""
     
     def generate_videodata(self):
         self = video2data_v4(self.videoid)
@@ -1184,7 +1199,7 @@ class Videodata:
         if self.groupname==None:
             cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,BELONG_OFFICE FROM CH_ID WHERE CH_ID = :nchid",nchid=self.channelid)
             fetchcache = cur.fetchone()
-            nowmemberdata = Memberdata
+            nowmemberdata = Memberdata()
             nowmemberdata.nickname = fetchcache[0]
             nowmemberdata.subnickname = fetchcache[1]
             nowmemberdata.pictureurl = fetchcache[2]
@@ -1196,14 +1211,18 @@ class Videodata:
     def generate_diffdata(self):
         cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), 0) AS DIFF, LIKE_C, COMMENT_C FROM VIDEO_V_DATA vvd WHERE VIDEO_ID = :nvid AND RELOAD_TIME > SYSDATE - 8 ORDER BY RELOAD_TIME ASC OFFSET 1 ROWS FETCH FIRST 7 ROWS ONLY",nvid=self.videoid)
         fetchcache = cur.fetchall()
-        self.diffdata = Diffdata([x[0] for x in fetchcache],[x[1] for x in fetchcache],[x[2] for x in fetchcache],[x[3] for x in fetchcache])
+        self.diffdata = Diffdata()
+        self.diffdata._import([x[0] for x in fetchcache],[x[1] for x in fetchcache],[x[2] for x in fetchcache],[x[3] for x in fetchcache])
 
     def dictlist_mendata(self):
         if self.member == []:
             self.generate_member()
         mainlist = []
         for x in range(len(self.member)):
-            mainlist.append(self.member[x].output())
+            try:
+                mainlist.append(self.member[x].output())
+            except:
+                mainlist.append(self.member[x].output(self.member[x]))
         return mainlist
 
     def apidata(self):
@@ -1224,10 +1243,17 @@ class Memberdata:
     createtime = datetime
     modifytime = datetime
     video = []
-    diffdata = Diffdata
+    diffdata = ""
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self):
+        self.nickname = ""
+        self.subnickname = ""
+        self.pictureurl = ""
+        self.belongoffice = ""
+        self.createtime = datetime
+        self.modifytime = datetime
+        self.video = []
+        self.diffdata = ""
 
     def generate_memberdata(self):
         cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,NVL(BELONG_OFFICE,'個人勢'),CLEATE_PAGE_DATE,LAST_MODIFIED FROM CH_ID WHERE NICK_NAME_1 = :nmn OR NICK_NAME_2 = :nmn",nmn=self.nickname)
@@ -1247,7 +1273,8 @@ class Memberdata:
             self.generate_videolist(self)
         videoidlist = [x.videoid for x in self.video]
         retlist = view_vlist_graph(video_idlist=videoidlist)
-        self.diffdata = Diffdata(retlist[0],retlist[1],retlist[2],retlist[3])
+        self.diffdata = Diffdata()
+        self.diffdata._import(retlist[0],retlist[1],retlist[2],retlist[3])
 
     def output(self):
         return {"nickname":self.nickname,"pictureurl":self.pictureurl,"office":self.belongoffice}
@@ -1260,10 +1287,17 @@ class Musicdata:
     createtime = datetime
     modifytime = datetime
     video = []
-    diffdata = Diffdata
+    diffdata = ""
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self):
+        self.musicname = ""
+        self.artistname = ""
+        self.spotifyid = ""
+        self.youtubeid = ""
+        self.createtime = datetime
+        self.modifytime = datetime
+        self.video = []
+        self.diffdata = ""
     
     def generate_musidata(self):
         cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID,CLEATE_PAGE_DATE,LAST_MODIFIED FROM MUSIC_SONG_DB WHERE KEY_MUSIC_NAME = :nmn",nmn=self.musicname)
@@ -1282,7 +1316,18 @@ class Musicdata:
     def generate_diffdata(self):
         cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), SUM(VIEW_C), SUM(LIKE_C), SUM(COMMENT_C) FROM VIDEO_V_DATA vvd WHERE exists (SELECT * FROM VIDEO_ID vid WHERE MUSIC_NAME = :nmn AND vvd.VIDEO_ID = vid.VIDEO_ID) and vvd.RELOAD_TIME > sysdate - 8 group by vvd.RELOAD_TIME order by vvd.RELOAD_TIME asc",nmn=self.musicname)
         fetchcache = cur.fetchall()
-        self.diffdata = Diffdata([x[0] for x in fetchcache],[x[1] for x in fetchcache],[x[2] for x in fetchcache],[x[3] for x in fetchcache])
+        self.diffdata = Diffdata()
+        self.diffdata._import([x[0] for x in fetchcache],[x[1] for x in fetchcache],[x[2] for x in fetchcache],[x[3] for x in fetchcache])
+
+    def apidata(self):
+        if self.video == []:
+            self.generate_videolist()
+        if self.artistname == "":
+            self.generate_musidata()
+        if self.diffdata == "":
+            self.generate_diffdata()
+        nowdic = {"musicname":self.musicname,"sp":self.spotifyid,"yt":self.youtubeid,"statisticsdata":self.diffdata.output(),"artistname":self.artistname,"videolist":[x.videoid for x in self.video]}
+        return nowdic
 
 def video2data_v4(videoid):
     nowvideodata = Videodata()
@@ -1348,7 +1393,7 @@ def music2allvideodata_v4(musicname):
         nowvideodata.movietime = x[7]
 
         if nowvideodata.groupname==None:#グループ名なし
-            nowmemberdata = Memberdata
+            nowmemberdata = Memberdata()
 
             nowmemberdata.nickname = x[8]
             nowmemberdata.subnickname = x[9]
@@ -1470,3 +1515,88 @@ def make_ch_page_v4(nickname):
     share_html_a("<script src='/library/main.js'></script></body></html>")
     with open(n_html_path + "index.html","wb") as f:
         f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
+
+def v4api_video():
+    cur.execute("SELECT VIDEO_ID,TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), 0) AS DIFF, LIKE_C, COMMENT_C FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - 8 ORDER BY VIDEO_ID ASC,RELOAD_TIME ASC")
+    ndiffdata = {}
+    for x in cur.fetchall():
+        try:
+            diffd = ndiffdata[x[0]]#わざとout of rangeさせて判定
+            skip = False
+        except:
+            ndiffdata[x[0]] = Diffdata()
+            diffd = ndiffdata[x[0]]
+            skip = True
+        if skip:
+            pass
+        else:
+            diffd.datelabel.append(x[1])
+            diffd.viewcount.append(x[2])
+            diffd.likecount.append(x[3])
+            diffd.commentcount.append(x[4])
+        
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE IG != 1")
+    fetchcache = cur.fetchall()
+    for x in fetchcache:
+        nowvideodata = Videodata()
+
+        nowvideodata.videoid = x[0]
+        nowvideodata.channelid = x[1]
+        nowvideodata.uploadtime = x[2]
+        nowvideodata.videoname = x[3]
+        nowvideodata.musicname = x[4]
+        nowvideodata.groupname = x[5]
+        nowvideodata.status = x[6]
+        nowvideodata.movietime = x[7]
+        try:
+            nowvideodata.diffdata = ndiffdata[nowvideodata.videoid]
+        except:
+            pass
+
+        if nowvideodata.groupname==None:#グループ名なし
+            nowmemberdata = Memberdata()
+
+            nowmemberdata.nickname = x[8]
+            nowmemberdata.subnickname = x[9]
+            nowmemberdata.pictureurl = x[10]
+            nowmemberdata.belongoffice = x[11]
+            nowmemberdata.createtime = x[12]
+            nowmemberdata.modifytime = x[13]
+
+            nowvideodata.member.append(nowmemberdata)
+        else:
+            nowvideodata.generate_member()
+        with open(folder_path + siteurl + "/api/v4/videoid/" + nowvideodata.videoid + ".json","w") as f:
+            json.dump(nowvideodata.apidata(),f)
+
+def v4api_ch():
+    cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,NVL(BELONG_OFFICE,'個人勢'),CLEATE_PAGE_DATE,LAST_MODIFIED FROM CH_ID WHERE IG = 0 AND NICK_NAME_1 IS NOT NULL")
+    fetchcache = cur.fetchall()
+    for x in range(len(fetchcache)):
+        nowmemdata = Memberdata()
+
+        nowmemdata.nickname = fetchcache[x][0]
+        nowmemdata.subnickname = fetchcache[x][1]
+        nowmemdata.pictureurl = fetchcache[x][2]
+        nowmemdata.belongoffice = fetchcache[x][3]
+        nowmemdata.createtime = fetchcache[x][4]
+        nowmemdata.modifytime = fetchcache[x][5]
+
+        cur.execute("SELECT VIDEO_ID from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nnc=nowmemdata.nickname)
+        videoidlist = [r[0] for r in cur.fetchall()]
+        diffarray = view_vlist_graph(video_idlist=videoidlist,data=1)
+        with open(folder_path + siteurl + "/api/v4/ch/" + dir_name_replace(nowmemdata.nickname) + ".json","w") as f:
+            json.dump({"channelnickname":nowmemdata.nickname,"statisticsdata":diffarray,"videolist":videoidlist,"pictureurl":nowmemdata.pictureurl,"belongoffice":nowmemdata.belongoffice},f)
+
+def v4api_music():
+    cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID FROM MUSIC_SONG_DB WHERE CONTENT_COUNT > 0")
+    fetchcache = cur.fetchall()
+    for x in fetchcache:
+        cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), SUM(VIEW_C), SUM(LIKE_C), SUM(COMMENT_C) FROM VIDEO_V_DATA vvd WHERE exists (SELECT * FROM VIDEO_ID vid WHERE MUSIC_NAME = :nmn AND vvd.VIDEO_ID = vid.VIDEO_ID) and vvd.RELOAD_TIME > sysdate - 8 group by vvd.RELOAD_TIME order by vvd.RELOAD_TIME asc",nmn=x[0])
+        diffcache = cur.fetchall()
+        diffarray = [None,[r[0] for r in diffcache],[r[1] for r in diffcache],[r[2] for r in diffcache],[r[3] for r in diffcache]]
+        cur.execute("select VIDEO_ID from VIDEO_ID where MUSIC_NAME = :nmn AND (IG = 0 OR IG = 2) AND STATUS = 0",nmn=x[0])
+        vididlist = [r[0] for r in cur.fetchall()]
+        with open(folder_path + siteurl + "/api/v4/music/" + dir_name_replace(x[0]) + ".json","w") as f:
+            json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray},f)
+
