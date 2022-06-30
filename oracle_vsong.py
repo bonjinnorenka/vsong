@@ -1377,7 +1377,7 @@ def groupname2memdata_v4(groupname):
     return allmemberlist
 
 def music2allvideodata_v4(musicname):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE MUSIC_NAME = :nmn ORDER BY UPLOAD_TIME DESC",nmn=musicname)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE MUSIC_NAME = :nmn AND STATUS = 0 AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nmn=musicname)
     fetchcache = cur.fetchall()
 
     nowmusicdata = Musicdata()
@@ -1513,8 +1513,11 @@ def make_ch_page_v4(nickname):
         share_html_a(f'<h1><button class="bt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>{nickname}</h1>')
         share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div><div id='ch_flex'>")
         for nowviddata in chdata.video:
-            if nowviddata.movietime <= 60:
-                addclass = " yt_short"
+            if nowviddata.movietime != None:
+                if nowviddata.movietime <= 60:
+                    addclass = " yt_short"
+                else:
+                    addclass = ""
             else:
                 addclass = ""
             share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}"><a href="{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}\');return false">{nowviddata.musicname}</a></span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
@@ -1627,3 +1630,4 @@ def v4api_music():
         with open(folder_path + siteurl + "/api/v4/music/" + dir_name_replace(x[0]) + ".json","w") as f:
             json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray},f)
 
+make_ch_page_v4("星街すいせい")
