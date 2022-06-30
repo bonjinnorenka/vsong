@@ -1482,8 +1482,11 @@ def make_music_page_v4(musicname):
         share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div>")
         share_html_a('<div id="music_flex">')
         for nowviddata in musicdata.video:
-            if nowviddata.movietime <= 60:
-                addclass = " yt_short"
+            if nowviddata.movietime != None:
+                if nowviddata.movietime <= 60:
+                    addclass = " yt_short"
+                else:
+                    addclass = ""
             else:
                 addclass = ""
             share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}">{nowviddata.videoname}</span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
