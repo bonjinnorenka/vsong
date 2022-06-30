@@ -100,14 +100,14 @@ function change_graph_music(g_name){
     }
     let kind = ["視聴回数","高評価","コメント数"];
     if(g_name=="sum-yt"){
-        let nowmusic_name = String(location.pathname).slice(7,-1);//すでに置き換え済み
+        let nowmusic_name = decodeURI(String(location.pathname).slice(7,-1));//すでに置き換え済み
         let musicapi_xhr = new XMLHttpRequest();
         musicapi_xhr.open("GET","/api/v4/music/" + dir_replace(nowmusic_name) + ".json");
         musicapi_xhr.responseType = "json";
         musicapi_xhr.send();
         musicapi_xhr.onload = function(){
             let nowjson = musicapi_xhr.response;
-            Chart_cleater_single_v1("sum-yt",nowjson["statisticsdata"][0],nowjson["statisticsdata"][nown+1],kind[nown]);
+            Chart_cleater_single_v1("sum-yt",nowjson["statisticsdata"][1],nowjson["statisticsdata"][nown+2],kind[nown]);
         }
     }
     else{
@@ -139,13 +139,12 @@ function change_graph_ch(g_name){
     let kind = ["視聴回数","高評価","コメント数"];
     if(g_name=="sum-yt"){
         let chapi_xhr = new XMLHttpRequest();
-        console.log(nowchname)
         chapi_xhr.open("GET","/api/v4/ch/" + dir_replace(nowchname) + ".json");
         chapi_xhr.responseType = "json";
         chapi_xhr.send();
         chapi_xhr.onload = function(){
             let nowjson = chapi_xhr.response;
-            Chart_cleater_single_v1(g_name,nowjson["statisticsdata"][0],nowjson["statisticsdata"][nown+1],kind[nown]);
+            Chart_cleater_single_v1(g_name,nowjson["statisticsdata"][1],nowjson["statisticsdata"][nown+2],kind[nown]);
         }
     }
     else{
@@ -168,11 +167,12 @@ function ch_page_load(){
     chapi_xhr.send();
     chapi_xhr.onload = function(){
         let nowjson = chapi_xhr.response;
-        Chart_cleater_single_v1("sum-yt",nowjson["statisticsdata"][0],nowjson["statisticsdata"][1],"視聴回数");
+        Chart_cleater_single_v1("sum-yt",nowjson["statisticsdata"][1],nowjson["statisticsdata"][2],"視聴回数");
         nowpage_allplaylist = nowjson["videolist"];
     }
     load_max = 0;
     recommend();
+    ytshortchange()
 }
 
 function music_page_load(){
@@ -183,11 +183,12 @@ function music_page_load(){
     musicapi_xhr.send();
     musicapi_xhr.onload = function(){
         let nowjson = musicapi_xhr.response;
-        Chart_cleater_single_v1("sum-yt",nowjson["statisticsdata"][0],nowjson["statisticsdata"][1],"視聴回数");
+        Chart_cleater_single_v1("sum-yt",nowjson["statisticsdata"][1],nowjson["statisticsdata"][2],"視聴回数");
         nowpage_allplaylist = nowjson["videolist"];
     }
     load_max = 0;
     recommend();
+    ytshortchange()
 }
 
 let load_max = 0;

@@ -406,6 +406,9 @@ def view_vlist_graph(video_idlist,scope=7,data=0):
     elif data==1:
         k_array = [label,data_v,data_l,data_c]
         return k_array
+    elif data==2:
+        k_array = [None,label,data_v,data_l,data_c]
+        return k_array
 
 def view_ch_graph(nick_name):
     cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), SUM(VIEW_C), SUM(LIKE_C), SUM(COMMENT_C) FROM VIDEO_V_DATA WHERE VIDEO_ID IN (select video_id from video_id where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = (SELECT CHANNEL_ID FROM CH_ID WHERE (NICK_NAME_1 = :menl OR NICK_NAME_2 = :menl) AND IG = 0) UNION ALL SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (:menl) OR MN_2 in (:menl) OR MN_3 in (:menl) OR MN_4 in (:menl) OR MN_5 in (:menl) OR MN_6 in (:menl) OR MN_7 in (:menl) OR MN_8 in (:menl) OR MN_9 in (:menl) OR MN_10 in (:menl) OR MN_11 in (:menl) OR MN_12 in (:menl) OR MN_13 in (:menl) OR MN_14 in (:menl) OR MN_15 in (:menl) OR MN_16 in (:menl) OR MN_17 in (:menl) OR MN_18 in (:menl) OR MN_19 in (:menl) OR MN_20 in (:menl) OR MN_21 in (:menl) OR MN_22 in (:menl) OR MN_23 in (:menl) OR MN_24 in (:menl) OR MN_25 in (:menl) OR MN_26 in (:menl) OR MN_27 in (:menl) OR MN_28 in (:menl) OR MN_29 in (:menl) OR MN_30 in (:menl) OR MN_31 in (:menl) OR MN_32 in (:menl) OR MN_33 in (:menl) OR MN_34 in (:menl) OR MN_35 in (:menl) OR MN_36 in (:menl) OR MN_37 in (:menl) OR MN_38 in (:menl) OR MN_39 in (:menl)) UNION ALL select video_id from video_id where channel_id in (select CH_ID from CH_ID where LINK = (SELECT CHANNEL_ID FROM CH_ID WHERE (NICK_NAME_1 = :menl OR NICK_NAME_2 = :menl) AND IG = 0))) and music_name is not null AND STATUS = 0) AND RELOAD_TIME >= (CURRENT_DATE - 7) GROUP BY RELOAD_TIME ORDER BY RELOAD_TIME ASC",menl=nick_name)
@@ -1454,67 +1457,73 @@ def nickname2allvideodata_v4(nickname):
     return nowmainmemberdata
 
 def make_music_page_v4(musicname):
-    musicdata = music2allvideodata_v4(musicname=musicname)
-    musicdata.generate_musidata()
-    n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(musicname) + "/"
-    if os.path.isdir(n_html_path)==False:
-        os.makedirs(n_html_path)
-    share_html = []
-    share_html_a = share_html.append
-    description = f"Vtuberの{musicdata.musicname}の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
-    page_title = f"Vtuberの歌う{musicdata.musicname}"
-    share_html_a('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/music/" + dir_name_replace(musicdata.musicname) + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + nomsec_time(musicdata.createtime) + '"><meta property="article:modified_time" content="' + nomsec_time(musicdata.modifytime) + '"></head><body>')
-    share_html_a(html_import_lib)
-    share_html_a(header)
-    share_html_a('<main><div class="for_center">')
-    if musicdata.spotifyid!=None and musicdata.youtubeid!=None:
-        share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + musicdata.youtubeid + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + """</p><td><a href='https://open.spotify.com/track/""" + musicdata.spotifyid + """'>Spotifyで再生</a></td></tr></table>""")
-    elif musicdata.spotifyid==None and musicdata.youtubeid!=None:
-        share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + musicdata.youtubeid + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-    elif musicdata.spotifyid!=None and musicdata.youtubeid==None:
-        share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + """</p><td><a href='https://open.spotify.com/track/""" + musicdata.spotifyid + """'>Spotifyで再生</a></td></tr></table>""")
-    elif musicdata.spotifyid==None and musicdata.youtubeid==None:
-        share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-    share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div>")
-    share_html_a('<div id="music_flex">')
-    for nowviddata in musicdata.video:
-        if nowviddata.movietime <= 60:
-            addclass = " yt_short"
-        else:
-            addclass = ""
-        share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}">{nowviddata.videoname}</span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
-    share_html_a("""</div></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
-    share_html_a("<script src='/library/main.js'></script></body></html>")
-    with open(n_html_path + "index.html","wb") as f:
-        f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
+    try:
+        musicdata = music2allvideodata_v4(musicname=musicname)
+        musicdata.generate_musidata()
+        n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(musicname) + "/"
+        if os.path.isdir(n_html_path)==False:
+            os.makedirs(n_html_path)
+        share_html = []
+        share_html_a = share_html.append
+        description = f"Vtuberの{musicdata.musicname}の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
+        page_title = f"Vtuberの歌う{musicdata.musicname}"
+        share_html_a('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/music/" + dir_name_replace(musicdata.musicname) + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + nomsec_time(musicdata.createtime) + '"><meta property="article:modified_time" content="' + nomsec_time(musicdata.modifytime) + '"></head><body>')
+        share_html_a(html_import_lib)
+        share_html_a(header)
+        share_html_a('<main><div class="for_center">')
+        if musicdata.spotifyid!=None and musicdata.youtubeid!=None:
+            share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + musicdata.youtubeid + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + """</p><td><a href='https://open.spotify.com/track/""" + musicdata.spotifyid + """'>Spotifyで再生</a></td></tr></table>""")
+        elif musicdata.spotifyid==None and musicdata.youtubeid!=None:
+            share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + musicdata.youtubeid + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
+        elif musicdata.spotifyid!=None and musicdata.youtubeid==None:
+            share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + """</p><td><a href='https://open.spotify.com/track/""" + musicdata.spotifyid + """'>Spotifyで再生</a></td></tr></table>""")
+        elif musicdata.spotifyid==None and musicdata.youtubeid==None:
+            share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
+        share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div>")
+        share_html_a('<div id="music_flex">')
+        for nowviddata in musicdata.video:
+            if nowviddata.movietime <= 60:
+                addclass = " yt_short"
+            else:
+                addclass = ""
+            share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}">{nowviddata.videoname}</span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
+        share_html_a("""</div></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
+        share_html_a("<script src='/library/main.js'></script></body></html>")
+        with open(n_html_path + "index.html","wb") as f:
+            f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
+    except Exception as e:
+        pro_log("error","make_musicpage_v4",musicname,"unknown error->continue",str(e))
 
 def make_ch_page_v4(nickname):
-    chdata = nickname2allvideodata_v4(nickname)
-    chdata.generate_memberdata()
-    site_nick_name = dir_name_replace(nickname)
-    n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
-    if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
-        os.mkdir(n_html_path)
-    share_html = []
-    share_html_a = share_html.append
-    description = f"Vtuberの{chdata.nickname}が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
-    page_title = chdata.nickname + "の歌った曲集"
-    share_html_a('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + nomsec_time(chdata.createtime) + '"><meta property="article:modified_time" content="' + nomsec_time(chdata.modifytime) + '"></head><body>')
-    share_html_a(html_import_lib)
-    share_html_a(header)
-    share_html_a('<main><div class="for_center">')
-    share_html_a(f'<h1><button class="bt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>{nickname}</h1>')
-    share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div><div id='ch_flex'>")
-    for nowviddata in chdata.video:
-        if nowviddata.movietime <= 60:
-            addclass = " yt_short"
-        else:
-            addclass = ""
-        share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}"><a href="{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}\');return false">{nowviddata.musicname}</a></span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
-    share_html_a("""</div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
-    share_html_a("<script src='/library/main.js'></script></body></html>")
-    with open(n_html_path + "index.html","wb") as f:
-        f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
+    try:
+        chdata = nickname2allvideodata_v4(nickname)
+        chdata.generate_memberdata()
+        site_nick_name = dir_name_replace(nickname)
+        n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
+        if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
+            os.mkdir(n_html_path)
+        share_html = []
+        share_html_a = share_html.append
+        description = f"Vtuberの{chdata.nickname}が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
+        page_title = chdata.nickname + "の歌った曲集"
+        share_html_a('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + nomsec_time(chdata.createtime) + '"><meta property="article:modified_time" content="' + nomsec_time(chdata.modifytime) + '"></head><body>')
+        share_html_a(html_import_lib)
+        share_html_a(header)
+        share_html_a('<main><div class="for_center">')
+        share_html_a(f'<h1><button class="bt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>{nickname}</h1>')
+        share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div><div id='ch_flex'>")
+        for nowviddata in chdata.video:
+            if nowviddata.movietime <= 60:
+                addclass = " yt_short"
+            else:
+                addclass = ""
+            share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}"><a href="{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}\');return false">{nowviddata.musicname}</a></span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
+        share_html_a("""</div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
+        share_html_a("<script src='/library/main.js'></script></body></html>")
+        with open(n_html_path + "index.html","wb") as f:
+            f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
+    except Exception as e:
+        pro_log("error","make_chpage_v4",nickname,"unknown error->continue",str(e))
 
 def v4chpage_all():
     cur.execute("SELECT NICK_NAME_1 FROM CH_ID WHERE NICK_NAME_1 IS NOT NULL AND CONTENT_COUNT > 0")
@@ -1583,7 +1592,6 @@ def v4api_video():
         with open(folder_path + siteurl + "/api/v4/videoid/" + nowvideodata.videoid + ".json","w") as f:
             json.dump(nowvideodata.apidata(),f)
 
-
 def v4api_ch():
     if os.path.isdir(folder_path + siteurl + "/api/v4/ch/")==False:
         os.makedirs(folder_path + siteurl + "/api/v4/ch/")
@@ -1601,7 +1609,7 @@ def v4api_ch():
 
         cur.execute("SELECT VIDEO_ID from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nnc=nowmemdata.nickname)
         videoidlist = [r[0] for r in cur.fetchall()]
-        diffarray = view_vlist_graph(video_idlist=videoidlist,data=1)
+        diffarray = view_vlist_graph(video_idlist=videoidlist,data=2)
         with open(folder_path + siteurl + "/api/v4/ch/" + dir_name_replace(nowmemdata.nickname) + ".json","w") as f:
             json.dump({"channelnickname":nowmemdata.nickname,"statisticsdata":diffarray,"videolist":videoidlist,"pictureurl":nowmemdata.pictureurl,"belongoffice":nowmemdata.belongoffice},f)
 

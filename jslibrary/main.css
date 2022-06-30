@@ -106,6 +106,7 @@ lite-youtube.lyt-activated > .lty-playbtn {
     text-align: center;
     font-size: 20px;
     line-height: 2;
+    min-height: calc(100vh - 215px);
 }
 
 .other_music {
@@ -289,10 +290,6 @@ nav ul li {
     left: 50%;
     margin-right: -50%;
     transform: translate(-50%, 8%);
-}
-
-#search_result{
-    min-height: calc(91vh - 215px);
 }
 
 progress {
