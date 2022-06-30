@@ -130,3 +130,4 @@ ev.py
 get_youtube_playlist.build/
 get_youtube_playlist.dist/
 get_youtube_playlist.onefile-build
+kari.json

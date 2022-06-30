@@ -1516,7 +1516,21 @@ def make_ch_page_v4(nickname):
     with open(n_html_path + "index.html","wb") as f:
         f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
 
+def v4chpage_all():
+    cur.execute("SELECT NICK_NAME_1 FROM CH_ID WHERE NICK_NAME_1 IS NOT NULL AND CONTENT_COUNT > 0")
+    nicknamelist = [x[0] for x in cur.fetchall()]
+    for t in nicknamelist:
+        make_ch_page_v4(t)
+
+def v4music_all():
+    cur.execute("SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB WHERE CONTENT_COUNT > 0")
+    musiclist = [x[0] for x in cur.fetchall()]
+    for t in musiclist:
+        make_music_page_v4(t)
+
 def v4api_video():
+    if os.path.isdir(folder_path + siteurl + "/api/v4/videoid/")==False:
+        os.makedirs(folder_path + siteurl + "/api/v4/videoid/")
     cur.execute("SELECT VIDEO_ID,TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), 0) AS DIFF, LIKE_C, COMMENT_C FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - 8 ORDER BY VIDEO_ID ASC,RELOAD_TIME ASC")
     ndiffdata = {}
     for x in cur.fetchall():
@@ -1569,7 +1583,10 @@ def v4api_video():
         with open(folder_path + siteurl + "/api/v4/videoid/" + nowvideodata.videoid + ".json","w") as f:
             json.dump(nowvideodata.apidata(),f)
 
+
 def v4api_ch():
+    if os.path.isdir(folder_path + siteurl + "/api/v4/ch/")==False:
+        os.makedirs(folder_path + siteurl + "/api/v4/ch/")
     cur.execute("SELECT NICK_NAME_1,NICK_NAME_2,PICTURE_URL,NVL(BELONG_OFFICE,'個人勢'),CLEATE_PAGE_DATE,LAST_MODIFIED FROM CH_ID WHERE IG = 0 AND NICK_NAME_1 IS NOT NULL")
     fetchcache = cur.fetchall()
     for x in range(len(fetchcache)):
@@ -1589,6 +1606,8 @@ def v4api_ch():
             json.dump({"channelnickname":nowmemdata.nickname,"statisticsdata":diffarray,"videolist":videoidlist,"pictureurl":nowmemdata.pictureurl,"belongoffice":nowmemdata.belongoffice},f)
 
 def v4api_music():
+    if os.path.isdir(folder_path + siteurl + "/api/v4/music/")==False:
+        os.makedirs(folder_path + siteurl + "/api/v4/music/")
     cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID FROM MUSIC_SONG_DB WHERE CONTENT_COUNT > 0")
     fetchcache = cur.fetchall()
     for x in fetchcache:

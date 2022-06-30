@@ -23,8 +23,8 @@ while True:
     elif nowcommand=="true_check":
         ov.true_check()
     elif nowcommand=="make_page":
-        ov.make_all_musicpage()
-        ov.make_all_chpage()
+        ov.v4chpage_all()
+        ov.v4music_all()
         ov.makesitemap()
     elif nowcommand=="re_pic":
         ov.reloadpeople_picture()
@@ -60,15 +60,15 @@ while True:
         ov.music_modify_update()
         ov.ch_modify_update()
         ov.yt_status_ex()
+        ov.igch_tig()
         ov.true_check()
         ov.reloadpeople_picture()
         ov.make_search_index()
-        ov.make_all_musicpage()
-        ov.make_all_chpage()
-        ov.make_api_video_data()
-        ov.make_api_ch_data()
-        ov.make_api_music_data()
-        ov.make_api_group_data(strict=1)
+        ov.v4chpage_all()
+        ov.v4music_all()
+        ov.v4api_video()
+        ov.v4api_ch()
+        ov.v4api_music()
         ov.makesitemap()
         ov.music_recommend_page()
         ov.channel_recommend_page()
@@ -76,6 +76,7 @@ while True:
         ov.make_video_random()
         ov.office_hot()
         ov.todays_hot()
+        
     elif nowcommand=="cplib":
         inpst = input("本当にライブラリデータを本番環境に反映してよろしいですか?(y/n)")
         if inpst=="y":
@@ -103,10 +104,9 @@ while True:
     elif nowcommand=="remove_topic":
         ov.remove_topic()
     elif nowcommand=="reload_api":
-        ov.make_api_video_data()
-        ov.make_api_ch_data()
-        ov.make_api_music_data()
-        ov.make_api_group_data(strict=1)
+        ov.v4api_video()
+        ov.v4api_ch()
+        ov.v4api_music()
         ov.make_api_latestmovie()
     elif nowcommand=="music_helper":
         ov.music_helper()
