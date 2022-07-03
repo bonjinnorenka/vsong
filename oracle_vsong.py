@@ -1157,12 +1157,14 @@ class Diffdata:
     viewcount = []
     likecount = []
     commentcount = []
+    igdata = None
 
     def __init__(self) -> None:
         self.datelabel = []
         self.viewcount = []
         self.likecount = []
         self.commentcount = []
+        self.igdata = None
 
     def _import(self,datalabel,viewcount,likecount,commentcount):
         self.datelabel = datalabel
@@ -1171,7 +1173,7 @@ class Diffdata:
         self.commentcount = commentcount
 
     def output(self):
-        return [None,self.datelabel,self.viewcount,self.likecount,self.commentcount]
+        return [self.igdata,self.datelabel,self.viewcount,self.likecount,self.commentcount]
 
 class Videodata:
     videoid = ""
@@ -1548,6 +1550,10 @@ def v4music_all():
 def v4api_video():
     if os.path.isdir(folder_path + siteurl + "/api/v4/videoid/")==False:
         os.makedirs(folder_path + siteurl + "/api/v4/videoid/")
+    cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'),VIDEO_ID,VIEW_C,LIKE_C,COMMENT_C FROM VIDEO_V_DATA WHERE TRUNC(RELOAD_TIME,'DD') = (SELECT MAX(TRUNC(RELOAD_TIME,'DD')) FROM VIDEO_V_DATA)")
+    latestdata = {}
+    for r in cur.fetchall():
+        latestdata[r[1]] = [r[0],r[2],r[3],r[4]]
     cur.execute("SELECT VIDEO_ID,TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), 0) AS DIFF, LIKE_C, COMMENT_C FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - 8 ORDER BY VIDEO_ID ASC,RELOAD_TIME ASC")
     ndiffdata = {}
     for x in cur.fetchall():
@@ -1559,7 +1565,10 @@ def v4api_video():
             diffd = ndiffdata[x[0]]
             skip = True
         if skip:
-            pass
+            try:
+                diffd.igdata = latestdata[x[0]]
+            except:
+                pass
         else:
             diffd.datelabel.append(x[1])
             diffd.viewcount.append(x[2])
