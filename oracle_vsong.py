@@ -74,7 +74,7 @@ def cp_lib():#ライブラリのデータを配置
     shutil.copy2("jslibrary/main.js",folder_path + siteurl + "/library/main.js")
     shutil.copy2("jslibrary/main.css",folder_path + siteurl + "/library/main.css")
     shutil.copy2("jslibrary/search.cpp",cgi_bin_dir + "/cgi-bin/search.cpp")
-    shutil.copy2("jslibrary/search.cpp",cgi_bin_dir + "/cgi-bin/vdata.cpp")
+    shutil.copy2("jslibrary/vdata.cpp",cgi_bin_dir + "/cgi-bin/vdata.cpp")
 
 def ps_lib():#ライブラリのデータを本番環境から移す
     shutil.copy2(folder_path + siteurl + "/library/main.js","jslibrary/main.js")
