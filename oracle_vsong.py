@@ -74,11 +74,13 @@ def cp_lib():#ライブラリのデータを配置
     shutil.copy2("jslibrary/main.js",folder_path + siteurl + "/library/main.js")
     shutil.copy2("jslibrary/main.css",folder_path + siteurl + "/library/main.css")
     shutil.copy2("jslibrary/search.cpp",cgi_bin_dir + "/cgi-bin/search.cpp")
+    shutil.copy2("jslibrary/search.cpp",cgi_bin_dir + "/cgi-bin/vdata.cpp")
 
 def ps_lib():#ライブラリのデータを本番環境から移す
     shutil.copy2(folder_path + siteurl + "/library/main.js","jslibrary/main.js")
     shutil.copy2(folder_path + siteurl + "/library/main.css","jslibrary/main.css")
     shutil.copy2(folder_path + siteurl + "/cgi-bin/search.cpp","jslibrary/search.cpp")
+    shutil.copy2(folder_path + siteurl + "/cgi-bin/vdata.cpp","jslibrary/vdata.cpp")
 
 def cp_htm():#basic_pageのデータを本番の場所にペースト
     shutil.copy2("basic_page/watch-index.html",folder_path + siteurl + "/watch/index.html")
@@ -1633,4 +1635,3 @@ def v4api_music():
         with open(folder_path + siteurl + "/api/v4/music/" + dir_name_replace(x[0]) + ".json","w") as f:
             json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray},f)
 
-make_ch_page_v4("星街すいせい")
