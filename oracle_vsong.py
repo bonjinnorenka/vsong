@@ -1178,7 +1178,7 @@ class Diffdata:
 class Videodata:
     videoid = ""
     channelid = ""
-    uploadtime = datetime
+    uploadtime = datetime.datetime
     videoname = ""
     musicname = ""
     groupname = ""
@@ -1186,11 +1186,12 @@ class Videodata:
     movietime = ""
     member = []
     diffdata = ""
+    channelname = ""
 
     def __init__(self):
         self.videoid = ""
         self.channelid = ""
-        self.uploadtime = datetime
+        self.uploadtime = datetime.datetime
         self.videoname = ""
         self.musicname = ""
         self.groupname = ""
@@ -1198,6 +1199,7 @@ class Videodata:
         self.movietime = ""
         self.member = []
         self.diffdata = ""
+        self.channelname = ""
     
     def generate_videodata(self):
         self = video2data_v4(self.videoid)
@@ -1232,14 +1234,20 @@ class Videodata:
                 mainlist.append(self.member[x].output(self.member[x]))
         return mainlist
 
-    def apidata(self):
+    def apidata(self,mode=0):
         if self.videoname == "":
             self.generate_videodata()
         if self.member == []:
             self.generate_member()
         if self.diffdata == "":
             self.generate_diffdata()
-        nowdic = {"videoid":self.videoid,"videoname":self.videoname,"musicname":self.musicname,"statisticsdata":self.diffdata.output(),"memberdata":self.dictlist_mendata()}
+        if mode==1 and self.channelname=="":
+            cur.execute("SELECT NAM FROM CH_ID WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc")
+            self.channelname = cur.fetchone()[0]
+        if mode==0:
+            nowdic = {"videoid":self.videoid,"videoname":self.videoname,"musicname":self.musicname,"statisticsdata":self.diffdata.output(),"memberdata":self.dictlist_mendata(),"movietime":self.movietime}
+        if mode==1:
+            nowdic = {"videoid":self.videoid,"videoname":self.videoname,"musicname":self.musicname,"statisticsdata":self.diffdata.output(),"memberdata":self.dictlist_mendata(),"movietime":self.movietime,"channelname":self.channelname}
         return nowdic
 
 class Memberdata:
@@ -1338,7 +1346,7 @@ class Musicdata:
 
 def video2data_v4(videoid):
     nowvideodata = Videodata()
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE VIDEO_ID = :nvid",nvid=videoid)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NAM FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE VIDEO_ID = :nvid",nvid=videoid)
     fetchcache = cur.fetchone()
 
     nowvideodata.videoid = fetchcache[0]
@@ -1349,6 +1357,7 @@ def video2data_v4(videoid):
     nowvideodata.groupname = fetchcache[5]
     nowvideodata.status = fetchcache[6]
     nowvideodata.movietime = fetchcache[7]
+    nowvideodata.channelname = fetchcache[14]
 
     if nowvideodata.groupname==None:#グループ名なし
         nowmemberdata = Memberdata()
@@ -1381,7 +1390,7 @@ def groupname2memdata_v4(groupname):
     return allmemberlist
 
 def music2allvideodata_v4(musicname):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE MUSIC_NAME = :nmn AND STATUS = 0 AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nmn=musicname)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NAM FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE MUSIC_NAME = :nmn AND STATUS = 0 AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nmn=musicname)
     fetchcache = cur.fetchall()
 
     nowmusicdata = Musicdata()
@@ -1398,6 +1407,7 @@ def music2allvideodata_v4(musicname):
         nowvideodata.groupname = x[5]
         nowvideodata.status = x[6]
         nowvideodata.movietime = x[7]
+        nowvideodata.channelname = x[14]
 
         if nowvideodata.groupname==None:#グループ名なし
             nowmemberdata = Memberdata()
@@ -1426,7 +1436,7 @@ def reload_pairlist_materialized():
     #cur.execute("EXECUTE dbms_mview.refresh('FLAT_PAIRLIST_SECOND')")
 
 def nickname2allvideodata_v4(nickname):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nnc=nickname)
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NAM FROM CH_ID WHERE CH_ID=CHANNEL_ID) from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nnc=nickname)
     fetchcache = cur.fetchall()
     
     nowmainmemberdata = Memberdata()
@@ -1443,6 +1453,7 @@ def nickname2allvideodata_v4(nickname):
         nowvideodata.groupname = x[5]
         nowvideodata.status = x[6]
         nowvideodata.movietime = x[7]
+        nowvideodata.channelname = x[14]
 
         if nowvideodata.groupname==None:#グループ名なし
             nowmemberdata = Memberdata()
@@ -1483,17 +1494,29 @@ def make_music_page_v4(musicname):
             share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + """</p><td><a href='https://open.spotify.com/track/""" + musicdata.spotifyid + """'>Spotifyで再生</a></td></tr></table>""")
         elif musicdata.spotifyid==None and musicdata.youtubeid==None:
             share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-        share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div>")
-        share_html_a('<div id="music_flex">')
+        share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div>")
+        share_html_a("<div class='pos_re'><select id='page_sort_select' class='sort_select' onchange='music_select_change()'><option value='latest'>新しい順</option><option value='viewcount_desc'>視聴回数(降順)</option><option value='viewcount_asc'>視聴回数(昇順)</option><option value='goodcount'>高評価数(降順)</option><option value='commentcount'>コメント数(降順)</option><option value='viewcount_rate'>視聴回数上昇率(降順)</option></select><div class='switch-flex'>")
+        share_html_a('</div></div><div id="music_flex">')
+        needshort = False
+        needtopic = False
         for nowviddata in musicdata.video:
             if nowviddata.movietime != None:
                 if nowviddata.movietime <= 60:
                     addclass = " yt_short"
+                    needshort = True
                 else:
                     addclass = ""
             else:
                 addclass = ""
+            if nowviddata.channelname!="":
+                if "Topic" in nowviddata.channelname:
+                    addclass += " inctopic"
+                    needtopic = True
             share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}">{nowviddata.videoname}</span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
+        if needtopic:
+            share_html.insert(7,"<div class='switch'><span>配信楽曲を表示</span><input id='cmn-toggle-ms' class='cmn-toggle cmn-toggle-round'type='checkbox' onchange='ytviewchange()'><label for='cmn-toggle-ms' class='cmn-toggle-label'></label></div>")
+        if needshort:
+            share_html.insert(7,"<div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle-sh' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytviewchange()'><label for='cmn-toggle-sh' id='cmn-toggle-short'></label></div>")
         share_html_a("""</div></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
         share_html_a("<script src='/library/main.js'></script></body></html>")
         with open(n_html_path + "index.html","wb") as f:
@@ -1518,16 +1541,29 @@ def make_ch_page_v4(nickname):
         share_html_a(header)
         share_html_a('<main><div class="for_center">')
         share_html_a(f'<h1><button class="bt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>{nickname}</h1>')
-        share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytshortchange()'><label for='cmn-toggle' id='cmn-toggle-short'></label></div><div id='ch_flex'>")
+        share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div>")
+        share_html_a("<div class='pos_re'><select id='page_sort_select' class='sort_select' onchange='ch_select_change()'><option value='latest'>新しい順</option><option value='viewcount_desc'>視聴回数(降順)</option><option value='viewcount_asc'>視聴回数(昇順)</option><option value='goodcount'>高評価数(降順)</option><option value='commentcount'>コメント数(降順)</option><option value='viewcount_rate'>視聴回数上昇率(降順)</option></select><div class='switch-flex'>")
+        share_html_a("</div></div><div id='ch_flex'>")
+        needshort = False
+        needtopic = False
         for nowviddata in chdata.video:
             if nowviddata.movietime != None:
                 if nowviddata.movietime <= 60:
                     addclass = " yt_short"
+                    needshort = True
                 else:
                     addclass = ""
             else:
                 addclass = ""
+            if nowviddata.channelname!="":
+                if "Topic" in nowviddata.channelname:
+                    addclass += " inctopic"
+                    needtopic = True
             share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}"><a href="{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}\');return false">{nowviddata.musicname}</a></span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
+        if needtopic:
+            share_html.insert(7,"<div class='switch'><span>配信楽曲を表示</span><input id='cmn-toggle-ms' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytviewchange()'><label for='cmn-toggle-ms' class='cmn-toggle-label'></label></div>")
+        if needshort:
+            share_html.insert(7,"<div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle-sh' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytviewchange()'><label for='cmn-toggle-sh' class='cmn-toggle-label'></label></div>")
         share_html_a("""</div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
         share_html_a("<script src='/library/main.js'></script></body></html>")
         with open(n_html_path + "index.html","wb") as f:
@@ -1575,7 +1611,7 @@ def v4api_video():
             diffd.likecount.append(x[3])
             diffd.commentcount.append(x[4])
         
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE IG != 1")
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NAM FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE IG != 1")
     fetchcache = cur.fetchall()
     for x in fetchcache:
         nowvideodata = Videodata()
@@ -1588,8 +1624,10 @@ def v4api_video():
         nowvideodata.groupname = x[5]
         nowvideodata.status = x[6]
         nowvideodata.movietime = x[7]
+        nowvideodata.channelname = x[14]
         try:
             nowvideodata.diffdata = ndiffdata[nowvideodata.videoid]
+            nowvideodata.diffdata.igdata.extend([math.floor((nowvideodata.diffdata.viewcount[len(nowvideodata.diffdata.viewcount)-1]/nowvideodata.diffdata.viewcount[len(nowvideodata.diffdata.viewcount)-2])*100),nowvideodata.uploadtime.timestamp()])
         except:
             pass
 
@@ -1607,7 +1645,7 @@ def v4api_video():
         else:
             nowvideodata.generate_member()
         with open(folder_path + siteurl + "/api/v4/videoid/" + nowvideodata.videoid + ".json","w") as f:
-            json.dump(nowvideodata.apidata(),f)
+            json.dump(nowvideodata.apidata(mode=1),f)
 
 def v4api_ch():
     if os.path.isdir(folder_path + siteurl + "/api/v4/ch/")==False:

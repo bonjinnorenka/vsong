@@ -527,8 +527,32 @@ background-color: #38a1db;
     width:320px;
 }
 
-#cmn-toggle-short{
-    left: 45px;
+.sort_select{
+    position: absolute;
+    right: 0;
+    width: 200px;
+    height: 40px;
+    top: 0;
+    z-index: 1;
+}
+
+.pos_re{
+    position: relative;
+}
+
+.switch{
+    position: relative;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.cmn-toggle-label{
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.switch-flex{
+    display: flex;
 }
 
 .cmn-toggle {

@@ -28,6 +28,7 @@ std::string url_decode(std::string src){
 
 int main(){
     json res_js;//返信用jsonを定義
+    res_js["plang"] = "c++";
     //クエリ文字を受け取り
     std::string now_query_string = getenv("QUERY_STRING");
     std::string now_query = url_decode(now_query_string.substr(2));
@@ -46,7 +47,7 @@ int main(){
     //string now_query = "Alice in NY";
 
     string documentroot = getenv("DOCUMENT_ROOT");
-    
+
     string now_fp = "";
     if (now_mode=="m"){
         now_fp = documentroot + "/api/v4/music/" + now_query;
@@ -82,14 +83,16 @@ int main(){
         //ファイル読み出し
         std::filesystem::path np = documentroot + "/api/v4/videoid/" + nowvidid + ".json";
         ifstream ifs(np.make_preferred());//videodata
-        if (ifs.fail()){//エラーの時データはnullにする
+        if (ifs.fail()){//エラーの時データはerにする
             res_js[nowvidid] = "er";
         }
         else{
             std::istreambuf_iterator<char> it(ifs);
             std::istreambuf_iterator<char> last;
             std::string string_n(it, last);
-            res_js[nowvidid] = json::parse(string_n);
+            auto k_json = json::parse(string_n);
+            k_json["statisticsdata"] = k_json["statisticsdata"][0];
+            res_js[nowvidid] = k_json;
         }
     }
     //jsonを出力

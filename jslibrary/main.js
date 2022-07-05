@@ -172,7 +172,7 @@ function ch_page_load(){
     }
     load_max = 0;
     recommend();
-    ytshortchange()
+    ytviewchange()
 }
 
 function music_page_load(){
@@ -188,7 +188,7 @@ function music_page_load(){
     }
     load_max = 0;
     recommend();
-    ytshortchange()
+    ytviewchange()
 }
 
 let load_max = 0;
@@ -964,6 +964,92 @@ function hot_chose_load(){
     }
 }
 
+function page_sort(pagekind="c",kind="latest"){
+    let nowquery;
+    if (pagekind=="c"){
+        //チャンネル名取得
+        nowquery = decodeURI(String(location.pathname).slice(4,-1));
+    }
+    else if (pagekind=="m"){
+        nowquery = decodeURI(String(location.pathname).slice(7,-1));
+    }
+    //ファイル取得
+    let chsort_xhr = new XMLHttpRequest();
+    chsort_xhr.open("GET","/cgi-bin/vdata.cgi?" + pagekind + "=" + nowquery);
+    chsort_xhr.responseType = "json";
+    chsort_xhr.send();
+    chsort_xhr.onload = function(){
+        let nowjson = chsort_xhr.response;
+        let nowjs_keys = Object.keys(nowjson);
+        let nowsortlist = [];
+        for (let x = 0;x<nowjs_keys.length;x++){
+            if (nowjs_keys[x]!="plang"&&nowjs_keys[x]!="status"&&Object.keys(nowjson[nowjs_keys[x]]).indexOf("statisticsdata")!=-1){
+                nowsortlist.push(nowjson[nowjs_keys[x]]);
+            }
+        }
+        let retnum = 5;
+        if (kind=="latest"){
+            retnum = 5;
+        }
+        else if (kind=="viewcount_desc"){
+            retnum = 1;
+        }
+        else if (kind=="goodcount"){
+            retnum = 2;
+        }
+        else if (kind=="commentcount"){
+            retnum = 3;
+        }
+        else if (kind=="viewcount_rate"){
+            retnum = 4;
+        }
+        if (kind=="viewcount_asc"){
+            retnum = 1;
+            nowsortlist.sort(function(a,b){return(a["statisticsdata"][retnum] - b["statisticsdata"][retnum]);});//昇順にする
+        }
+        else{
+            nowsortlist.sort(function(a,b){return(b["statisticsdata"][retnum] - a["statisticsdata"][retnum]);});//降順にする
+        }
+        let flexname = "";
+        if (pagekind=="m"){
+            flexname = "music_flex";
+        }
+        else if (pagekind=="c"){
+            flexname = "ch_flex";
+        }
+        let mainflex = document.getElementById(flexname);
+        mainflex.innerHTML = "";//全内容削除
+        for (let x = 0;x<nowsortlist.length;x++){
+            let ns = nowsortlist[x];
+            let addclass = "";
+            if (ns["movietime"] <= 60){
+                addclass = " yt_short";
+            }
+            try{
+                if (ns["channelname"].indexOf("Topic")!=-1){
+                    addclass += " inctopic";
+                }
+            }
+            catch{}
+            if (pagekind=="m"){
+                mainflex.innerHTML = mainflex.innerHTML + '<div id="fb_' + ns["videoid"] + '" class="music_flex_ly' + addclass + '"><span class="ofoverflow_320" title="' + ns["videoname"] + '">' + ns["videoname"] + '</span><lite-youtube videoid="' + ns["videoid"] + '"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'' + ns["videoid"] + '\')">詳細を表示</button></div>';
+            }
+            else if (pagekind=="c"){
+                mainflex.innerHTML = mainflex.innerHTML + '<div id="fb_' + ns["videoid"] + '" class="music_flex_ly' + addclass + '"><span class="ofoverflow_320" title="' + ns["videoname"] + '"><a href="' + "/music/" + dir_replace(ns["musicname"]) + "/" + '" onclick="page_ajax_load(\'' + "/music/" + dir_replace(ns["musicname"]) + "/" + '\');return false">' + ns["musicname"] + '</a></span><lite-youtube videoid="' + ns["videoid"] + '"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'' + ns["videoid"] + '\')">詳細を表示</button></div>';
+            }
+        }
+        ytviewchange();
+    }
+}
+
+function ch_select_change(){
+    page_sort("c",document.getElementById("page_sort_select").value);
+}
+
+function music_select_change(){
+    page_sort("m",document.getElementById("page_sort_select").value);
+}
+
 function dir_replace(n_str){
     let n_rep_st = String(n_str).replaceAll("\\","").replaceAll(",","").replaceAll(".","").replaceAll(":","").replaceAll(";","").replaceAll("?","").replaceAll("/","").replaceAll("<","").replaceAll(">","").replaceAll("*","").replaceAll("|","").replaceAll("+","").replaceAll("=","").replaceAll("[","").replaceAll("]","").replaceAll('"',"").replaceAll("(","").replaceAll(")","").replaceAll("^","").replaceAll("!","").replaceAll("$","").replaceAll("'","").replaceAll("%","").replaceAll("&","").replaceAll("～","").replaceAll("#","")
     return n_rep_st
@@ -1025,60 +1111,26 @@ function vdt(videoid){
         vdataapi_xhr.onload = function(){
             let nowjson = vdataapi_xhr.response;
             Chart_cleater_single_v1(nowjson["videoid"],nowjson["statisticsdata"][1],nowjson["statisticsdata"][2],"視聴回数");
-            //if (nowjson["groupname"]==""){
-                for (let u = 0;u<nowjson["memberdata"].length;u++){
-                    let now_adoc = document.createElement("button");
-                    now_adoc.classList.add("nbt_noborder")
-                    now_adoc.addEventListener("click",function(){page_ajax_load("/ch/" + dir_replace(nowjson["memberdata"][u]["nickname"]) + "/");})
-                    let nowpicel = document.createElement("img");
-                    nowpicel.src = picurl2fiturl(nowjson["memberdata"][u]["pictureurl"],75);
-                    nowpicel.classList.add("v_face");
-                    nowpicel.width = 75;
-                    nowpicel.height = 75;
-                    nowpicel.alt = nowjson["memberdata"][u]["nickname"];
-                    nowpicel.title = nowjson["memberdata"][u]["nickname"];
-                    now_adoc.appendChild(nowpicel);
-                    vflexdiv.appendChild(now_adoc);
-                }
-            //}
-            /*
-            else{
-                load_gname("vflex",nowjson["groupname"])
+            for (let u = 0;u<nowjson["memberdata"].length;u++){
+                let now_adoc = document.createElement("button");
+                now_adoc.classList.add("nbt_noborder")
+                now_adoc.addEventListener("click",function(){page_ajax_load("/ch/" + dir_replace(nowjson["memberdata"][u]["nickname"]) + "/");})
+                let nowpicel = document.createElement("img");
+                nowpicel.src = picurl2fiturl(nowjson["memberdata"][u]["pictureurl"],75);
+                nowpicel.classList.add("v_face");
+                nowpicel.width = 75;
+                nowpicel.height = 75;
+                nowpicel.alt = nowjson["memberdata"][u]["nickname"];
+                nowpicel.title = nowjson["memberdata"][u]["nickname"];
+                now_adoc.appendChild(nowpicel);
+                vflexdiv.appendChild(now_adoc);
             }
-            */
         }
     }
     else{
         beforevid = "";
     }
 }
-
-/*
-function load_gname(id,gname){
-    let gnapi_xhr = new XMLHttpRequest();
-    gnapi_xhr.open("GET","/api/groupname/" + dir_replace(gname) + ".json");
-    gnapi_xhr.responseType = "json";
-    gnapi_xhr.send();
-    gnapi_xhr.onload = function(){
-        let nowjson = gnapi_xhr.response;
-        let nowdiv = document.getElementById(id);
-        for (let x = 0;x<nowjson["groupmenlist"].length;x++){
-            let now_adoc = document.createElement("button");
-            now_adoc.classList.add("nbt_noborder")
-            now_adoc.addEventListener("click",function(){page_ajax_load("/ch/" + dir_replace(nowjson["groupmenlist"][x][0]) + "/");})
-            let nowpicel = document.createElement("img");
-            nowpicel.src = picurl2fiturl(nowjson["groupmenlist"][x][1],75);
-            nowpicel.classList.add("v_face");
-            nowpicel.width = 75;
-            nowpicel.height = 75;
-            nowpicel.alt = nowjson["groupmenlist"][x][0];
-            nowpicel.title = nowjson["groupmenlist"][x][0];
-            now_adoc.appendChild(nowpicel);
-            nowdiv.appendChild(now_adoc);
-        }
-    }
-}
-*/
 
 function picurl2fiturl(nowurl,size=75){
     let returl = nowurl;
@@ -1101,15 +1153,54 @@ function picurl2fiturl(nowurl,size=75){
     return returl
 }
 
-function ytshortchange(){
-    let doclist = document.getElementsByClassName("yt_short");
-    let nowswitch = document.getElementById("cmn-toggle").checked;
+function ytviewchange(){
+    //今のページ判別
+    let nid = "";
+    if (location.pathname.indexOf("/music/")!==-1){
+        nid = "music_flex";
+    }
+    else if (location.pathname.indexOf("/ch/")!==-1){
+        nid = "ch_flex";
+    }
+    let doclist = document.getElementById(nid).childNodes;
+    let nowshsw = false;
+    try{
+        nowshsw = document.getElementById("cmn-toggle-sh").checked;
+    }
+    catch{}
+    let nowmssw = false;
+    try{
+        nowmssw = document.getElementById("cmn-toggle-ms").checked;
+    }
+    catch{}
     for (let x = 0;x<doclist.length;x++){
-        if (nowswitch){
-            doclist[x].classList.remove("dis_none");
+        let nowdoc_cl = doclist[x].classList;
+        //ショートカツ配信
+        if (nowdoc_cl.contains("yt_short")&&nowdoc_cl.contains("inctopic")){
+            if (nowshsw||nowmssw){
+                nowdoc_cl.remove("dis_none");
+            }
+            else{
+                nowdoc_cl.add("dis_none");
+            }
         }
-        else{
-            doclist[x].classList.add("dis_none");
+        //配信楽曲だけ
+        else if (nowdoc_cl.contains("yt_short")==false&&nowdoc_cl.contains("inctopic")){
+            if (nowmssw){
+                nowdoc_cl.remove("dis_none");
+            }
+            else{
+                nowdoc_cl.add("dis_none");
+            }
+        }
+        //ショートだけ
+        else if (nowdoc_cl.contains("yt_short")&&nowdoc_cl.contains("inctopic")==false){
+            if (nowshsw){
+                nowdoc_cl.remove("dis_none");
+            }
+            else{
+                nowdoc_cl.add("dis_none");
+            }
         }
     }
 }
