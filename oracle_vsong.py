@@ -1516,7 +1516,7 @@ def make_music_page_v4(musicname):
         if needtopic:
             share_html.insert(7,"<div class='switch'><span>配信楽曲を表示</span><input id='cmn-toggle-ms' class='cmn-toggle cmn-toggle-round'type='checkbox' onchange='ytviewchange()'><label for='cmn-toggle-ms' class='cmn-toggle-label'></label></div>")
         if needshort:
-            share_html.insert(7,"<div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle-sh' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytviewchange()'><label for='cmn-toggle-sh' id='cmn-toggle-short'></label></div>")
+            share_html.insert(7,"<div class='switch'><span>ショート動画を表示</span><input id='cmn-toggle-sh' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytviewchange()'><label for='cmn-toggle-sh' class='cmn-toggle-label' id='cmn-toggle-short'></label></div>")
         share_html_a("""</div></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
         share_html_a("<script src='/library/main.js'></script></body></html>")
         with open(n_html_path + "index.html","wb") as f:
