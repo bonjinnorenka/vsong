@@ -1031,6 +1031,9 @@ function page_sort(pagekind="c",kind="latest"){
                 }
             }
             catch{}
+            if (ns["memberdata"].length > 1){
+                addclass += " collab"
+            }
             if (pagekind=="m"){
                 mainflex.innerHTML = mainflex.innerHTML + '<div id="fb_' + ns["videoid"] + '" class="music_flex_ly' + addclass + '"><span class="ofoverflow_320" title="' + ns["videoname"] + '">' + ns["videoname"] + '</span><lite-youtube videoid="' + ns["videoid"] + '"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'' + ns["videoid"] + '\')">詳細を表示</button></div>';
             }
@@ -1173,10 +1176,24 @@ function ytviewchange(){
         nowmssw = document.getElementById("cmn-toggle-ms").checked;
     }
     catch{}
+    let nowcbsw = false;
+    try{
+        nowcbsw = document.getElementById("cmn-toggle-cb").checked;
+    }
+    catch{}
     for (let x = 0;x<doclist.length;x++){
         let nowdoc_cl = doclist[x].classList;
+        //全部
+        if (nowdoc_cl.contains("yt_short")&&nowdoc_cl.contains("inctopic")&&nowdoc_cl.contains("collab")){
+            if (nowshsw||nowmssw||nowcbsw){
+                nowdoc_cl.remove("dis_none");
+            }
+            else{
+                nowdoc_cl.add("dis_none");
+            }
+        }
         //ショートカツ配信
-        if (nowdoc_cl.contains("yt_short")&&nowdoc_cl.contains("inctopic")){
+        else if (nowdoc_cl.contains("yt_short")&&nowdoc_cl.contains("inctopic")&&nowdoc_cl.contains("collab")==false){
             if (nowshsw||nowmssw){
                 nowdoc_cl.remove("dis_none");
             }
@@ -1184,8 +1201,26 @@ function ytviewchange(){
                 nowdoc_cl.add("dis_none");
             }
         }
+        //ショートカツコラボ
+        else if (nowdoc_cl.contains("yt_short")&&nowdoc_cl.contains("inctopic")==false&&nowdoc_cl.contains("collab")){
+            if (nowshsw||nowcbsw){
+                nowdoc_cl.remove("dis_none");
+            }
+            else{
+                nowdoc_cl.add("dis_none");
+            }
+        }
+        //配信カツコラボ
+        else if (nowdoc_cl.contains("yt_short")==false&&nowdoc_cl.contains("inctopic")&&nowdoc_cl.contains("collab")){
+            if (nowcbsw&&nowmssw){
+                nowdoc_cl.remove("dis_none");
+            }
+            else{
+                nowdoc_cl.add("dis_none");
+            }
+        }
         //配信楽曲だけ
-        else if (nowdoc_cl.contains("yt_short")==false&&nowdoc_cl.contains("inctopic")){
+        else if (nowdoc_cl.contains("yt_short")==false&&nowdoc_cl.contains("inctopic")&&nowdoc_cl.contains("collab")==false){
             if (nowmssw){
                 nowdoc_cl.remove("dis_none");
             }
@@ -1194,8 +1229,17 @@ function ytviewchange(){
             }
         }
         //ショートだけ
-        else if (nowdoc_cl.contains("yt_short")&&nowdoc_cl.contains("inctopic")==false){
+        else if (nowdoc_cl.contains("yt_short")&&nowdoc_cl.contains("inctopic")==false&&nowdoc_cl.contains("collab")==false){
             if (nowshsw){
+                nowdoc_cl.remove("dis_none");
+            }
+            else{
+                nowdoc_cl.add("dis_none");
+            }
+        }
+        //コラボだけ
+        else if (nowdoc_cl.contains("yt_short")==false&&nowdoc_cl.contains("inctopic")==false&&nowdoc_cl.contains("collab")){
+            if (nowcbsw){
                 nowdoc_cl.remove("dis_none");
             }
             else{

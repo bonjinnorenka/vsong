@@ -1546,6 +1546,7 @@ def make_ch_page_v4(nickname):
         share_html_a("</div></div><div id='ch_flex'>")
         needshort = False
         needtopic = False
+        needcollab = False
         for nowviddata in chdata.video:
             if nowviddata.movietime != None:
                 if nowviddata.movietime <= 60:
@@ -1559,7 +1560,13 @@ def make_ch_page_v4(nickname):
                 if "Topic" in nowviddata.channelname:
                     addclass += " inctopic"
                     needtopic = True
+            nowviddata.generate_member()
+            if len(nowviddata.member) > 1:
+                addclass += " collab"
+                needcollab = True
             share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}"><a href="{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}\');return false">{nowviddata.musicname}</a></span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
+        if needcollab:
+            share_html.insert(7,"<div class='switch'><span>コラボを表示</span><input id='cmn-toggle-cb' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytviewchange()' checked><label for='cmn-toggle-cb' class='cmn-toggle-label'></label></div>")
         if needtopic:
             share_html.insert(7,"<div class='switch'><span>配信楽曲を表示</span><input id='cmn-toggle-ms' class='cmn-toggle cmn-toggle-round' type='checkbox' onchange='ytviewchange()'><label for='cmn-toggle-ms' class='cmn-toggle-label'></label></div>")
         if needshort:
