@@ -655,11 +655,16 @@ function yt_music_display(){
     vidapi_xhr.send();
     vidapi_xhr.onload = function(){
         let nowjson = vidapi_xhr.response;
+        //メンバー名文字列生成
+        let menst = "";
+        for (let x = 0;x<nowjson["memberdata"].length;x++){
+            menst += nowjson["memberdata"][x]["nickname"] + " ";
+        }
         if (nowjson["groupname"]==""){
-            document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + nowjson["nickname"] + "</p>"
+            document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + menst + "</p>"
         }
         else{
-            document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + nowjson["groupname"] + "</p>"
+            document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + menst + "</p>"
         }
     }
     
