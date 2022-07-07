@@ -57,7 +57,7 @@ siteurl = ""
 try:
     siteurl = ev.siteurl
 except:
-    siteurl = "vsong.info"
+    siteurl = "vsong.fans"
 folder_path = ""
 try:
     folder_path = ev.folder_path
@@ -1495,7 +1495,7 @@ def make_music_page_v4(musicname):
         elif musicdata.spotifyid==None and musicdata.youtubeid==None:
             share_html_a("<h1><button class='nbt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + musicdata.musicname + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + urllib.parse.quote(musicdata.musicname) + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + musicdata.musicname + "</p></td><td><p>" + musicdata.artistname + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(musicdata.musicname) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
         share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div>")
-        share_html_a("<div class='pos_re'><select id='page_sort_select' class='sort_select' onchange='music_select_change()'><option value='latest'>新しい順</option><option value='viewcount_desc'>視聴回数(降順)</option><option value='viewcount_asc'>視聴回数(昇順)</option><option value='goodcount'>高評価数(降順)</option><option value='commentcount'>コメント数(降順)</option><option value='viewcount_rate'>視聴回数上昇率(降順)</option></select><div class='switch-flex'>")
+        share_html_a("<div class='pos_re'><select id='page_sort_select' class='sort_select' onchange='music_select_change()'><option value='latest'>新しい順</option><option value='viewcount_desc'>視聴回数(多い順)</option><option value='viewcount_asc'>視聴回数(少ない順)</option><option value='goodcount'>高評価数(多い順)</option><option value='commentcount'>コメント数(多い順)</option><option value='viewcount_rate'>視聴回数上昇率(多い順)</option></select><div class='switch-flex'>")
         share_html_a('</div></div><div id="music_flex">')
         needshort = False
         needtopic = False
@@ -1542,7 +1542,7 @@ def make_ch_page_v4(nickname):
         share_html_a('<main><div class="for_center">')
         share_html_a(f'<h1><button class="nbt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>{nickname}</h1>')
         share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div>")
-        share_html_a("<div class='pos_re'><select id='page_sort_select' class='sort_select' onchange='ch_select_change()'><option value='latest'>新しい順</option><option value='viewcount_desc'>視聴回数(降順)</option><option value='viewcount_asc'>視聴回数(昇順)</option><option value='goodcount'>高評価数(降順)</option><option value='commentcount'>コメント数(降順)</option><option value='viewcount_rate'>視聴回数上昇率(降順)</option></select><div class='switch-flex'>")
+        share_html_a("<div class='pos_re'><select id='page_sort_select' class='sort_select' onchange='ch_select_change()'><option value='latest'>新しい順</option><option value='viewcount_desc'>視聴回数(多い順)</option><option value='viewcount_asc'>視聴回数(少ない順)</option><option value='goodcount'>高評価数(多い順)</option><option value='commentcount'>コメント数(多い順)</option><option value='viewcount_rate'>視聴回数上昇率(多い順)</option></select><div class='switch-flex'>")
         share_html_a("</div></div><div id='ch_flex'>")
         needshort = False
         needtopic = False
@@ -1689,3 +1689,4 @@ def v4api_music():
         with open(folder_path + siteurl + "/api/v4/music/" + dir_name_replace(x[0]) + ".json","w") as f:
             json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray},f)
 
+make_ch_page_v4("ときのそら")
