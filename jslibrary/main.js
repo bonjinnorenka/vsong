@@ -981,9 +981,13 @@ function page_sort(pagekind="c",kind="latest"){
     chsort_xhr.onload = function(){
         let nowjson = chsort_xhr.response;
         let nowjs_keys = Object.keys(nowjson);
+        let key_remove = ["plang","status"];
+        nowjs_keys = nowjs_keys.filter(function(v){
+            return ! key_remove.includes(v);
+        });
         let nowsortlist = [];
         for (let x = 0;x<nowjs_keys.length;x++){
-            if (nowjs_keys[x]!="plang"&&nowjs_keys[x]!="status"&&Object.keys(nowjson[nowjs_keys[x]]).indexOf("statisticsdata")!=-1){
+            if (Object.keys(nowjson[nowjs_keys[x]]).indexOf("statisticsdata")!=-1){
                 nowsortlist.push(nowjson[nowjs_keys[x]]);
             }
         }
@@ -1019,6 +1023,7 @@ function page_sort(pagekind="c",kind="latest"){
         }
         let mainflex = document.getElementById(flexname);
         mainflex.innerHTML = "";//全内容削除
+        let mfinvalue = "";
         for (let x = 0;x<nowsortlist.length;x++){
             let ns = nowsortlist[x];
             let addclass = "";
@@ -1035,12 +1040,13 @@ function page_sort(pagekind="c",kind="latest"){
                 addclass += " collab"
             }
             if (pagekind=="m"){
-                mainflex.innerHTML = mainflex.innerHTML + '<div id="fb_' + ns["videoid"] + '" class="music_flex_ly' + addclass + '"><span class="ofoverflow_320" title="' + ns["videoname"] + '">' + ns["videoname"] + '</span><lite-youtube videoid="' + ns["videoid"] + '"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'' + ns["videoid"] + '\')">詳細を表示</button></div>';
+                mfinvalue += '<div id="fb_' + ns["videoid"] + '" class="music_flex_ly' + addclass + '"><span class="ofoverflow_320" title="' + ns["videoname"] + '">' + ns["videoname"] + '</span><lite-youtube videoid="' + ns["videoid"] + '"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'' + ns["videoid"] + '\')">詳細を表示</button></div>';
             }
             else if (pagekind=="c"){
-                mainflex.innerHTML = mainflex.innerHTML + '<div id="fb_' + ns["videoid"] + '" class="music_flex_ly' + addclass + '"><span class="ofoverflow_320" title="' + ns["videoname"] + '"><a href="' + "/music/" + dir_replace(ns["musicname"]) + "/" + '" onclick="page_ajax_load(\'' + "/music/" + dir_replace(ns["musicname"]) + "/" + '\');return false">' + ns["musicname"] + '</a></span><lite-youtube videoid="' + ns["videoid"] + '"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'' + ns["videoid"] + '\')">詳細を表示</button></div>';
+                mfinvalue += '<div id="fb_' + ns["videoid"] + '" class="music_flex_ly' + addclass + '"><span class="ofoverflow_320" title="' + ns["videoname"] + '"><a href="' + "/music/" + dir_replace(ns["musicname"]) + "/" + '" onclick="page_ajax_load(\'' + "/music/" + dir_replace(ns["musicname"]) + "/" + '\');return false">' + ns["musicname"] + '</a></span><lite-youtube videoid="' + ns["videoid"] + '"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'' + ns["videoid"] + '\')">詳細を表示</button></div>';
             }
         }
+        mainflex.innerHTML = mfinvalue;
         ytviewchange();
     }
 }

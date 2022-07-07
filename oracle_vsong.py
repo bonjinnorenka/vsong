@@ -1689,4 +1689,3 @@ def v4api_music():
         with open(folder_path + siteurl + "/api/v4/music/" + dir_name_replace(x[0]) + ".json","w") as f:
             json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray},f)
 
-make_ch_page_v4("ときのそら")
