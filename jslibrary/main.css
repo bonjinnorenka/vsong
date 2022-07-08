@@ -705,6 +705,10 @@ input.cmn-toggle-round + label {
         margin-right: calc(49vw - 100px);
     }
 
+    .switch-flex{
+        justify-content: center;
+    }
+
 }
 
 .dis_none{

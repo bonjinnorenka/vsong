@@ -224,6 +224,7 @@ function musittop_load(){
 
 function allplay(){
     now_playlist = nowpage_allplaylist;
+    sync_playlist()
     yt_skip();
 }
 
@@ -508,11 +509,31 @@ class LiteYTEmbed extends HTMLElement {
         if (this.classList.contains('lyt-activated')) return;
         e.preventDefault();
         this.classList.add('lyt-activated');
-        load_youtubeapi_player(this.videoId);
+        //load_youtubeapi_player(this.videoId);
+        ask_load_youtube(this.videoId);
     }
 }
 customElements.define('lite-youtube', LiteYTEmbed);
 // End of the lite-youtube-embed
+
+function ask_load_youtube(videoid){
+    if (now_playlist.length > 0){
+        let res = window.confirm("現在の再生リストを削除し再生しますか？");
+        if (res){
+            now_playlist = [];
+            playlock = true;
+            load_youtubeapi_player(videoid);
+        }
+        else{
+            now_playlist.push(videoid);
+        }
+        sync_playlist()
+    }
+    else{
+        playlock = true;
+        load_youtubeapi_player(videoid);
+    }
+}
 
 let now_player = "";
 let before_playing = "";
@@ -535,17 +556,20 @@ function youtube_embed_preload(){
             host: 'https://www.youtube-nocookie.com',
             events: {
                 'onStateChange': yt_state_change,
-                'onReady': youtube_embed_preload_stop,
                 'onError': yt_skip
             }
         })
+        now_player.addEventListener("onReady",youtube_embed_preload_stop);
         ytembed_el.classList.add("float_right");
         ytembed_el.classList.remove("dis_none");
     }
 }
 
 function youtube_embed_preload_stop(){
-    now_player.stopVideo()
+    now_player.stopVideo();
+    now_player.removeEventListener("onReady",youtube_embed_preload_stop);
+    now_player.addEventListener("onReady",yt_sm_play);
+    load_playlist();
 }
 
 function load_youtubeapi_player(now_video_id){
@@ -587,6 +611,7 @@ function load_youtubeapi_player(now_video_id){
     }
     else{
         now_player.loadVideoById({videoId:now_video_id,startSeconds:0});
+        console.log("start_playing(load):\t" + now_video_id);
         /*
         if (navigator.userAgent.match(/iPhone|Android.+Mobile|Mobile/)||(navigator.userAgent.match(/Macintosh/)&&'ontouchend' in document)) {
             yt_display();
@@ -596,11 +621,13 @@ function load_youtubeapi_player(now_video_id){
             yt_display();
         }
         */
+        playlock = true;
         yt_music_display();
     }
 }
 
 function yt_sm_play(){//スマホ自動開始用
+    console.log("ready!")
     now_player.playVideo();
     yt_music_display();
     if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
@@ -628,6 +655,7 @@ function yt_display(){
 
 let seek_interval;
 window.addEventListener("keyup", (e)=>{keybord_yt(e)});
+let playlock = false;
 
 function yt_state_change(){//再生の状態に応じてバーを更新するかを選択
     let st = now_player.getPlayerState();
@@ -641,14 +669,16 @@ function yt_state_change(){//再生の状態に応じてバーを更新するか
         clearInterval(seek_interval);
         ytpbt_el.innerHTML = '<img src="/util/playbtn.svg" class="control_icon">';
         ytpbt_el.title = "再生する";
-        if(document.getElementById("autoload_check").checked&&Math.floor(now_player.getDuration())<Math.floor(now_player.getCurrentTime())+5){//自動再生あり
+        if(document.getElementById("autoload_check").checked&&Math.floor(now_player.getDuration())<Math.floor(now_player.getCurrentTime())+5&&playlock==false){//自動再生あり
             yt_skip();
+        }
+        else{
+            playlock = false;
         }
     }
 }
 
 function yt_music_display(){
-    
     let vidapi_xhr = new XMLHttpRequest();
     vidapi_xhr.open("GET","/api/v4/videoid/" + before_playing + ".json");
     vidapi_xhr.responseType = "json";
@@ -709,11 +739,13 @@ function yt_skip(){
             }
             before_playing = nowvid;
             yt_music_display();
+            sync_playlist()
         } 
     }
     else{
         console.log("normal_next");
         nowvid = now_playlist.shift();
+        sync_playlist()
         console.log("start_playing(skip):\t" + nowvid);
         if(now_player!=""){
             now_player.loadVideoById({'videoId': nowvid});
@@ -753,6 +785,7 @@ function yt_playorstop(){
     }
     else if (st==1){
         now_player.pauseVideo();
+        playlock = true;
     }
 }
 
@@ -1071,6 +1104,7 @@ function dir_replace(n_str){
 
 function yt_pl_shuffle(){
     now_playlist = shuffle(now_playlist);
+    sync_playlist()
 }
 
 let beforevid = "";
@@ -1258,6 +1292,39 @@ function ytviewchange(){
             }
         }
     }
+}
+
+function sync_playlist(){
+    vsongpldb.notes.put({
+        plname: 1,
+        plarray: now_playlist
+    })
+}
+
+let vsongpldb = new Dexie("vsong_playlist");
+vsongpldb.version(1).stores({
+    notes: "++plname, plarray"
+});
+
+function load_playlist(){
+    vsongpldb.notes
+    .toArray()
+    .then(async function (ndt){
+        console.log(ndt)
+        now_playlist = ndt[0]["plarray"];
+        if (now_playlist.length > 0){
+            let nans = window.confirm("前回の再生リストから再生しますか？");
+            if(nans){
+                load_youtubeapi_player(now_playlist.shift());
+            }
+        }
+    });
+}
+
+function delay(n){
+    return new Promise(function(resolve){
+        setTimeout(resolve,n*1000);
+    });
 }
 
 function page_load(){//ページロード時の処理
