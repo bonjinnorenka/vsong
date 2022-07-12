@@ -30,6 +30,14 @@
     <script src="https://cdn.jsdelivr.net/npm/ismobilejs@1.1.1/dist/isMobile.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/instant.page@5.1.0/instantpage.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.2/dist/dexie.min.js"></script>
+    <div id="yt_pl_idel" class="yt_viewpl dis_none">
+        <group id="radio-sidebar" class="inline-radio" onchange="sidebar_info()">
+            <div class="radio-page-div"><input id="radio-side-pl" class="radio-page-select" type="radio" name="vs-sidebar" checked><label class="radio-page-label">プレイリスト</label></div>
+            <div class="radio-page-div"><input id="radio-side-wh" class="radio-page-select" type="radio" name="vs-sidebar"><label class="radio-page-label">視聴履歴</label></div>
+        </group>
+        <div id="yt_playlist_view_p" class="yt_viewpl_list">
+        </div>
+    </div>
     <header>
         <h2 class="Top"><a href="/" onClick='page_ajax_load("/");return false'>VtuberSing</a></h2>
         <nav class="header-nav">
@@ -65,10 +73,10 @@
                     <button id="yt_ch_dismode" onclick='yt_watchmode_ch()' title="大画面で表示" class="bt_noborder"><img class="control_icon" src="/util/bigwindow.svg"></button>
                     <input id="autoload_check" type="checkbox">
                     <button type="button" class="bt_noborder shuffle" onclick="yt_pl_shuffle()"><img class="control_icon" src="/util/shafulbt.svg"></button>
+                    <button type="button" class="bt_noborder" onclick="open_playlist()"><img id="imgupdown_bt" class="control_icon" src="/util/updownbt.svg"></button>
                 </div>
             </div>
         </span>
-
         <script src="/library/main.js"></script>
 </body>
 

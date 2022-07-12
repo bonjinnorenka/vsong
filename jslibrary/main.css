@@ -231,6 +231,8 @@ h1 {
 .Top {
     font-size: 40px;
     text-align: center;
+    padding-top: 33.2;
+    margin-top: 0px;
 }
 
 nav ul {
@@ -498,7 +500,7 @@ background-color: #38a1db;
 #select-office{
     position: absolute;
     right: 0;
-    top: 200px;
+    top: 160px;
     width: 200px;
     height: 40px;
 }
@@ -606,6 +608,62 @@ input.cmn-toggle-round + label {
     margin-left: 30px;
   }
 
+.yt_viewpl{
+    position: sticky;
+    width:500px;
+    height: calc(100vh - 44px);
+    top:0;
+    float: right;
+    z-index: 1;
+    background-color: var(--music-bg);
+}
+
+.yt_viewpl_list{
+    display: block;
+    overflow-y: scroll;
+    max-height: 100%;
+}
+
+.pl_nest{
+    position: absolute;
+    top:20px;
+    left:180px;
+    overflow: hidden;
+    width: 220px;
+    height: 70px;
+}
+
+.wh_nest{
+    position: absolute;
+    top: 10px;
+    left: 180px;
+    overflow: hidden;
+    width: 400px;
+    height: 90px;
+}
+
+.ytpl_inele{
+    position: relative;
+    width: 100%;
+}
+
+.pl_trbt{
+    position: absolute;
+    right: 0;
+}
+
+.inversion_pic{
+    transform: rotate(180deg);
+}
+
+.on_viewpl{
+    width: calc(99vw - 500px);
+}
+
+.ytembed_swift{
+    right: 500px;
+}
+
 @media screen and (max-width:1000px) {
 
     .yt-meta {
@@ -628,6 +686,26 @@ input.cmn-toggle-round + label {
 
     .control_icon{
         width: 50px;
+    }
+
+    .flex_box{
+        height: 70px;
+    }
+
+    .sticky_c{
+        height: 73px;
+    }
+
+    .yt-progress{
+        bottom: 70px;
+    }
+
+    .sticky_c_yt{
+        bottom: 73px;
+    }
+
+    .yt_viewpl{
+        height: calc(100vh - 75px);
     }
 }
 
@@ -707,6 +785,18 @@ input.cmn-toggle-round + label {
 
     .switch-flex{
         justify-content: center;
+    }
+
+    .on_viewpl{
+        display: none;
+    }
+
+    .ytembed_swift{
+        right: 0px;
+    }
+
+    .yt_viewpl{
+        width: 99vw;
     }
 
 }

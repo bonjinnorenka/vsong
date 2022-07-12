@@ -434,6 +434,7 @@ function page_ajax_load(htmlpass,ig=0){
         yt_el.classList.remove("watch_yt_center");
         document.getElementById("ytembed").classList.add("float_right");
         watch_page_st = 0;
+        document.getElementById("yt_display").classList.remove("dis_none");
     }
     let page_ajax_xhr = new XMLHttpRequest();
     page_ajax_xhr.open("GET",new URL("https://vsong.fans"+htmlpass).pathname);
@@ -585,6 +586,7 @@ function load_youtubeapi_player(now_video_id){
     catch{}
     before_playing = now_video_id;
     let ytembed_el = document.getElementById("ytembed");
+    add_songhistory(now_video_id);
     if(ytembed_el.innerHTML=='<div id=\"youtube-iframe\"></div>'||now_player==""){
         let vw = window.innerWidth;
         let yt_window_size;
@@ -645,11 +647,11 @@ function yt_volume_change(){
 function yt_display(){
     document.getElementById("ytembed").classList.toggle("pos-none");
     let button_el = document.getElementById("yt_display")
-    if(button_el.innerText=="表示"){
-        button_el.innerText = "非表示";
+    if(document.getElementById("ytembed").classList.contains("pos-none")){
+        button_el.innerText = "表示";
     }
     else{
-        button_el.innerText = "表示";
+        button_el.innerText = "非表示";
     }
 }
 
@@ -731,12 +733,7 @@ function yt_skip(){
             console.log(now_playlist);
             nowvid = now_playlist.shift();
             console.log("start_playing(skip):\t" + nowvid);
-            if(now_player!=""){
-                now_player.loadVideoById({'videoId': nowvid});
-            }
-            else{
-                load_youtubeapi_player(nowvid);
-            }
+            load_youtubeapi_player(nowvid);
             before_playing = nowvid;
             yt_music_display();
             sync_playlist()
@@ -747,12 +744,7 @@ function yt_skip(){
         nowvid = now_playlist.shift();
         sync_playlist()
         console.log("start_playing(skip):\t" + nowvid);
-        if(now_player!=""){
-            now_player.loadVideoById({'videoId': nowvid});
-        }
-        else{
-            load_youtubeapi_player(nowvid);
-        }
+        load_youtubeapi_player(nowvid);
         before_playing = nowvid;
         yt_music_display();
     }
@@ -802,9 +794,9 @@ function watch_page_load(){
     document.getElementById("yt_ch_dismode").title = "小さな画面で表示";
     try{
         document.getElementById("youtube-iframe").classList.add("watch_yt_center");
-        document.getElementById("ytembed").classList.remove("float_right");
-        document.getElementById("ytembed").classList.remove("pos-none");
+        document.getElementById("ytembed").classList.remove("float_right","pos-none");
         document.getElementById("control_panel").classList.remove("dis_none");
+        document.getElementById("yt_display").classList.add("dis_none");
     }
     catch{}
     let url_parm = new URL(window.location.href).searchParams;
@@ -864,7 +856,7 @@ function watch_page_load(){
             let yt_el = document.getElementById("youtube-iframe");
             yt_el.width = yt_emb_width;
             yt_el.height = Math.floor(yt_emb_width * 0.5625);
-            now_player.loadVideoById({'videoId': now_demand});
+            load_youtubeapi_player(now_demand);
             yt_music_display();
         }
     }
@@ -1294,37 +1286,211 @@ function ytviewchange(){
     }
 }
 
+let vsongdb = new Dexie("vsong_db");
+vsongdb.version(1).stores({//定義
+    array_list: "++arrayname, arraydata"
+});
+
 function sync_playlist(){
-    vsongpldb.notes.put({
-        plname: 1,
-        plarray: now_playlist
+    vsongdb.array_list.put({
+        arrayname: "playlist",
+        arraydata: now_playlist
     })
 }
 
-let vsongpldb = new Dexie("vsong_playlist");
-vsongpldb.version(1).stores({
-    notes: "++plname, plarray"
-});
-
 function load_playlist(){
-    vsongpldb.notes
-    .toArray()
-    .then(async function (ndt){
-        console.log(ndt)
-        now_playlist = ndt[0]["plarray"];
-        if (now_playlist.length > 0){
-            let nans = window.confirm("前回の再生リストから再生しますか？");
-            if(nans){
-                load_youtubeapi_player(now_playlist.shift());
+    vsongdb.array_list.where("arrayname")
+        .equals("playlist")
+        .limit(1)
+        .toArray()
+        .then(function (ndt){
+            console.log(ndt)
+            try{
+                now_playlist = ndt[0]["arraydata"];
+                if (now_playlist.length > 0){
+                    let nans = window.confirm("前回の再生リストから再生しますか？");
+                    if(nans){
+                        load_youtubeapi_player(now_playlist.shift());
+                    }
+                }
             }
-        }
-    });
+            catch{console.log("can't get playlist.")}
+        });
 }
 
-function delay(n){
-    return new Promise(function(resolve){
-        setTimeout(resolve,n*1000);
-    });
+function add_songhistory(videoid){
+    //一度取得してから追加
+    vsongdb.array_list.where("arrayname")
+        .equals("songhistory")
+        .limit(1)
+        .toArray()
+        .then(function (ndt){
+            console.log(ndt);
+            try{
+                let songhistory = ndt[0]["arraydata"];
+                songhistory.unshift([videoid,new Date()]);
+                //こっから保存
+                vsongdb.array_list.put({
+                    arrayname: "songhistory",
+                    arraydata: songhistory
+                })
+            }
+            catch{
+                vsongdb.array_list.put({
+                    arrayname: "songhistory",
+                    arraydata: [[videoid,new Date]]
+                })
+            }
+        });
+}
+
+function get_songhistory(){
+    vsongdb.array_list.where("arrayname")
+        .equals("songhistory")
+        .limit(1)
+        .toArray()
+        .then(function (ndt){
+            console.log(ndt);
+            try{
+                let songhistory = ndt[0]["arraydata"];
+                return songhistory
+            }
+            catch{
+                return "error"
+            }
+        })
+}
+
+function view_watchhistory(){
+    vsongdb.array_list.where("arrayname")
+        .equals("songhistory")
+        .limit(1)
+        .toArray()
+        .then(function (ndt){
+            console.log(ndt);
+            try{
+                let songhistory = ndt[0]["arraydata"];
+                let allvid = [];
+                for (let x = 0;x<songhistory.length;x++){
+                    allvid.push(songhistory[x][0]);
+                }
+                //リクエスト送る
+                let watch_vid_xhr = new XMLHttpRequest();
+                watch_vid_xhr.open("GET","/cgi-bin/vdata_query.cgi?q=" + allvid.join("|"));
+                watch_vid_xhr.responseType = "json";
+                watch_vid_xhr.send();
+                watch_vid_xhr.onload = function(){
+                    let nowjson = watch_vid_xhr.response;
+                    let parentdoc = document.getElementById("yt_playlist_view_p");
+                    parentdoc.innerHTML = "";//リセット
+                    for (let x = 0;x<songhistory.length;x++){
+                        let nowvid = songhistory[x][0];
+                        let nchdoc = document.createElement("div");
+                        nchdoc.classList.add("ytpl_inele");
+                        let nimg = document.createElement("img");
+                        nimg.src = "https://i.ytimg.com/vi_webp/" + nowvid +"/mqdefault.webp";
+                        nimg.classList.add("fit-cut");
+                        nimg.width = 160;
+                        nimg.height = 90;
+                        nchdoc.appendChild(nimg);
+                        let menst = "";
+                        try{
+                            for (let r = 0;r<nowjson[nowvid]["memberdata"].length;r++){
+                                menst += nowjson[nowvid]["memberdata"][r]["nickname"] + " ";
+                            }
+                        }
+                        catch{}
+                        let nowdesdoc = document.createElement("div");
+                        nowdesdoc.classList.add("wh_nest");
+                        nowdesdoc.innerHTML = "再生日時:" + songhistory[x][1].toLocaleString("ja") + "<br><a href='/music/" + dir_replace(nowjson[nowvid]["musicname"]) + "/' onclick='page_ajax_load(\"/music/" + dir_replace(nowjson[nowvid]["musicname"]) + "/\");return false'>" + nowjson[nowvid]["musicname"] + "</a><br>" + menst;
+                        nchdoc.appendChild(nowdesdoc);
+                        if (x+1 != songhistory.length){
+                            nchdoc.appendChild(document.createElement("hr"));
+                        }
+                        parentdoc.appendChild(nchdoc);
+                    }
+                }
+            }
+            catch{
+                return "error"
+            }
+        })
+}
+
+function view_playlist(){
+    if (now_playlist.length > 0){
+        //プレイリスト内の動画の情報を取得
+        let playlist_data_xhr = new XMLHttpRequest();
+        playlist_data_xhr.open("GET","/cgi-bin/vdata_query.cgi?q=" + now_playlist.join("|"));//wikipedia感ある仕様 件数制限はURLの限界まで
+        playlist_data_xhr.responseType = "json";
+        playlist_data_xhr.send();
+        playlist_data_xhr.onload = function(){
+            let nowjson = playlist_data_xhr.response;
+            let parentdoc = document.getElementById("yt_playlist_view_p");
+            parentdoc.innerHTML = "";//リセット
+            for (let x = 0;x<now_playlist.length;x++){
+                let nowvid = now_playlist[x];
+                let nchdoc = document.createElement("div");
+                nchdoc.classList.add("ytpl_inele","ytplv_" + nowvid);
+                let nimg = document.createElement("img");
+                nimg.src = "https://i.ytimg.com/vi_webp/" + nowvid +"/mqdefault.webp";
+                nimg.classList.add("fit-cut");
+                nimg.width = 160;
+                nimg.height = 90;
+                nchdoc.appendChild(nimg);
+                let menst = "";
+                try{
+                    for (let r = 0;r<nowjson[nowvid]["memberdata"].length;r++){
+                        menst += nowjson[nowvid]["memberdata"][r]["nickname"] + " ";
+                    }
+                }
+                catch{}
+                let nowdesdoc = document.createElement("div");
+                nowdesdoc.classList.add("pl_nest");
+                nowdesdoc.innerHTML = "<a href='/music/" + dir_replace(nowjson[nowvid]["musicname"]) + "/' onclick='page_ajax_load(\"/music/" + dir_replace(nowjson[nowvid]["musicname"]) + "/\");return false'>" + nowjson[nowvid]["musicname"] + "</a><br>" + menst;
+                nchdoc.appendChild(nowdesdoc);
+                nchdoc.innerHTML += '<button class="pl_trbt bt_noborder" onclick="playlist_remove(\'' + nowvid + '\')"><img src="/util/trash.webp" width="85" height="85"></button>';
+                if (x+1 != now_playlist.length){
+                    nchdoc.appendChild(document.createElement("hr"));
+                }
+                parentdoc.appendChild(nchdoc);
+            }
+        }
+    }  
+    else{
+        document.getElementById("yt_playlist_view_p").innerText = "現在再生リストは空です";
+    }
+}
+
+function open_playlist(){
+    document.getElementById("imgupdown_bt").classList.toggle("inversion_pic");
+    document.getElementsByTagName("main")[0].classList.toggle("on_viewpl");
+    document.getElementById("yt_pl_idel").classList.toggle("dis_none");
+    document.getElementById("ytembed").classList.toggle("ytembed_swift");
+    if (document.getElementById("yt_pl_idel").classList.contains("dis_none")==false){
+        sidebar_info();
+    }
+}
+
+function sidebar_info(){
+    if(document.getElementById("radio-side-pl").checked){
+        console.log("playlist!");
+        view_playlist();
+    }
+    else if (document.getElementById("radio-side-wh").checked){
+        console.log("watch history!");
+        view_watchhistory();
+    }
+}
+
+function playlist_remove(nvideoid){
+    //プレイリストから削除
+    now_playlist = now_playlist.filter(item=> item != nvideoid);
+    let nowviddoc = document.getElementsByClassName("ytplv_" + nvideoid);
+    for (let x = 0;x<nowviddoc.length;x++){
+        nowviddoc[x].remove();
+        console.log("del")
+    }
 }
 
 function page_load(){//ページロード時の処理
@@ -1359,11 +1525,14 @@ function page_load(){//ページロード時の処理
         hot_chose_load();
     }
 }
+
 page_load();
+
 window.addEventListener('popstate', function(e) {//バックボタン対策
     let now_url = String(location.href).replace(location.origin,"");
     page_ajax_load(now_url,1);
 });
+
 function onYouTubeIframeAPIReady(){//youtubeプリロード用
     youtube_embed_preload();
 }

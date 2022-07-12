@@ -30,6 +30,14 @@
     <script src="https://cdn.jsdelivr.net/npm/ismobilejs@1.1.1/dist/isMobile.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/instant.page@5.1.0/instantpage.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.2/dist/dexie.min.js"></script>
+    <div id="yt_pl_idel" class="yt_viewpl dis_none">
+        <group id="radio-sidebar" class="inline-radio" onchange="sidebar_info()">
+            <div class="radio-page-div"><input id="radio-side-pl" class="radio-page-select" type="radio" name="vs-sidebar" checked><label class="radio-page-label">プレイリスト</label></div>
+            <div class="radio-page-div"><input id="radio-side-wh" class="radio-page-select" type="radio" name="vs-sidebar"><label class="radio-page-label">視聴履歴</label></div>
+        </group>
+        <div id="yt_playlist_view_p" class="yt_viewpl_list">
+        </div>
+    </div>
     <header>
         <h2 class="Top"><a href="/" onClick='page_ajax_load("/");return false'>VtuberSing</a></h2>
         <nav class="header-nav">
