@@ -623,7 +623,6 @@ function load_youtubeapi_player(now_video_id){
             yt_display();
         }
         */
-        playlock = true;
         yt_music_display();
     }
 }
