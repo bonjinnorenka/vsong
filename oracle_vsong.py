@@ -1526,10 +1526,38 @@ def make_music_page_v4(musicname):
     except Exception as e:
         pro_log("error","make_musicpage_v4",musicname,"unknown error->continue",str(e))
 
-def make_ch_page_v4(nickname):
+def make_ch_page_v4(nickname,useapi=True):
     try:
-        chdata = nickname2allvideodata_v4(nickname)
-        chdata.generate_memberdata()
+        chdata = Memberdata()
+        if useapi:
+            try:
+                with open(folder_path + siteurl + "/api/v4/ch/" + dir_name_replace(nickname) + ".json","r") as f:
+                    njson = json.load(f)
+                    chdata.nickname = nickname
+                    chdata.belongoffice = njson["belongoffice"]
+                    for x in njson["videolist"]:
+                        with open(folder_path + siteurl + "/api/v4/videoid/" + x + ".json","r") as vf:
+                            vapidata = json.load(vf)
+                            nvdata = Videodata()
+                            nvdata.videoid = x
+                            nvdata.channelname = vapidata["channelname"]
+                            nvdata.movietime = vapidata["movietime"]
+                            nvdata.musicname = vapidata["musicname"]
+                            chdata.video.append(nvdata)
+                    if njson["createtime"]!=None:
+                        chdata.createtime = datetime.datetime.strptime(njson["createtime"],"%Y-%m-%dT%H:%M:%S")
+                    else:
+                        chdata.createtime = None
+                    if njson["modifytime"]!=None:
+                        chdata.modifytime = datetime.datetime.strptime(njson["modifytime"],"%Y-%m-%dT%H:%M:%S")
+                    else:
+                        chdata.modifytime = None
+            except:
+                chdata = nickname2allvideodata_v4(nickname)
+                chdata.generate_memberdata()
+        else:
+            chdata = nickname2allvideodata_v4(nickname)
+            chdata.generate_memberdata()
         site_nick_name = dir_name_replace(nickname)
         n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
         if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
@@ -1562,8 +1590,19 @@ def make_ch_page_v4(nickname):
                 if "Topic" in nowviddata.channelname:
                     addclass += " inctopic"
                     needtopic = True
-            nowviddata.generate_member()
-            if len(nowviddata.member) > 1:
+            membercount = 1
+            if useapi:
+                try:
+                    with open(folder_path + siteurl + "/api/v4/videoid/" + nowviddata.videoid + ".json","r") as f:
+                        njson = json.load(f)
+                    membercount = len(njson["memberdata"])
+                except:
+                    nowviddata.generate_member()
+                    membercount = len(nowviddata.member)
+            else:
+                nowviddata.generate_member()
+                membercount = len(nowviddata.member)
+            if membercount > 1:
                 addclass += " collab"
                 needcollab = True
             share_html_a(f'<div id="fb_{nowviddata.videoid}" class="music_flex_ly{addclass}"><span class="ofoverflow_320" title="{nowviddata.videoname}"><a href="{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(nowviddata.musicname) + "/"}\');return false">{nowviddata.musicname}</a></span><lite-youtube videoid="{nowviddata.videoid}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{nowviddata.videoid}\')">詳細を表示</button></div>')
@@ -1675,8 +1714,11 @@ def v4api_ch():
         videoidlist = [r[0] for r in cur.fetchall()]
         diffarray = view_vlist_graph(video_idlist=videoidlist,data=2)
         with open(folder_path + siteurl + "/api/v4/ch/" + dir_name_replace(nowmemdata.nickname) + ".json","w") as f:
-            json.dump({"channelnickname":nowmemdata.nickname,"statisticsdata":diffarray,"videolist":videoidlist,"pictureurl":nowmemdata.pictureurl,"belongoffice":nowmemdata.belongoffice},f)
-
+            try:
+                json.dump({"channelnickname":nowmemdata.nickname,"statisticsdata":diffarray,"videolist":videoidlist,"pictureurl":nowmemdata.pictureurl,"belongoffice":nowmemdata.belongoffice,"createtime":nowmemdata.createtime.isoformat(),"modifytime":nowmemdata.modifytime.isoformat()},f)
+            except:
+                json.dump({"channelnickname":nowmemdata.nickname,"statisticsdata":diffarray,"videolist":videoidlist,"pictureurl":nowmemdata.pictureurl,"belongoffice":nowmemdata.belongoffice,"createtime":None,"modifytime":None},f)
+                
 def v4api_music():
     if os.path.isdir(folder_path + siteurl + "/api/v4/music/")==False:
         os.makedirs(folder_path + siteurl + "/api/v4/music/")
@@ -1691,3 +1733,4 @@ def v4api_music():
         with open(folder_path + siteurl + "/api/v4/music/" + dir_name_replace(x[0]) + ".json","w") as f:
             json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray},f)
 
+make_ch_page_v4("ときのそら")
