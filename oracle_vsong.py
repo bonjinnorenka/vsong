@@ -1,4 +1,5 @@
 import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy
+from matplotlib.font_manager import json_dump
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
@@ -1473,10 +1474,40 @@ def nickname2allvideodata_v4(nickname):
         nowmainmemberdata.video.append(nowvideodata)
     return nowmainmemberdata
 
-def make_music_page_v4(musicname):
+def make_music_page_v4(musicname,useapi=True):
     try:
-        musicdata = music2allvideodata_v4(musicname=musicname)
-        musicdata.generate_musidata()
+        musicdata = Musicdata()
+        if useapi:
+            try:
+                with open(folder_path + siteurl + "/api/v4/music/" + dir_name_replace(musicname) + ".json","r") as f:
+                    nowjson = json.load(f)
+                    musicdata.musicname = musicname
+                    musicdata.artistname = nowjson["artist"]
+                    musicdata.spotifyid = nowjson["sp"]
+                    musicdata.youtubeid = nowjson["yt"]
+                    if nowjson["createtime"]!=None:
+                        musicdata.createtime = datetime.datetime.strptime(nowjson["createtime"],"%Y-%m-%dT%H:%M:%S")
+                    else:
+                        musicdata.createtime = None
+                    if nowjson["modifytime"]!=None:
+                        musicdata.modifytime = datetime.datetime.strptime(nowjson["modifytime"],"%Y-%m-%dT%H:%M:%S")
+                    else:
+                        musicdata.modifytime = None
+                    for x in nowjson["videolist"]:
+                        with open(folder_path + siteurl + "/api/v4/videoid/" + x + ".json","r") as vf:
+                            vapidata = json.load(vf)
+                            nvdata = Videodata()
+                            nvdata.videoid = x
+                            nvdata.channelname = vapidata["channelname"]
+                            nvdata.movietime = vapidata["movietime"]
+                            nvdata.musicname = vapidata["musicname"]
+                            musicdata.video.append(nvdata)
+            except:
+                musicdata = music2allvideodata_v4(musicname=musicname)
+                musicdata.generate_musidata()
+        else:
+            musicdata = music2allvideodata_v4(musicname=musicname)
+            musicdata.generate_musidata()
         n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(musicname) + "/"
         if os.path.isdir(n_html_path)==False:
             os.makedirs(n_html_path)
@@ -1722,7 +1753,7 @@ def v4api_ch():
 def v4api_music():
     if os.path.isdir(folder_path + siteurl + "/api/v4/music/")==False:
         os.makedirs(folder_path + siteurl + "/api/v4/music/")
-    cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID FROM MUSIC_SONG_DB WHERE CONTENT_COUNT > 0")
+    cur.execute("SELECT KEY_MUSIC_NAME,ARTIST_NAME,SP_ID,YT_ID,CLEATE_PAGE_DATE,LAST_MODIFIED FROM MUSIC_SONG_DB WHERE CONTENT_COUNT > 0")
     fetchcache = cur.fetchall()
     for x in fetchcache:
         cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), SUM(VIEW_C), SUM(LIKE_C), SUM(COMMENT_C) FROM VIDEO_V_DATA vvd WHERE exists (SELECT * FROM VIDEO_ID vid WHERE MUSIC_NAME = :nmn AND vvd.VIDEO_ID = vid.VIDEO_ID) and vvd.RELOAD_TIME > sysdate - 8 group by vvd.RELOAD_TIME order by vvd.RELOAD_TIME asc",nmn=x[0])
@@ -1731,6 +1762,8 @@ def v4api_music():
         cur.execute("select VIDEO_ID from VIDEO_ID where MUSIC_NAME = :nmn AND (IG = 0 OR IG = 2) AND STATUS = 0",nmn=x[0])
         vididlist = [r[0] for r in cur.fetchall()]
         with open(folder_path + siteurl + "/api/v4/music/" + dir_name_replace(x[0]) + ".json","w") as f:
-            json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray},f)
+            try:
+                json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray,"createtime":x[4].isoformat(),"modifytime":x[5].isoformat()},f)
+            except:
+                json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray,"createtime":None,"modifytime":None},f)
 
-make_ch_page_v4("ときのそら")
