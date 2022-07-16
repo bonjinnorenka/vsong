@@ -61,6 +61,7 @@ while True:
         ov.ch_modify_update()
         ov.yt_status_ex()
         ov.igch_tig()
+        ov.reload_pairlist_materialized()
         ov.true_check()
         ov.reloadpeople_picture()
         ov.make_search_index()
@@ -76,7 +77,6 @@ while True:
         ov.make_video_random()
         ov.office_hot()
         ov.todays_hot()
-        
     elif nowcommand=="cplib":
         inpst = input("本当にライブラリデータを本番環境に反映してよろしいですか?(y/n)")
         if inpst=="y":
@@ -110,6 +110,14 @@ while True:
         ov.make_api_latestmovie()
     elif nowcommand=="music_helper":
         ov.music_helper()
+    elif nowcommand=="one":
+        ov.open_not_entered()
+    elif nowcommand=="igt":
+        ov.igch_tig()
+    elif nowcommand=="rematerialized":
+        ov.reload_pairlist_materialized()
+    elif nowcommand=="onech":
+        ov.open_not_entered_ch()
     else:
         print("exit:終了\nhelp:今のコマンド\nupdate_vdata:動画の統計情報を更新します\nupdate_vlist:プレイリストから最新の動画idを取得します\nadd_chdata:足りないチャンネルを取得します\
         \nadd_gname:足りないグループ名を追加します\nadd_mdata:足りない音楽データを追加します\ntrue_check:データが正常に登録されているか確認します\nmake_page:ページを生成します\

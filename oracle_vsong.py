@@ -1,10 +1,10 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy
-from matplotlib.font_manager import json_dump
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
 import ev
 import xml.etree.ElementTree as ET
+import pytube_search_channel as psc
 
 try:
     con_ms = MySQLdb.connect(host=ev.mysql_host,user=ev.mysql_user,passwd=ev.mysql_ps,db="vsong")
@@ -125,7 +125,7 @@ def update_videodata():
         cur.execute("INSERT INTO VIDEO_V_DATA (VIDEO_ID,RELOAD_TIME,VIEW_C,LIKE_C,COMMENT_C) VALUES('" + v_st[x][0] + "','" + dt_str + "','" + str(v_st[x][1]) + "','" + str(v_st[x][2]) + "','" + str(v_st[x][3]) + "')")
     con.commit()
 
-def correct_video_list():
+def correct_video_list(fetchall=False):
     #先にプレミア関係をすることで処理量を削減
     cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 3")#プレミア用一次処理したのを抽出
     kalist = cur.fetchall()
@@ -135,7 +135,7 @@ def correct_video_list():
         for r in v_data:
             if r[6]==False:
                 cur.execute("UPDATE VIDEO_ID SET IG = 2 WHERE VIDEO_ID = :nvidid",nvidid=r[0])
-    pid_l = diff_playlistid()
+    pid_l = diff_playlistid(fetchall=fetchall)
     if len(pid_l)==0:
         print("プレイリスト取得スキップ")
     else:
@@ -144,16 +144,28 @@ def correct_video_list():
         v_id_l = [e[0] for e in cur.fetchall()]
         v_data = gy.videoid_lToMInfo(gy.highper_vidFromPlaylist(pid_l,v_id_l))
         kvar = 0
-        for x in range(len(v_data)):
-            if v_data[x][0] not in v_id_l:#万が一の重複に備え更なる重複チェックをする
-                kvar += 1
-                #cur.execute(f"INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME) VALUES('{v_data[x][0]}','{v_data[x][1]}','{str(v_data[x][2])[:-1].replace('T',' ')}','{str(v_data[x][3]).replace('\'','\'\'')}','{v_data[x][5]}')")
-                if v_data[x][6]:
-                    ig = 3
+        if len(v_data) > 0:
+            cur.execute("SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB WHERE LENGTH(KEY_MUSIC_NAME) > 3")#４文字以上の文字だけ
+            musiclist = [t[0] for t in cur.fetchall()]
+            for x in range(len(v_data)):
+                musicpt = []
+                for n in musiclist:
+                    if n in v_data[x][3]:
+                        musicpt.append(n)
+                musicpt.sort(key=len,reverse=True)#長いのを優先的に充てる
+                if len(musicpt) > 0:
+                    nowmusicpredict = musicpt[0]
                 else:
-                    ig = 2
-                cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME,IG) VALUES(:vid,:chid,:ut,:vname,:mt,:ign)",vid=v_data[x][0],chid=v_data[x][1],ut=str(v_data[x][2])[:-1].replace('T',' '),vname=v_data[x][3],mt=v_data[x][5],ign=ig)
-        con.commit()
+                    nowmusicpredict = ""
+                if v_data[x][0] not in v_id_l:#万が一の重複に備え更なる重複チェックをする
+                    kvar += 1
+                    #cur.execute(f"INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME) VALUES('{v_data[x][0]}','{v_data[x][1]}','{str(v_data[x][2])[:-1].replace('T',' ')}','{str(v_data[x][3]).replace('\'','\'\'')}','{v_data[x][5]}')")
+                    if v_data[x][6]:
+                        ig = 3
+                    else:
+                        ig = 2
+                    cur.execute("INSERT INTO VIDEO_ID (VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MOVIE_TIME,IG,MUSIC_NAME) VALUES(:vid,:chid,:ut,:vname,:mt,:ign,:mn)",vid=v_data[x][0],chid=v_data[x][1],ut=str(v_data[x][2])[:-1].replace('T',' '),vname=v_data[x][3],mt=v_data[x][5],ign=ig,mn=nowmusicpredict)
+            con.commit()
         print(str(kvar) + "個のデータを追加しています")
 
 def add_ch_data():
@@ -238,7 +250,7 @@ def add_music_data():
     for x in range(len(k_rec_mlist)):
         nx = str(k_rec_mlist[x])[2:-3]
         n_music_reslist = md.search_music(nx)#検索
-        cur.execute("INSERT INTO MUSIC_SONG_DB (KEY_MUSIC_NAME,MUSIC_NAME_SP,MUSIC_NAME_YT,ARTIST_NAME,SP_ID,YT_ID) VALUES('" + nx.replace("'","''") + "','" + n_music_reslist[0].replace("'","''") + "','" + n_music_reslist[1].replace("'","''") + "','" + n_music_reslist[2].replace("'","''") + "','" + n_music_reslist[3] + "','" + n_music_reslist[4] + "')")
+        cur.execute("INSERT INTO MUSIC_SONG_DB (KEY_MUSIC_NAME,MUSIC_NAME_SP,MUSIC_NAME_YT,ARTIST_NAME,SP_ID,YT_ID) VALUES(:nkmn,:spmn,:ytmn,:artname,:spid,:ytid)",nkmn=nx,spmn=n_music_reslist[0],ytmn=n_music_reslist[1],artname=n_music_reslist[2],spid=n_music_reslist[3],ytid=n_music_reslist[4])
     con.commit()
 
 def true_check():
@@ -284,6 +296,10 @@ def true_check():
                 for r in range(len(er)):
                     _faul += 1
                     print(er[r] + "\tはデータベースに登録されていません at pair_list グループ名:" + groupe_list[x][0])
+        cur.execute("SELECT DISTINCT MN FROM FLAT_PAIRLIST_SECOND fps WHERE NOT EXISTS(SELECT 1 FROM CH_ID chi WHERE (fps.MN = chi.NICK_NAME_1 OR fps.MN = chi.NICK_NAME_2))")
+        not_submit_nickname_list = [y[0] for y in cur.fetchall()]
+        for t in not_submit_nickname_list:
+            print(t + "はデータベースに登録されていません at pairlist or ch_id")
         #動画の投稿者が存在するか確認
         cur.execute("select distinct channel_id from VIDEO_ID vid where not exists ( select 1 from ch_id ch where vid.CHANNEL_ID = ch.ch_id ) and channel_id is not null")
         ch_list = cur.fetchall()
@@ -1098,23 +1114,26 @@ def playlist_ignore_auto():
     cur.execute("update CRAWLER_PLAYLIST set ig = 1 where PLAYLIST_ID like 'OL%'")
     con.commit()
 
-def diff_playlistid(force=0):
-    if force==0:
-        cur.execute("SELECT PLAYLIST_ID,CONTENT_LENGTH FROM CRAWLER_PLAYLIST WHERE IG = 0")
-    elif force==1:
+def diff_playlistid(force=False,fetchall=False):
+    if force:
         cur.execute("SELECT PLAYLIST_ID,CONTENT_LENGTH FROM CRAWLER_PLAYLIST")
+    else:
+        cur.execute("SELECT PLAYLIST_ID,CONTENT_LENGTH FROM CRAWLER_PLAYLIST WHERE IG = 0")
     curcache = cur.fetchall()
     nowls = [x[0] for x in curcache]
-    pldict = {}
-    for r in curcache:
-        pldict[r[0]] = r[1]
-    nowdata = gy.playlist_count(nowls)
-    difflist = []
-    for r in nowdata:
-        if r[1] != pldict[r[0]]:#値が違う!
-            difflist.append(r[0])
-            cur.execute("UPDATE CRAWLER_PLAYLIST SET CONTENT_LENGTH = :ncl WHERE PLAYLIST_ID = :npl",ncl=r[1],npl=r[0])
-    con.commit()
+    if fetchall==False:
+        pldict = {}
+        for r in curcache:
+            pldict[r[0]] = r[1]
+        nowdata = gy.playlist_count(nowls)
+        difflist = []
+        for r in nowdata:
+            if r[1] != pldict[r[0]]:#値が違う!
+                difflist.append(r[0])
+                cur.execute("UPDATE CRAWLER_PLAYLIST SET CONTENT_LENGTH = :ncl WHERE PLAYLIST_ID = :npl",ncl=r[1],npl=r[0])
+        con.commit()
+    else:
+        difflist = nowls
     return difflist
 
 def music_helper():#曲名が長いやつに引っ張られるようになってる　ぽとかだと簡単に引っかかっちゃう
@@ -1152,6 +1171,38 @@ def music_helper():#曲名が長いやつに引っ張られるようになって
             con.commit()
     else:
         print("対象はありません")
+
+def open_not_entered():
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 2 ORDER BY VIDEO_ID ASC")
+    vidlist = [x[0] for x in cur.fetchall()]
+    ret = input("本当に" + str(len(vidlist)) + "個のタブを開きますか？ Y/n")
+    ret = ret.lower()
+    if ret == "y":
+        for x in vidlist:
+            webbrowser.open_new_tab("https://www.youtube.com/watch?v=" + x)
+
+def unknown_channel_search():
+    cur.execute("SELECT DISTINCT MN FROM FLAT_PAIRLIST_SECOND fps WHERE NOT EXISTS(SELECT 1 FROM CH_ID chi WHERE (fps.MN = chi.NICK_NAME_1 OR fps.MN = chi.NICK_NAME_2))")
+    not_submit_nickname_list = [y[0] for y in cur.fetchall()]
+    chidlist = []
+    for x in not_submit_nickname_list:
+        s = psc.Search_channel(x)
+        if s.results==None:
+            s.get_next_results()
+        if s.results !=None and len(s.results) > 0:
+            chidlist.append(s.results[0])
+    if len(chidlist) > 0:
+        add_ch_data_self(chidlist)
+
+
+def open_not_entered_ch():
+    cur.execute("SELECT CH_ID FROM CH_ID WHERE IG = 0 AND NICK_NAME_1 IS NULL ORDER BY CH_ID ASC")
+    chidlist = [c[0] for c in cur.fetchall()]
+    ret = input("本当に" + str(len(chidlist)) + "個のタブを開きますか？ Y/n")
+    ret = ret.lower()
+    if ret == "y":
+        for x in chidlist:
+            webbrowser.open_new_tab("https://www.youtube.com/channel/" + x + "/about")
 
 #ここから新バージョン用コード
 
