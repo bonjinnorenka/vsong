@@ -249,8 +249,10 @@ def add_music_data():
         return
     for x in range(len(k_rec_mlist)):
         nx = str(k_rec_mlist[x])[2:-3]
-        n_music_reslist = md.search_music(nx)#検索
-        cur.execute("INSERT INTO MUSIC_SONG_DB (KEY_MUSIC_NAME,MUSIC_NAME_SP,MUSIC_NAME_YT,ARTIST_NAME,SP_ID,YT_ID) VALUES(:nkmn,:spmn,:ytmn,:artname,:spid,:ytid)",nkmn=nx,spmn=n_music_reslist[0],ytmn=n_music_reslist[1],artname=n_music_reslist[2],spid=n_music_reslist[3],ytid=n_music_reslist[4])
+        cur.execute("select 1 from MUSIC_SONG_DB where KEY_MUSIC_NAME = :nmn",nmn=nx)
+        if cur.fetchone()[0]==None:
+            n_music_reslist = md.search_music(nx)#検索
+            cur.execute("INSERT INTO MUSIC_SONG_DB (KEY_MUSIC_NAME,MUSIC_NAME_SP,MUSIC_NAME_YT,ARTIST_NAME,SP_ID,YT_ID) VALUES(:nkmn,:spmn,:ytmn,:artname,:spid,:ytid)",nkmn=nx,spmn=n_music_reslist[0],ytmn=n_music_reslist[1],artname=n_music_reslist[2],spid=n_music_reslist[3],ytid=n_music_reslist[4])
     con.commit()
 
 def true_check():
