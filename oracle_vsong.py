@@ -145,7 +145,7 @@ def correct_video_list(fetchall=False):
         v_data = gy.videoid_lToMInfo(gy.highper_vidFromPlaylist(pid_l,v_id_l))
         kvar = 0
         if len(v_data) > 0:
-            cur.execute("SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB WHERE LENGTH(KEY_MUSIC_NAME) > 3")#４文字以上の文字だけ
+            cur.execute("SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB WHERE LENGTH(KEY_MUSIC_NAME) > 2")#3文字以上の文字だけ
             musiclist = [t[0] for t in cur.fetchall()]
             for x in range(len(v_data)):
                 musicpt = []
@@ -250,7 +250,7 @@ def add_music_data():
     for x in range(len(k_rec_mlist)):
         nx = str(k_rec_mlist[x])[2:-3]
         cur.execute("select 1 from MUSIC_SONG_DB where KEY_MUSIC_NAME = :nmn",nmn=nx)
-        if cur.fetchone()[0]==None:
+        if cur.fetchone()==None:
             n_music_reslist = md.search_music(nx)#検索
             cur.execute("INSERT INTO MUSIC_SONG_DB (KEY_MUSIC_NAME,MUSIC_NAME_SP,MUSIC_NAME_YT,ARTIST_NAME,SP_ID,YT_ID) VALUES(:nkmn,:spmn,:ytmn,:artname,:spid,:ytid)",nkmn=nx,spmn=n_music_reslist[0],ytmn=n_music_reslist[1],artname=n_music_reslist[2],spid=n_music_reslist[3],ytid=n_music_reslist[4])
     con.commit()
