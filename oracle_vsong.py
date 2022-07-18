@@ -1196,7 +1196,6 @@ def unknown_channel_search():
     if len(chidlist) > 0:
         add_ch_data_self(chidlist)
 
-
 def open_not_entered_ch():
     cur.execute("SELECT CH_ID FROM CH_ID WHERE IG = 0 AND NICK_NAME_1 IS NULL ORDER BY CH_ID ASC")
     chidlist = [c[0] for c in cur.fetchall()]
@@ -1205,6 +1204,31 @@ def open_not_entered_ch():
     if ret == "y":
         for x in chidlist:
             webbrowser.open_new_tab("https://www.youtube.com/channel/" + x + "/about")
+
+def beta_spotify_reload():
+    cur.execute("select KEY_MUSIC_NAME from MUSIC_SONG_DB where SP_ID = 'faul' and CONTENT_COUNT > 0")
+    fetchcache = cur.fetchall()
+    for r in fetchcache:
+        rn = r[0]
+        res = md.search_music(rn)
+        cur.execute("update MUSIC_SONG_DB set MUSIC_NAME_SP = :mnsp,SP_ID = :spid,ARTIST_NAME = :nan where KEY_MUSIC_NAME = :nkmn",nkmn=rn,mnsp=res[0],spid=res[3],nan=res[2])
+    con.commit()
+
+def music_analyze():
+    cur.execute("SELECT SP_ID FROM MUSIC_SONG_DB msd WHERE SP_ID != 'faul' AND CONTENT_COUNT > 0 AND NOT EXISTS(SELECT 1 FROM MUSICINFO sd WHERE sd.SP_ID = msd.SP_ID)")
+    spid_list = [x[0] for x in cur.fetchall()]
+    if len(spid_list)>0:
+        nowres = md.spotyfy_analyze(spid_list)
+        for x in nowres:
+            cur.execute("INSERT INTO MUSICINFO (SP_ID,ACOUSTICNESS,DANCEABILITY,ENERGY,PITCH_CLASS,MNMJ,TEMPO,TIME_SIGNATURE,VALENCE) VALUES (:spid,:ac,:dance,:enerrgy,:pitch,:mnmj,:tempo,:tisi,:valence)",spid=x["id"],ac=x["acousticness"],dance=x["danceability"],enerrgy=x["energy"],pitch=x["key"],mnmj=x["mode"],tempo=x["tempo"],tisi=x["time_signature"],valence=x["valence"])
+        con.commit()
+        nowres = md.spotify_trackdata(spid_list)
+        cur.execute("SELECT SP_ID FROM MUSICINFO")
+        nidlis = [r[0] for r in cur.fetchall()]
+        for x in nowres:
+            if x["id"] in nidlis:
+                cur.execute("UPDATE MUSICINFO SET POPULARITY = :np,ARTIST_ID = :nai WHERE SP_ID = :nspid",np=x["popularity"],nai=x["artist_id"],nspid=x["id"])
+        con.commit()
 
 #ここから新バージョン用コード
 
