@@ -621,7 +621,7 @@ input.cmn-toggle-round + label {
 .yt_viewpl_list{
     display: block;
     overflow-y: scroll;
-    max-height: 100%;
+    max-height: calc(100% - 70px);
 }
 
 .pl_nest{
@@ -662,6 +662,10 @@ input.cmn-toggle-round + label {
 
 .ytembed_swift{
     right: 500px;
+}
+
+.opo_dark{
+    opacity: 0.5;
 }
 
 @media screen and (max-width:1000px) {

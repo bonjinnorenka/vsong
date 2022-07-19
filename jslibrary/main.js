@@ -78,6 +78,7 @@ function latest_music_scroll(kind=0){
     else if (kind==1){//戻る
         maindoc.scrollBy(100 - window.innerWidth,0);
     }
+
 }
 
 function recommend_ch_scroll(kind=0){
@@ -248,7 +249,7 @@ function recommend(kind=""){
         request_mr.onload = function () {//音楽のほう
             const res_mr = request_mr.response;
             let divm = document.getElementById("music_recommend");
-            divm.innerHTML = '<button type="button" class="musicbt musicundo" onclick="recommend_music_scroll(1)"><img class="music-bt" src="/util/undo.svg"></button><button type="button" class="musicbt musicnext" onclick="recommend_music_scroll(0)"><img class="music-bt" src="/util/nextbt.svg"></button>'
+            divm.innerHTML = '<button type="button" class="musicbt musicundo" onclick="recommend_music_scroll(1)"><img class="music-bt inversion_pic" src="/util/nextbt.svg"></button><button type="button" class="musicbt musicnext" onclick="recommend_music_scroll(0)"><img class="music-bt" src="/util/nextbt.svg"></button>'
             if (isMobile.any){
                 let nowdoc = document.getElementsByClassName("musicbt");
                 for (let x = 0;x<nowdoc.length;x++){
@@ -271,7 +272,7 @@ function recommend(kind=""){
         request_cr.onload = function () {//チャンネルのほう
             const res_cr = request_cr.response;
             let divc = document.getElementById("ch_recommend");
-            divc.innerHTML = '<button type="button" class="chbt chundo" onclick="recommend_ch_scroll(1)"><img class="ch-bt" src="/util/undo.svg"></button><button type="button" class="chbt chnext" onclick="recommend_ch_scroll(0)"><img class="ch-bt" src="/util/nextbt.svg"></button>';
+            divc.innerHTML = '<button type="button" class="chbt chundo" onclick="recommend_ch_scroll(1)"><img class="ch-bt inversion_pic" src="/util/nextbt.svg"></button><button type="button" class="chbt chnext" onclick="recommend_ch_scroll(0)"><img class="ch-bt" src="/util/nextbt.svg"></button>';
             if (isMobile.any){
                 let nowdoc = document.getElementsByClassName("chbt");
                 for (let x = 0;x<nowdoc.length;x++){
@@ -300,7 +301,7 @@ function recommend(kind=""){
                 for (let x = 0;x<nowlong;x++){
                     nowdoc.innerHTML = nowdoc.innerHTML + "<div><span class='ofoverflow_320' title='" + now_j["index"][x][1] + "'>" + now_j["index"][x][1] + "</span><lite-youtube id='iframe-" + now_j["index"][x][0] + "' videoid='" + now_j["index"][x][0] + "' width='320' height='180'></lite-youtube></div>"
                 }
-                nowdoc.innerHTML = nowdoc.innerHTML + '<button type="button" class="musicbt latestundo" onclick="latest_music_scroll(1)"><img class="music-bt" src="/util/undo.svg"></button><button type="button" class="musicbt latestnext" onclick="latest_music_scroll(0)"><img class="music-bt" src="/util/nextbt.svg"></button>';
+                nowdoc.innerHTML = nowdoc.innerHTML + '<button type="button" class="musicbt latestundo" onclick="latest_music_scroll(1)"><img id="vs_latest_movie_undo_pic" class="music-bt inversion_pic" src="/util/nextbt.svg"></button><button type="button" class="musicbt latestnext" onclick="latest_music_scroll(0)"><img id="vs_latest_movie_next_pic" class="music-bt" src="/util/nextbt.svg"></button>';
                 if (isMobile.any){
                     let nowdoc = document.getElementsByClassName("musicbt");
                     for (let x = 0;x<nowdoc.length;x++){
@@ -522,7 +523,6 @@ function ask_load_youtube(videoid){
         let res = window.confirm("現在の再生リストを削除し再生しますか？");
         if (res){
             now_playlist = [];
-            playlock = true;
             load_youtubeapi_player(videoid);
         }
         else{
@@ -531,7 +531,6 @@ function ask_load_youtube(videoid){
         sync_playlist()
     }
     else{
-        playlock = true;
         load_youtubeapi_player(videoid);
     }
 }
