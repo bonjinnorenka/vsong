@@ -1578,6 +1578,7 @@ def make_music_page_v4(musicname,useapi=True):
                             nvdata.channelname = vapidata["channelname"]
                             nvdata.movietime = vapidata["movietime"]
                             nvdata.musicname = vapidata["musicname"]
+                            nvdata.videoname = vapidata["videoname"]
                             musicdata.video.append(nvdata)
             except:
                 musicdata = music2allvideodata_v4(musicname=musicname)
