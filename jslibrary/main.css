@@ -171,7 +171,7 @@ body {
     scrollbar-width: none;
 }
 
-#music_recommend,#latest_music {
+#music_recommend,#latest_music,#ownerrecommend_music {
     overflow-x: auto;
     display: flex;
     height: 230px;
@@ -440,6 +440,17 @@ background-color: #38a1db;
 
 .musicbt{
     height: 100px;
+}
+
+.ow_recommendundo{
+    position: absolute;
+    top: 1100px;
+}
+
+.ow_recommendnext{
+    position: absolute;
+    top: 1100px;
+    right: 0;
 }
 
 .latestundo{

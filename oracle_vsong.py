@@ -1,4 +1,4 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser,pytube
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
@@ -1229,6 +1229,22 @@ def music_analyze():
             if x["id"] in nidlis:
                 cur.execute("UPDATE MUSICINFO SET POPULARITY = :np,ARTIST_ID = :nai WHERE SP_ID = :nspid",np=x["popularity"],nai=x["artist_id"],nspid=x["id"])
         con.commit()
+
+def ownerplaylist_recommend():
+    nowpl = pytube.Playlist("https://www.youtube.com/playlist?list=" + ev.owplid)
+    ins_playlist = [str(nowpl[x])[32:] for x in range(len(nowpl))]#idが入ったリスト
+    save_jsondata = []
+    for r in ins_playlist:
+        try:
+            with open(folder_path + siteurl + "/api/v4/videoid/" + r + ".json","r") as f:
+                nowjson = json.load(f)
+            vidname = nowjson["videoname"]
+        except:
+            cur.execute("SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = :nvidid FETCH FIRST 1 ROWS ONLY",nvidid=r)
+            vidname = cur.fetchone()[0]
+        save_jsondata.append([r,vidname])
+    with open(folder_path + siteurl + "/api/recommend.json","w") as f:
+        json.dump({"index":save_jsondata},f)
 
 #ここから新バージョン用コード
 

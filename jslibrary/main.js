@@ -91,6 +91,16 @@ function recommend_ch_scroll(kind=0){
     }
 }
 
+function owner_recommend_scroll(kind=0){
+    let maindoc = document.getElementById("ownerrecommend_music");
+    if(kind==0){//進
+        maindoc.scrollBy(window.innerWidth-100,0);
+    }
+    else if (kind==1){//戻る
+        maindoc.scrollBy(100 - window.innerWidth,0);
+    }
+}
+
 function change_graph_music(g_name){
     let elements = document.getElementsByName(g_name+"_ra");
     var nown = 0;
@@ -259,11 +269,13 @@ function recommend(kind=""){
             if (kind===""){
                 document.getElementById("descm").innerHTML = '<hr><p class="other_music">他のおすすめの曲</p>';
             }
+            let vivm_chache = divm.innerHTML;
             for (let i = 0; i < 20; i++) {
-                divm.innerHTML = divm.innerHTML + "<a href='/music/" + res_mr[i][1] +
+                vivm_chache += "<a href='/music/" + res_mr[i][1] +
                     "/' onclick='page_ajax_load(\"/music/" + res_mr[i][1] + "/\");return false' title='" + res_mr[i][0] + "'>" + res_mr[i][0] + "<img class='fit-cut' src='https://i.ytimg.com/vi_webp/" +
                     res_mr[i][2] + "/hqdefault.webp' alt='" + res_mr[i][0] + "' width='320' height='180'></a>";
             }
+            divm.innerHTML = vivm_chache;
         };
         let request_cr = new XMLHttpRequest();
         request_cr.open("GET", "/ajax/ch/cr-" + String(now_ran) + ".json");
@@ -282,12 +294,14 @@ function recommend(kind=""){
             if (kind===""){
                 document.getElementById("descc").innerHTML = '<hr><p class="other_music">他のおすすめのVtuber</p>';
             }
+            let divc_cache = divc.innerHTML;
             for (let i = 0; i < 20; i++) {
-                divc.innerHTML = divc.innerHTML + "<a href='/ch/" + res_cr[i][1] +
+                divc_cache += "<a href='/ch/" + res_cr[i][1] +
                     "/' onclick='page_ajax_load(\"/ch/" + res_cr[i][1] + "/\");return false' title='" + res_cr[i][0] + "'><span class='ofoverflow'>" + res_cr[i][0] +
                     "</span><img class='recommend-ch' src='" + res_cr[i][2] + "' alt='" + res_cr[i][0] +
                     "' width='120' height='120'></a>";
             }
+            divc.innerHTML = divc_cache;
         }
         if (kind=="top"){
             let latestapi_xhr = new XMLHttpRequest();
@@ -298,10 +312,12 @@ function recommend(kind=""){
                 let now_j = latestapi_xhr.response;
                 let nowlong = now_j["index"].length;
                 let nowdoc = document.getElementById("latest_music");
+                let nowdoc_cache = nowdoc.innerHTML;
                 for (let x = 0;x<nowlong;x++){
-                    nowdoc.innerHTML = nowdoc.innerHTML + "<div><span class='ofoverflow_320' title='" + now_j["index"][x][1] + "'>" + now_j["index"][x][1] + "</span><lite-youtube id='iframe-" + now_j["index"][x][0] + "' videoid='" + now_j["index"][x][0] + "' width='320' height='180'></lite-youtube></div>"
+                    nowdoc_cache += "<div><span class='ofoverflow_320' title='" + now_j["index"][x][1] + "'>" + now_j["index"][x][1] + "</span><lite-youtube id='iframe-" + now_j["index"][x][0] + "' videoid='" + now_j["index"][x][0] + "' width='320' height='180'></lite-youtube></div>"
                 }
-                nowdoc.innerHTML = nowdoc.innerHTML + '<button type="button" class="musicbt latestundo" onclick="latest_music_scroll(1)"><img id="vs_latest_movie_undo_pic" class="music-bt inversion_pic" src="/util/nextbt.svg"></button><button type="button" class="musicbt latestnext" onclick="latest_music_scroll(0)"><img id="vs_latest_movie_next_pic" class="music-bt" src="/util/nextbt.svg"></button>';
+                nowdoc_cache += '<button type="button" class="musicbt latestundo" onclick="latest_music_scroll(1)"><img id="vs_latest_movie_undo_pic" class="music-bt inversion_pic" src="/util/nextbt.svg"></button><button type="button" class="musicbt latestnext" onclick="latest_music_scroll(0)"><img id="vs_latest_movie_next_pic" class="music-bt" src="/util/nextbt.svg"></button>';
+                nowdoc.innerHTML = nowdoc_cache;
                 if (isMobile.any){
                     let nowdoc = document.getElementsByClassName("musicbt");
                     for (let x = 0;x<nowdoc.length;x++){
@@ -309,9 +325,45 @@ function recommend(kind=""){
                     }
                 }
             }
+            let owreco_music_xhr = new XMLHttpRequest();
+            owreco_music_xhr.open("GET","/api/recommend.json");
+            owreco_music_xhr.responseType = "json";
+            owreco_music_xhr.send();
+            owreco_music_xhr.onload = function(){
+                let now_j = owreco_music_xhr.response;
+                let now_data = now_j["index"];
+                now_data = arrayShuffle_second(now_data);
+                let nowloop = now_data.length;
+                if (nowloop > 20){
+                    nowloop = 20;
+                }
+                let owner_recommend_doc = document.getElementById("ownerrecommend_music");
+                let owrec_chache = owner_recommend_doc.innerHTML;
+                for (let x = 0;x<nowloop;x++){
+                    owrec_chache += "<div><span class='ofoverflow_320' title='" + now_data[x][1] + "'>" + now_data[x][1] + "</span><lite-youtube id='iframe-" + now_data[x][0] + "' videoid='" + now_data[x][0] + "' width='320' height='180'></lite-youtube></div>"
+                }
+                owrec_chache += '<button type="button" class="musicbt ow_recommendundo" onclick="owner_recommend_scroll(1)"><img id="vs_owner_recommend_undo_pic" class="music-bt inversion_pic" src="/util/nextbt.svg"></button><button type="button" class="musicbt ow_recommendnext" onclick="owner_recommend_scroll(0)"><img id="vs_owner_recommend_next_pic" class="music-bt" src="/util/nextbt.svg"></button>';
+                owner_recommend_doc.innerHTML = owrec_chache;
+            }
         }
     }
 }
+
+function arrayShuffle_second(array) {
+    var k, t, len;
+    len = array.length;
+    if (len < 2) {
+        return array;
+    }
+    while (len) {
+        k = Math.floor(Math.random() * len--);
+        t = array[k];
+        array[k] = array[len];
+        array[len] = t;
+    }
+    return array;
+}
+  
 
 function getClosestNum(num, ar){
     var closest;
@@ -538,37 +590,77 @@ function ask_load_youtube(videoid){
 let now_player = "";
 let before_playing = "";
 
+let now_videoid;
+let nowseek;
+let defaut_videoid = "WF9P_NXHh5M";
+
 function youtube_embed_preload(){
-    let ytembed_el = document.getElementById("ytembed");
-    if(ytembed_el.innerHTML=='<div id=\"youtube-iframe\"></div>'||now_player==""){
-        let vw = window.innerWidth;
-        let yt_window_size;
-        if (vw<600){//スマホ向け　全力表示
-            yt_window_size = Math.floor(vw*0.98);
-        }
-        else{//タブレット向け
-            yt_window_size = 500;
-        }
-        now_player = new YT.Player("youtube-iframe", {
-            width: yt_window_size,
-            height: Math.floor(yt_window_size * 0.5625),
-            videoId: "WF9P_NXHh5M",
-            host: 'https://www.youtube-nocookie.com',
-            events: {
-                'onStateChange': yt_state_change,
-                'onError': yt_skip
+    //最新の情報を得る
+    vsongdb.array_list.where("arrayname")
+        .equals("latest_playdata")
+        .limit(1)
+        .toArray()
+        .then(function(ndtobj){
+            let ndt = ndtobj[0]["arraydata"]
+            try{
+                now_videoid = ndt.videoid;
+                nowseek = ndt.playtime;
+            }
+            catch{
+                now_videoid = defaut_videoid;
+                nowseek = 0;
+            }
+            if (now_videoid == null){
+                now_videoid = defaut_videoid;
+            }
+            if (nowseek == NaN){
+                nowseek = 0;
+            }
+            let ytembed_el = document.getElementById("ytembed");
+            if(ytembed_el.innerHTML=='<div id=\"youtube-iframe\"></div>'||now_player==""){
+                if(now_videoid!=defaut_videoid){
+                    try{
+                        document.getElementById("control_panel").classList.remove("dis_none");
+                    }
+                    catch{}
+                }
+                ytembed_el.classList.add("float_right");
+                ytembed_el.classList.remove("dis_none");
+                let vw = window.innerWidth;
+                let yt_window_size;
+                if (vw<600){//スマホ向け　全力表示
+                    yt_window_size = Math.floor(vw*0.98);
+                }
+                else{//タブレット向け
+                    yt_window_size = 500;
+                }
+                now_player = new YT.Player("youtube-iframe", {
+                    width: yt_window_size,
+                    height: Math.floor(yt_window_size * 0.5625),
+                    videoId: now_videoid,
+                    host: 'https://www.youtube-nocookie.com',
+                    playerVars: {start: Math.ceil(nowseek)},
+                    events: {
+                        'onError': yt_skip
+                    }
+                })
+                now_player.addEventListener("onStateChange",yt_state_change);
+                now_player.addEventListener("onReady",youtube_embed_preload_stop);
             }
         })
-        now_player.addEventListener("onReady",youtube_embed_preload_stop);
-        ytembed_el.classList.add("float_right");
-        ytembed_el.classList.remove("dis_none");
-    }
+    
 }
 
 function youtube_embed_preload_stop(){
-    now_player.stopVideo();
-    now_player.removeEventListener("onReady",youtube_embed_preload_stop);
-    now_player.addEventListener("onReady",yt_sm_play);
+    if (now_videoid==defaut_videoid){
+        now_player.stopVideo();
+    }
+    before_playing = now_videoid;
+    yt_music_display();
+    now_player.removeEventListener('onReady',youtube_embed_preload_stop);
+    if (now_videoid!=defaut_videoid){
+        now_player.loadVideoById(now_videoid,nowseek);
+    }
     load_playlist();
 }
 
@@ -613,15 +705,6 @@ function load_youtubeapi_player(now_video_id){
     else{
         now_player.loadVideoById({videoId:now_video_id,startSeconds:0});
         console.log("start_playing(load):\t" + now_video_id);
-        /*
-        if (navigator.userAgent.match(/iPhone|Android.+Mobile|Mobile/)||(navigator.userAgent.match(/Macintosh/)&&'ontouchend' in document)) {
-            yt_display();
-        }
-        now_player.playVideo();
-        if (navigator.userAgent.match(/iPhone|Android.+Mobile|Mobile/)||(navigator.userAgent.match(/Macintosh/)&&'ontouchend' in document)) {
-            yt_display();
-        }
-        */
         yt_music_display();
     }
 }
@@ -1305,15 +1388,17 @@ function load_playlist(){
             console.log(ndt)
             try{
                 now_playlist = ndt[0]["arraydata"];
-                if (now_playlist.length > 0){
-                    let nans = window.confirm("前回の再生リストから再生しますか？");
-                    if(nans){
-                        load_youtubeapi_player(now_playlist.shift());
-                    }
-                }
             }
             catch{console.log("can't get playlist.")}
         });
+}
+
+function save_latest_videoinfo(){
+    vsongdb.array_list.put({
+        arrayname: "latest_playdata",
+        arraydata: {"videoid": now_player.getVideoData()["video_id"],
+                    "playtime": now_player.getCurrentTime()}
+    })
 }
 
 function add_songhistory(videoid){
@@ -1534,3 +1619,7 @@ window.addEventListener('popstate', function(e) {//バックボタン対策
 function onYouTubeIframeAPIReady(){//youtubeプリロード用
     youtube_embed_preload();
 }
+
+window.addEventListener('beforeunload',save_latest_videoinfo);
+
+setInterval(save_latest_videoinfo,10000)//10秒ごとに上体を保存
