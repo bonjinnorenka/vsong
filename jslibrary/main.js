@@ -639,7 +639,9 @@ function youtube_embed_preload(){
                     height: Math.floor(yt_window_size * 0.5625),
                     videoId: now_videoid,
                     host: 'https://www.youtube-nocookie.com',
-                    playerVars: {start: Math.ceil(nowseek)},
+                    playerVars: {start: Math.ceil(nowseek),
+                        disablekb: 1,
+                        controls: 0},
                     events: {
                         'onError': yt_skip
                     }
@@ -737,7 +739,7 @@ function yt_display(){
 }
 
 let seek_interval;
-window.addEventListener("keyup", (e)=>{keybord_yt(e)});
+window.addEventListener("keydown", (e)=>{keybord_yt(e)});
 let playlock = false;
 
 function yt_state_change(){//再生の状態に応じてバーを更新するかを選択
@@ -752,7 +754,11 @@ function yt_state_change(){//再生の状態に応じてバーを更新するか
         clearInterval(seek_interval);
         ytpbt_el.innerHTML = '<img src="/util/playbtn.svg" class="control_icon">';
         ytpbt_el.title = "再生する";
-        if(document.getElementById("autoload_check").checked&&Math.floor(now_player.getDuration())<Math.floor(now_player.getCurrentTime())+5&&playlock==false){//自動再生あり
+        let player_gd_er = false;
+        if (now_player.getDuration()===0){//うまく取得できていないとき
+            player_gd_er = true;
+        }
+        if(document.getElementById("autoload_check").checked&&Math.floor(now_player.getDuration())<Math.floor(now_player.getCurrentTime())+5&&playlock==false&&player_gd_er==false){//自動再生あり
             yt_skip();
         }
         else{
@@ -767,17 +773,31 @@ function yt_music_display(){
     vidapi_xhr.responseType = "json";
     vidapi_xhr.send();
     vidapi_xhr.onload = function(){
-        let nowjson = vidapi_xhr.response;
-        //メンバー名文字列生成
-        let menst = "";
-        for (let x = 0;x<nowjson["memberdata"].length;x++){
-            menst += nowjson["memberdata"][x]["nickname"] + " ";
-        }
-        if (nowjson["groupname"]==""){
-            document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + menst + "</p>"
+        if(this.status==404){
+            let yt_md_xhr = new XMLHttpRequest();
+            yt_md_xhr.open("GET","https://www.youtube-nocookie.com/oembed?url=https://www.youtube.com/watch?v=" + before_playing + "&format=json");
+            yt_md_xhr.responseType = "json";
+            yt_md_xhr.send();
+            yt_md_xhr.onload = function(){
+                let yt_md_json = yt_md_xhr.response;
+                let now_yt_title = yt_md_json["title"] + "/" + yt_md_json["author_name"];
+                console.log(now_yt_title);
+                document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + now_yt_title + "</p>";
+            }
         }
         else{
-            document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + menst + "</p>"
+            let nowjson = vidapi_xhr.response;
+            //メンバー名文字列生成
+            let menst = "";
+            for (let x = 0;x<nowjson["memberdata"].length;x++){
+                menst += nowjson["memberdata"][x]["nickname"] + " ";
+            }
+            if (nowjson["groupname"]==""){
+                document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + menst + "</p>"
+            }
+            else{
+                document.getElementById("music_name_display").innerHTML = "<p class='p_kari'>" + nowjson["musicname"] + " / " + menst + "</p>"
+            }
         }
     }
     
