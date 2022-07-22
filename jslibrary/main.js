@@ -1414,11 +1414,14 @@ function load_playlist(){
 }
 
 function save_latest_videoinfo(){
-    vsongdb.array_list.put({
-        arrayname: "latest_playdata",
-        arraydata: {"videoid": now_player.getVideoData()["video_id"],
-                    "playtime": now_player.getCurrentTime()}
-    })
+    try{
+        vsongdb.array_list.put({
+            arrayname: "latest_playdata",
+            arraydata: {"videoid": now_player.getVideoData()["video_id"],
+                        "playtime": now_player.getCurrentTime()}
+        })
+    }
+    catch{}
 }
 
 function add_songhistory(videoid){
