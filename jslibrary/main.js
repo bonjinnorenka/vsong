@@ -601,7 +601,11 @@ function youtube_embed_preload(){
         .limit(1)
         .toArray()
         .then(function(ndtobj){
-            let ndt = ndtobj[0]["arraydata"]
+            let ndt;
+            try{
+                ndt = ndtobj[0]["arraydata"];
+            }
+            catch{}
             try{
                 now_videoid = ndt.videoid;
                 nowseek = ndt.playtime;
