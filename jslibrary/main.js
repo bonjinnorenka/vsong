@@ -665,6 +665,10 @@ function youtube_embed_preload_stop(){
     yt_music_display();
     now_player.removeEventListener('onReady',youtube_embed_preload_stop);
     if (now_videoid!=defaut_videoid){
+        try{
+            document.getElementById("yt-player-time").value = (nowseek/now_player.getDuration())*100;
+        }
+        catch{}
         now_player.loadVideoById(now_videoid,nowseek);
     }
     load_playlist();
@@ -1033,7 +1037,7 @@ function today_load(kind=-1,doc_kind="index"){
         let h1_tag = document.querySelector("h1");
         let hotname_list = ["今日の人気曲","今日の人気曲","今週の人気曲","今月の人気曲","全期間人気曲"];
         nowpage_allplaylist = now_j_g["vidlist"][kind];
-        h1_tag.innerText = hotname_list[kind];
+        h1_tag.innerHTML = '<button class="nbt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>' + hotname_list[kind];
         let p_doc = document.getElementById("today_hot");
         p_doc.innerHTML = "";
         let object_length = 50;
