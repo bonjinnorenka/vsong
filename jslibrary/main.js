@@ -669,7 +669,7 @@ function youtube_embed_preload_stop(){
             document.getElementById("yt-player-time").value = (nowseek/now_player.getDuration())*100;
         }
         catch{}
-        now_player.loadVideoById(now_videoid,nowseek);
+        now_player.cueVideoById(now_videoid,nowseek);
     }
     load_playlist();
 }
@@ -1478,6 +1478,17 @@ function get_songhistory(){
         })
 }
 
+let view_watchhistory_offset = 0;
+
+function watchhistory_down(){
+    let nowdoc = document.getElementById("yt_playlist_view_p");
+    if (nowdoc.scrollTop > nowdoc.scrollTopMax * 0.95){
+        nowdoc.removeEventListener("scroll",watchhistory_down);
+        view_watchhistory_offset++;
+        view_watchhistory();
+    }
+}
+
 function view_watchhistory(){
     vsongdb.array_list.where("arrayname")
         .equals("songhistory")
@@ -1488,8 +1499,18 @@ function view_watchhistory(){
             try{
                 let songhistory = ndt[0]["arraydata"];
                 let allvid = [];
-                for (let x = 0;x<songhistory.length;x++){
-                    allvid.push(songhistory[x][0]);
+                let looplength = 50;
+                let startnumber = looplength*view_watchhistory_offset;
+                if (looplength*view_watchhistory_offset>songhistory.length){//オフセットできないほど履歴がないときはスキップ
+                    return
+                }
+                if (looplength>songhistory.length){
+                    looplength = songhistory.length;
+                }
+                for (let x = startnumber;x<(startnumber + looplength);x++){
+                    if (allvid.indexOf(songhistory[x][0])==-1){//ないときだけ追加
+                        allvid.push(songhistory[x][0]);
+                    }
                 }
                 //リクエスト送る
                 let watch_vid_xhr = new XMLHttpRequest();
@@ -1499,17 +1520,28 @@ function view_watchhistory(){
                 watch_vid_xhr.onload = function(){
                     let nowjson = watch_vid_xhr.response;
                     let parentdoc = document.getElementById("yt_playlist_view_p");
-                    parentdoc.innerHTML = "";//リセット
-                    for (let x = 0;x<songhistory.length;x++){
+                    if (view_watchhistory_offset===0){
+                        parentdoc.innerHTML = "";//リセット
+                    }
+                    for (let x = startnumber;x<(startnumber + looplength);x++){
                         let nowvid = songhistory[x][0];
                         let nchdoc = document.createElement("div");
                         nchdoc.classList.add("ytpl_inele");
+                        /*
                         let nimg = document.createElement("img");
                         nimg.src = "https://i.ytimg.com/vi_webp/" + nowvid +"/mqdefault.webp";
                         nimg.classList.add("fit-cut");
                         nimg.width = 160;
                         nimg.height = 90;
-                        nchdoc.appendChild(nimg);
+                        */
+                        //let now_lite = document.createElement("lite-youtube");
+                        //now_lite.videoid = nowvid;
+                        //now_lite.width = 160;
+                        //now_lite.height = 90;
+                        //nchdoc.appendChild(nimg);
+                        let nowappend_html = "<lite-youtube videoid='" + nowvid + "' class='for-sidebar-embed'></lite-youtube>"
+                        //nchdoc.appendChild(now_lite);
+                        nchdoc.innerHTML += nowappend_html;
                         let menst = "";
                         try{
                             for (let r = 0;r<nowjson[nowvid]["memberdata"].length;r++){
@@ -1519,13 +1551,17 @@ function view_watchhistory(){
                         catch{}
                         let nowdesdoc = document.createElement("div");
                         nowdesdoc.classList.add("wh_nest");
-                        nowdesdoc.innerHTML = "再生日時:" + songhistory[x][1].toLocaleString("ja") + "<br><a href='/music/" + dir_replace(nowjson[nowvid]["musicname"]) + "/' onclick='page_ajax_load(\"/music/" + dir_replace(nowjson[nowvid]["musicname"]) + "/\");return false'>" + nowjson[nowvid]["musicname"] + "</a><br>" + menst;
+                        try{
+                            nowdesdoc.innerHTML = "再生日時:" + songhistory[x][1].toLocaleString("ja") + "<br><a href='/music/" + dir_replace(nowjson[nowvid]["musicname"]) + "/' onclick='page_ajax_load(\"/music/" + dir_replace(nowjson[nowvid]["musicname"]) + "/\");return false'>" + nowjson[nowvid]["musicname"] + "</a><br>" + menst;
+                        }
+                        catch{}
                         nchdoc.appendChild(nowdesdoc);
                         if (x+1 != songhistory.length){
                             nchdoc.appendChild(document.createElement("hr"));
                         }
                         parentdoc.appendChild(nchdoc);
                     }
+                    parentdoc.addEventListener("scroll",watchhistory_down);
                 }
             }
             catch{
@@ -1590,6 +1626,7 @@ function open_playlist(){
 }
 
 function sidebar_info(){
+    document.getElementById("yt_playlist_view_p").removeEventListener("scroll",watchhistory_down);
     if(document.getElementById("radio-side-pl").checked){
         console.log("playlist!");
         view_playlist();
@@ -1597,6 +1634,7 @@ function sidebar_info(){
     else if (document.getElementById("radio-side-wh").checked){
         console.log("watch history!");
         view_watchhistory();
+        view_watchhistory_offset = 0;
     }
 }
 

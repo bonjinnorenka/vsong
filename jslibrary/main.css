@@ -679,6 +679,11 @@ input.cmn-toggle-round + label {
     opacity: 0.5;
 }
 
+.for-sidebar-embed{
+    width: 160px;
+    height: 90px;
+}
+
 @media screen and (max-width:1000px) {
 
     .yt-meta {
