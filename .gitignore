@@ -133,3 +133,9 @@ get_youtube_playlist.onefile-build
 kari.json
 node_modules/
 test.html
+youtube_chorus_detection.build/
+youtube_chorus_detection.dist/
+youtube_chorus_detection.onefile-build/
+pretrained_models/
+tmp/
+mysql_test.cpp

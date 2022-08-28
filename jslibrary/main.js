@@ -543,6 +543,7 @@ class LiteYTEmbed extends HTMLElement {
         }
         this.addEventListener('pointerover', LiteYTEmbed.warmConnections, {once: true});
         this.addEventListener('click', this.addIframe);
+        this.addEventListener('contextmenu', this.addPlaylist);
     }
     static addPrefetch(kind, url, as) {
         const linkEl = document.createElement('link');
@@ -565,6 +566,14 @@ class LiteYTEmbed extends HTMLElement {
         this.classList.add('lyt-activated');
         //load_youtubeapi_player(this.videoId);
         ask_load_youtube(this.videoId);
+    }
+    addPlaylist(e){
+        e.preventDefault();
+        now_playlist.push(this.videoId);
+        sync_playlist()//プレイリスト同期
+        if(document.getElementById("yt_pl_idel").classList.contains("dis_none")==false&&document.getElementById("radio-side-pl").checked){//サイドバーが開かつプレイリストを見てるとき順番を更新
+            view_playlist();
+        }
     }
 }
 customElements.define('lite-youtube', LiteYTEmbed);
@@ -657,6 +666,8 @@ function youtube_embed_preload(){
     
 }
 
+let playtime_data = [0,0,0,0];//本当のスタート,位置表示用のスタート,終わり,位置表示スタートから終わりまでの時間
+
 function youtube_embed_preload_stop(){
     if (now_videoid==defaut_videoid){
         now_player.stopVideo();
@@ -669,12 +680,12 @@ function youtube_embed_preload_stop(){
             document.getElementById("yt-player-time").value = (nowseek/now_player.getDuration())*100;
         }
         catch{}
-        now_player.cueVideoById(now_videoid,nowseek);
+        load_youtubeapi_player(now_video_id=now_videoid,startsec=nowseek,mode="cue")
     }
     load_playlist();
 }
 
-function load_youtubeapi_player(now_video_id){
+function load_youtubeapi_player(now_video_id,startsec=0,mode="play"){
     if (before_playing!=""){
         try{
             document.getElementById("iframe-" + before_playing).classList.remove("lyt-activated");
@@ -687,7 +698,9 @@ function load_youtubeapi_player(now_video_id){
     catch{}
     before_playing = now_video_id;
     let ytembed_el = document.getElementById("ytembed");
-    add_songhistory(now_video_id);
+    if (mode=="play"){
+        add_songhistory(now_video_id);
+    }
     if(ytembed_el.innerHTML=='<div id=\"youtube-iframe\"></div>'||now_player==""){
         let vw = window.innerWidth;
         let yt_window_size;
@@ -713,9 +726,44 @@ function load_youtubeapi_player(now_video_id){
         //document.getElementById("ytembed").classList.remove("pos-none");
     }
     else{
-        now_player.loadVideoById({videoId:now_video_id,startSeconds:0});
-        console.log("start_playing(load):\t" + now_video_id);
-        yt_music_display();
+        let videoid_api_xhr = new XMLHttpRequest();
+        videoid_api_xhr.open("GET","/api/v4/videoid/" + now_video_id + ".json");
+        videoid_api_xhr.responseType = "json";
+        videoid_api_xhr.send();
+        videoid_api_xhr.onload = function(){
+            let json_res = videoid_api_xhr.response;
+            let start = 0;
+            let end = 0;
+            if (main_option_data["watch_music_mode"]==0){
+                start = 0;
+                end = json_res["movietime"];
+            }
+            else if (main_option_data["watch_music_mode"]==1){
+                start = json_res["songtime"][0];
+                end = json_res["songtime"][1];
+            }
+            else if (main_option_data["watch_music_mode"]==2){
+                start = json_res["chorusdata"][0];
+                end = json_res["chorusdata"][1];
+            }
+
+            let datastart = start;
+
+            if (startsec!=0){//開始位置の指定がある場合はそれで上書き
+                start = startsec;
+            }
+
+            if (mode=="play"){
+                now_player.loadVideoById({videoId:now_video_id,startSeconds:start,endSeconds:end});
+                console.log("start_playing(load):\t" + now_video_id);
+            }
+            else if (mode=="cue"){
+                now_player.cueVideoById({videoId:now_video_id,startSeconds:start,endSeconds:end})
+                console.log("load_playing(cue):\t" + now_video_id);
+            }
+            playtime_data = [start,datastart,end,end-datastart];
+            yt_music_display();
+        }
     }
 }
 
@@ -766,7 +814,7 @@ function yt_state_change(){//再生の状態に応じてバーを更新するか
         if (now_player.getDuration()===0){//うまく取得できていないとき
             player_gd_er = true;
         }
-        if(document.getElementById("autoload_check").checked&&Math.floor(now_player.getDuration())<Math.floor(now_player.getCurrentTime())+5&&playlock==false&&player_gd_er==false){//自動再生あり
+        if(document.getElementById("autoload_check").checked&&Math.floor(playtime_data[0]+playtime_data[3])<Math.floor(now_player.getCurrentTime())+5&&playlock==false&&player_gd_er==false){//自動再生あり
             yt_skip();
         }
         else{
@@ -892,7 +940,8 @@ function yt_playorstop(){
 
 function youtube_seekbar(){//バーを変えるやつ
     try{
-        document.getElementById("yt-player-time").value = (now_player.getCurrentTime()/now_player.getDuration())*100;
+        //document.getElementById("yt-player-time").value = (now_player.getCurrentTime()/now_player.getDuration())*100;
+        document.getElementById("yt-player-time").value = ((now_player.getCurrentTime()-playtime_data[1])/playtime_data[3])*100;
     }
     catch{}
 }
@@ -1209,6 +1258,9 @@ function dir_replace(n_str){
 function yt_pl_shuffle(){
     now_playlist = shuffle(now_playlist);
     sync_playlist()
+    if(document.getElementById("yt_pl_idel").classList.contains("dis_none")==false&&document.getElementById("radio-side-pl").checked){//サイドバーが開かつプレイリストを見てるとき順番を更新
+        view_playlist();
+    }
 }
 
 let beforevid = "";
@@ -1436,8 +1488,9 @@ function save_latest_videoinfo(){
 }
 
 function add_songhistory(videoid){
-    //一度取得してから追加
-    vsongdb.array_list.where("arrayname")
+    if (main_option_data["save_watch_history"]){
+        //一度取得してから追加
+        vsongdb.array_list.where("arrayname")
         .equals("songhistory")
         .limit(1)
         .toArray()
@@ -1459,6 +1512,16 @@ function add_songhistory(videoid){
                 })
             }
         });
+    }
+}
+
+function watch_history_all_clear(){
+    vsongdb.array_list.put({
+        arrayname: "songhistory",
+        arraydata: []//空で保存
+    })
+    view_watchhistory_offset = 0;
+    view_watchhistory();
 }
 
 function get_songhistory(){
@@ -1514,14 +1577,15 @@ function view_watchhistory(){
                 }
                 //リクエスト送る
                 let watch_vid_xhr = new XMLHttpRequest();
-                watch_vid_xhr.open("GET","/cgi-bin/vdata_query.cgi?q=" + allvid.join("|"));
+                watch_vid_xhr.open("POST","/cgi-bin/vdata_query_post.cgi");
+                watch_vid_xhr.setRequestHeader("Content-Type", "application/json");
                 watch_vid_xhr.responseType = "json";
-                watch_vid_xhr.send();
+                watch_vid_xhr.send(JSON.stringify({"videoid":allvid}));
                 watch_vid_xhr.onload = function(){
                     let nowjson = watch_vid_xhr.response;
                     let parentdoc = document.getElementById("yt_playlist_view_p");
                     if (view_watchhistory_offset===0){
-                        parentdoc.innerHTML = "";//リセット
+                        parentdoc.innerHTML = '<div class="ytpl_inele"><button class="sidebar_history_clear" onclick="watch_history_all_clear()">履歴をすべて削除</button><hr></div>';//リセット
                     }
                     for (let x = startnumber;x<(startnumber + looplength);x++){
                         let nowvid = songhistory[x][0];
@@ -1574,9 +1638,12 @@ function view_playlist(){
     if (now_playlist.length > 0){
         //プレイリスト内の動画の情報を取得
         let playlist_data_xhr = new XMLHttpRequest();
-        playlist_data_xhr.open("GET","/cgi-bin/vdata_query.cgi?q=" + now_playlist.join("|"));//wikipedia感ある仕様 件数制限はURLの限界まで
+        //playlist_data_xhr.open("GET","/cgi-bin/vdata_query.cgi?q=" + now_playlist.join("|"));//wikipedia感ある仕様 件数制限はURLの限界まで
+        playlist_data_xhr.open("POST","/cgi-bin/vdata_query_post.cgi");
+        playlist_data_xhr.setRequestHeader('Content-Type', 'application/json');
         playlist_data_xhr.responseType = "json";
-        playlist_data_xhr.send();
+        //playlist_data_xhr.send();
+        playlist_data_xhr.send(JSON.stringify({"videoid":now_playlist}));
         playlist_data_xhr.onload = function(){
             let nowjson = playlist_data_xhr.response;
             let parentdoc = document.getElementById("yt_playlist_view_p");
@@ -1586,7 +1653,7 @@ function view_playlist(){
                 let nchdoc = document.createElement("div");
                 nchdoc.classList.add("ytpl_inele","ytplv_" + nowvid);
                 let nimg = document.createElement("img");
-                nimg.src = "https://i.ytimg.com/vi_webp/" + nowvid +"/mqdefault.webp";
+                nimg.src = "https://i.ytimg.com/vi_webp/" + nowvid +"/hqdefault.webp";
                 nimg.classList.add("fit-cut");
                 nimg.width = 160;
                 nimg.height = 90;
@@ -1611,8 +1678,65 @@ function view_playlist(){
         }
     }  
     else{
-        document.getElementById("yt_playlist_view_p").innerText = "現在再生リストは空です";
+        document.getElementById("yt_playlist_view_p").innerHTML = "<p class='center-txt'>現在再生リストは空です</p>";
     }
+}
+
+let main_option_data = {"watch_music_mode":1,"save_watch_history":true};
+
+function save_option(){
+    vsongdb.array_list.put({
+        arrayname: "option",
+        arraydata: main_option_data
+    })
+}
+
+function load_option(){
+    vsongdb.array_list.where("arrayname")
+        .equals("option")
+        .limit(1)
+        .toArray()
+        .then(function (ndt){
+            if (ndt===[]){//データがない時撥ねる->保存
+                save_option();
+                return
+            }
+            main_option_data = ndt[0]["arraydata"];
+        })
+}
+
+load_option()
+let mps_id = ["radio-side-op-normal","radio-side-op-cut","radio-side-op-chorus"]
+
+function music_play_support_mode_change(){
+    for (let x=0;x<mps_id.length;x++){
+        if(document.getElementById(mps_id[x]).checked){
+            main_option_data["watch_music_mode"] = x;
+            break
+        }
+    }
+    save_option();
+}
+
+function view_side_option(){
+    let add_content = ["","",""]
+    try{
+        for (let x=0;x<mps_id.length;x++){
+            if(document.getElementById(mps_id[x]).checked){
+                add_content[x] = "checked";
+                break
+            }
+        }
+    }
+    catch{
+        add_content[main_option_data["watch_music_mode"]] = "checked";
+    }
+    let watch_history_save_status = "";
+    if (main_option_data["save_watch_history"]){
+        watch_history_save_status = "checked";
+    }
+    let parent_doc = document.getElementById("yt_playlist_view_p");
+    parent_doc.innerHTML = '<p class="center-txt">音楽再生支援</p><group id="vs-radio-sidebar-option" class="inline-radio" onchange="music_play_support_mode_change()"><div class="radio-page-div"><input id="radio-side-op-normal" class="radio-option-select" type="radio" name="vs-sidebar-option" ' + add_content[0] + '><label class="radio-option-label">通常再生</label></div><div class="radio-page-div"><input id="radio-side-op-cut" class="radio-option-select" type="radio" name="vs-sidebar-option" ' + add_content[1] +'><label class="radio-option-label">無音カット</label></div><div class="radio-page-div"><input id="radio-side-op-chorus" class="radio-option-select" type="radio" name="vs-sidebar-option" ' + add_content[2] + '><label class="radio-option-label">1サビのみ</label></div></group><div class="pos-re mt-15"><span class="option-checkbox-txt">再生履歴を保存</span><div class="switch"><input id="cmn-toggle-save-watch" class="cmn-toggle cmn-toggle-round" type="checkbox" onchange="option_watchhistory_save_change()"' + watch_history_save_status + '><label for="cmn-toggle-save-watch" class="cmn-toggle-label-left"></label></div></div>';
 }
 
 function open_playlist(){
@@ -1625,16 +1749,27 @@ function open_playlist(){
     }
 }
 
+function option_watchhistory_save_change(){
+    if(document.getElementById("cmn-toggle-save-watch").checked){
+        main_option_data["save_watch_history"] = true;
+    }
+    else{
+        main_option_data["save_watch_history"] = false;
+    }
+    save_option();
+}
+
 function sidebar_info(){
     document.getElementById("yt_playlist_view_p").removeEventListener("scroll",watchhistory_down);
     if(document.getElementById("radio-side-pl").checked){
-        console.log("playlist!");
         view_playlist();
     }
     else if (document.getElementById("radio-side-wh").checked){
-        console.log("watch history!");
         view_watchhistory();
         view_watchhistory_offset = 0;
+    }
+    else if (document.getElementById("radio-side-op").checked){
+        view_side_option();
     }
 }
 
@@ -1692,6 +1827,6 @@ function onYouTubeIframeAPIReady(){//youtubeプリロード用
     youtube_embed_preload();
 }
 
-window.addEventListener('beforeunload',save_latest_videoinfo);
+window.addEventListener('beforeunload',save_latest_videoinfo);//ページ離脱時状況保存
 
-setInterval(save_latest_videoinfo,10000)//10秒ごとに上体を保存
+setInterval(save_latest_videoinfo,10000)//10秒ごとに状態を保存

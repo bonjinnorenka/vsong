@@ -200,11 +200,12 @@ def ExtremeChidToInfo(chid_list):
             n_loop = len(chid_list) - (50 * r)
         else:
             n_loop = 50
-        k_chlist = []
+        """k_chlist = []
         k_chlist_a = k_chlist.append
         for x in range(n_loop):
             k_chlist_a(chid_list[x+50*r])
-        n_list = str(k_chlist).replace("'","").replace(" ","").replace("[","").replace("]","")
+        n_list = str(k_chlist).replace("'","").replace(" ","").replace("[","").replace("]","")"""
+        n_list = ",".join(chid_list[50*r:50*r+n_loop])
         jsong = requests.get("https://www.googleapis.com/youtube/v3/channels?id=" + n_list + "&key=" + api_key + "&part=snippet")
         new_json = jsong.json()
         for i in range(new_json["pageInfo"]["totalResults"]):

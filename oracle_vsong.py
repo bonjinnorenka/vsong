@@ -1,4 +1,5 @@
 import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser,pytube
+import subprocess
 from pykakasi import kakasi
 import get_youtube_data as gy
 import music_data as md
@@ -76,14 +77,14 @@ def cp_lib():#ライブラリのデータを配置
     shutil.copy2("jslibrary/main.css",folder_path + siteurl + "/library/main.css")
     shutil.copy2("jslibrary/search.cpp",cgi_bin_dir + "/cgi-bin/search.cpp")
     shutil.copy2("jslibrary/vdata.cpp",cgi_bin_dir + "/cgi-bin/vdata.cpp")
-    shutil.copy2("jslibrary/vdata_query.cpp",cgi_bin_dir + "/cgi-bin/vdata_query.cpp")
+    shutil.copy2("jslibrary/vdata_query.cpp",cgi_bin_dir + "/cgi-bin/vdata_query_post.cpp")
 
 def ps_lib():#ライブラリのデータを本番環境から移す
     shutil.copy2(folder_path + siteurl + "/library/main.js","jslibrary/main.js")
     shutil.copy2(folder_path + siteurl + "/library/main.css","jslibrary/main.css")
     shutil.copy2(folder_path + siteurl + "/cgi-bin/search.cpp","jslibrary/search.cpp")
     shutil.copy2(folder_path + siteurl + "/cgi-bin/vdata.cpp","jslibrary/vdata.cpp")
-    shutil.copy2(folder_path + siteurl + "/cgi-bin/vdata_query.cpp","jslibrary/vdata_query.cpp")
+    shutil.copy2(folder_path + siteurl + "/cgi-bin/vdata_query.cpp","jslibrary/vdata_query_post.cpp")
 
 def cp_htm():#basic_pageのデータを本番の場所にペースト
     shutil.copy2("basic_page/watch-index.html",folder_path + siteurl + "/watch/index.html")
@@ -202,30 +203,8 @@ def add_ch_data_self(chid_list):#めんどいので一つずつ
 
 def add_groupe_name():
     #テーブルA=ペアリスト テーブルB=動画IDリスト　参考https://www.projectgroup.info/tips/Oracle/SQL/SQL000001.html
-    cur.execute("INSERT INTO PAIR_LIST_SECOND (GROUPE_NAME) SELECT distinct GROUPE_NAME FROM VIDEO_ID TAB_B WHERE GROUPE_NAME IS NOT NULL AND NOT EXISTS (SELECT 'X' FROM PAIR_LIST_SECOND TAB_A WHERE TAB_A.GROUPE_NAME = TAB_B.GROUPE_NAME)")
+    cur.execute("INSERT INTO PAIR_LIST_SECOND(GROUPE_NAME) SELECT distinct NVL(GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) FROM VIDEO_ID vid WHERE NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) IS NOT NULL AND NOT EXISTS (SELECT 'X' FROM PAIR_LIST_SECOND pls WHERE pls.GROUPE_NAME = NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)))")
     con.commit()
-
-def video2data_v2(video_id):
-    try:
-        cur.execute("SELECT VIDEO_ID,CHANNEL_ID,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME FROM VIDEO_ID WHERE VIDEO_ID = :video_id",video_id=video_id)
-        video_info = cur.fetchone()
-        song_info = [video_info[0],search_musicdata(video_info[3])]
-        if video_info[4]==None:#投稿者が一人で歌っている場合
-            song_info.append(1)
-            cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID ci WHERE CH_ID = :ch_id",ch_id=video_info[1])
-            song_info.append(list(cur.fetchone()))
-        else:#グループで歌っているパターン
-            menlist = groupe_name2men_namev2(video_info[4])
-            if len(menlist)==1:
-                song_info.append(1)
-                cur.execute("SELECT NICK_NAME_1,CH_ID,NAM,PICTURE_URL,LINK,BELONG_OFFICE FROM CH_ID WHERE (NICK_NAME_1 in (:nick_name) OR NICK_NAME_2 in (:nick_name)) and ig = 0",nick_name=menlist[0])
-                song_info.append(list(cur.fetchone()))
-            else:
-                song_info.extend([len(menlist),search_chdata_list_bf(menlist)])
-        song_info.append(video_info)
-        return song_info
-    except:
-        pro_log("error","video2data_v2",video_id,"unknown error->continue")
 
 def groupe_name2men_namev2(groupe_name):#v2のテーブルにアクセス
     try:
@@ -234,13 +213,6 @@ def groupe_name2men_namev2(groupe_name):#v2のテーブルにアクセス
         return songer_list
     except:
         pro_log("error","groupe_name2men_namev2",groupe_name,"unknown error->continue")
-
-def group_name2mendata(group_name):#v2テーブルアクセス
-    try:
-        cur.execute("SELECT MN,(SELECT PICTURE_URL FROM CH_ID chi WHERE (chi.NICK_NAME_1 = mt.MN OR chi.NICK_NAME_2 = mt.MN) AND IG = 0) from (select TO_CHAR(MN_1) AS MN from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_2) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_3) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_4) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_5) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_6) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_7) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_8) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_9) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_10) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_11) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_12) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_13) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_14) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_15) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_16) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_17) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_18) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_19) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_20) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_21) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_22) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_23) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_24) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_25) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_26) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_27) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_28) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select TO_CHAR(MN_29) from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_30 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_31 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_32 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_33 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_34 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_35 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_36 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_37 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_38 from PAIR_LIST_SECOND where groupe_name = :group_name UNION ALL select MN_39 from PAIR_LIST_SECOND where groupe_name = :group_name) mt where exists(select * from ch_id chi where chi.ig = 0 and mt.MN in (chi.NICK_NAME_1,chi.NICK_NAME_2))",group_name=group_name)
-        return [[x[0],x[1]] for x in cur.fetchall()]
-    except:
-        pro_log("error","group_name2mendata",group_name,"unknown error->continue")
 
 def add_music_data():
     cur.execute("SELECT DISTINCT MUSIC_NAME FROM VIDEO_ID WHERE MUSIC_NAME IS NOT NULL AND MUSIC_NAME NOT IN (SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB WHERE KEY_MUSIC_NAME IS NOT NULL)")
@@ -274,7 +246,7 @@ def true_check():
         for x in kb_nmlist:
             print(str(x) + "\tは文字列が重複しています at CH_ID nick_name")
         _faul += len(kb_nmlist)
-        cur.execute("select distinct groupe_name from video_id where not exists ( select GROUPE_NAME from PAIR_LIST_SECOND where video_id.GROUPE_NAME=PAIR_LIST_SECOND.groupe_name) and groupe_name is not null")
+        cur.execute("SELECT DISTINCT NVL(vid.GROUPE_NAME,(SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) FROM VIDEO_ID vid WHERE NOT EXISTS ( SELECT GROUPE_NAME FROM PAIR_LIST_SECOND pls WHERE NVL(vid.GROUPE_NAME,(SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID))=pls.GROUPE_NAME) AND GROUPE_NAME IS NOT NULL")
         n_glist = cur.fetchall()
         for x in n_glist:
             print(x[0] + "の情報がありません at pair_list_second.groupe_name")
@@ -434,7 +406,7 @@ def view_vlist_graph(video_idlist,scope=7,data=0):
         return k_array
 
 def view_ch_graph(nick_name):
-    cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), SUM(VIEW_C), SUM(LIKE_C), SUM(COMMENT_C) FROM VIDEO_V_DATA WHERE VIDEO_ID IN (select video_id from video_id where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = (SELECT CHANNEL_ID FROM CH_ID WHERE (NICK_NAME_1 = :menl OR NICK_NAME_2 = :menl) AND IG = 0) UNION ALL SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (:menl) OR MN_2 in (:menl) OR MN_3 in (:menl) OR MN_4 in (:menl) OR MN_5 in (:menl) OR MN_6 in (:menl) OR MN_7 in (:menl) OR MN_8 in (:menl) OR MN_9 in (:menl) OR MN_10 in (:menl) OR MN_11 in (:menl) OR MN_12 in (:menl) OR MN_13 in (:menl) OR MN_14 in (:menl) OR MN_15 in (:menl) OR MN_16 in (:menl) OR MN_17 in (:menl) OR MN_18 in (:menl) OR MN_19 in (:menl) OR MN_20 in (:menl) OR MN_21 in (:menl) OR MN_22 in (:menl) OR MN_23 in (:menl) OR MN_24 in (:menl) OR MN_25 in (:menl) OR MN_26 in (:menl) OR MN_27 in (:menl) OR MN_28 in (:menl) OR MN_29 in (:menl) OR MN_30 in (:menl) OR MN_31 in (:menl) OR MN_32 in (:menl) OR MN_33 in (:menl) OR MN_34 in (:menl) OR MN_35 in (:menl) OR MN_36 in (:menl) OR MN_37 in (:menl) OR MN_38 in (:menl) OR MN_39 in (:menl)) UNION ALL select video_id from video_id where channel_id in (select CH_ID from CH_ID where LINK = (SELECT CHANNEL_ID FROM CH_ID WHERE (NICK_NAME_1 = :menl OR NICK_NAME_2 = :menl) AND IG = 0))) and music_name is not null AND STATUS = 0) AND RELOAD_TIME >= (CURRENT_DATE - 7) GROUP BY RELOAD_TIME ORDER BY RELOAD_TIME ASC",menl=nick_name)
+    cur.execute("SELECT TO_CHAR(RELOAD_TIME, 'YYYY/MM/DD'), SUM(VIEW_C), SUM(LIKE_C), SUM(COMMENT_C) FROM VIDEO_V_DATA WHERE VIDEO_ID IN (select video_id from video_id where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = (SELECT CHANNEL_ID FROM CH_ID WHERE (NICK_NAME_1 = :menl OR NICK_NAME_2 = :menl) AND IG = 0) UNION ALL SELECT VIDEO_ID FROM VIDEO_ID vid WHERE IG = 0 AND NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (:menl) OR MN_2 in (:menl) OR MN_3 in (:menl) OR MN_4 in (:menl) OR MN_5 in (:menl) OR MN_6 in (:menl) OR MN_7 in (:menl) OR MN_8 in (:menl) OR MN_9 in (:menl) OR MN_10 in (:menl) OR MN_11 in (:menl) OR MN_12 in (:menl) OR MN_13 in (:menl) OR MN_14 in (:menl) OR MN_15 in (:menl) OR MN_16 in (:menl) OR MN_17 in (:menl) OR MN_18 in (:menl) OR MN_19 in (:menl) OR MN_20 in (:menl) OR MN_21 in (:menl) OR MN_22 in (:menl) OR MN_23 in (:menl) OR MN_24 in (:menl) OR MN_25 in (:menl) OR MN_26 in (:menl) OR MN_27 in (:menl) OR MN_28 in (:menl) OR MN_29 in (:menl) OR MN_30 in (:menl) OR MN_31 in (:menl) OR MN_32 in (:menl) OR MN_33 in (:menl) OR MN_34 in (:menl) OR MN_35 in (:menl) OR MN_36 in (:menl) OR MN_37 in (:menl) OR MN_38 in (:menl) OR MN_39 in (:menl)) UNION ALL select video_id from video_id where channel_id in (select CH_ID from CH_ID where LINK = (SELECT CHANNEL_ID FROM CH_ID WHERE (NICK_NAME_1 = :menl OR NICK_NAME_2 = :menl) AND IG = 0))) and music_name is not null AND STATUS = 0) AND RELOAD_TIME >= (CURRENT_DATE - 7) GROUP BY RELOAD_TIME ORDER BY RELOAD_TIME ASC",menl=nick_name)
     chv = cur.fetchall()
     return [[x[0] for x in chv],[x[1] for x in chv],[x[2] for x in chv],[x[3] for x in chv]]
 
@@ -500,11 +472,6 @@ def musicvlist(musicname):
     cur.execute("select VIDEO_ID from VIDEO_ID WHERE MUSIC_NAME = :msname AND MOVIE_TIME > 60",msname=musicname)
     return [x[0] for x in cur.fetchall()]
 
-def make_all_musicpage():
-    cur.execute("SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB")
-    for x in cur.fetchall():
-        make_musicpage_v3(str(x)[2:-3])
-
 def reloadpeople_picture():
     #youtubeの場合
     cur.execute("SELECT CH_ID FROM CH_ID WHERE CH_ID is not null and ig = 0")
@@ -538,143 +505,6 @@ def reloadpeople_picture():
             cur.execute("update CH_ID set PICTURE_URL='" + new_json["data"][i]["profile_image_url"].replace("normal","400x400") + "' where TWITTER_NAME='" + new_json["data"][i]["username"] + "'")
     con.commit()
 
-def get_ch_vdata(nickname,mode=0):
-    chdata = search_chdata(nickname)
-    if chdata[5]!=None:
-        nclist = [str(chdata[0]).replace("'","''"),str(chdata[5]).replace("'","''")]
-    else:
-        nclist = [str(chdata[0]).replace("'","''")]
-    menlist = str(nclist).replace("[","").replace("]","")
-    cur.execute("select video_id from video_id where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = '" + chdata[1] + "' UNION ALL SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (:menl) OR MN_2 in (:menl) OR MN_3 in (:menl) OR MN_4 in (:menl) OR MN_5 in (:menl) OR MN_6 in (:menl) OR MN_7 in (:menl) OR MN_8 in (:menl) OR MN_9 in (:menl) OR MN_10 in (:menl) OR MN_11 in (:menl) OR MN_12 in (:menl) OR MN_13 in (:menl) OR MN_14 in (:menl) OR MN_15 in (:menl) OR MN_16 in (:menl) OR MN_17 in (:menl) OR MN_18 in (:menl) OR MN_19 in (:menl) OR MN_20 in (:menl) OR MN_21 in (:menl) OR MN_22 in (:menl) OR MN_23 in (:menl) OR MN_24 in (:menl) OR MN_25 in (:menl) OR MN_26 in (:menl) OR MN_27 in (:menl) OR MN_28 in (:menl) OR MN_29 in (:menl) OR MN_30 in (:menl) OR MN_31 in (:menl) OR MN_32 in (:menl) OR MN_33 in (:menl) OR MN_34 in (:menl) OR MN_35 in (:menl) OR MN_36 in (:menl) OR MN_37 in (:menl) OR MN_38 in (:menl) OR MN_39 in (:menl) ) UNION ALL select video_id from video_id where channel_id in (select CH_ID from CH_ID where LINK='" + chdata[1] + "')) and music_name is not null AND STATUS = 0 ORDER BY UPLOAD_TIME DESC",menl=menlist)
-    vidlist = cur.fetchall()
-    vdata = []
-    vdata_a = vdata.append
-    vid_list = []
-    vid_a = vid_list.append
-    if mode==0:
-        for n in vidlist:
-            vdata_a(video2data_v2(str(n)[2:-3]))
-            vid_a(str(n)[2:-3])
-        cur.execute("select CLEATE_PAGE_DATE from ch_id where NICK_NAME_1 in ('" + nickname + "')")
-        t_page_d = cur.fetchone()
-        if t_page_d[0]==None:
-            nowdate = datetime.datetime.now()
-            cur.execute("UPDATE CH_ID SET CLEATE_PAGE_DATE = '" + oracle_time(nowdate) + "' where NICK_NAME_1 = '" + nickname.replace("'","''") + "'")
-            con.commit()
-            t_page_d = nomsec_time(nowdate)
-        else:
-            t_page_d = nomsec_time(t_page_d[0])
-        cur.execute("select LAST_MODIFIED from ch_id where NICK_NAME_1 in ('" + nickname + "')")
-        lmod = cur.fetchone()
-        lmod_t = nomsec_time(lmod[0])
-    elif mode==1:
-        for n in vidlist:
-            vid_a(str(n)[2:-3])
-    if mode==0:
-        return vdata,t_page_d,vid_list,lmod_t
-    elif mode==1:
-        return vid_list
-
-def make_musicpage_v3(music_name,mode=0):
-    try:
-        n_html_path = folder_path + siteurl + "/music/" + dir_name_replace(music_name) + "/"
-        if os.path.isdir(n_html_path)==False:
-            os.makedirs(n_html_path)
-        share_html = []
-        share_html_a = share_html.append
-        if mode==0:
-            description = "Vtuberの" + music_name + "の歌ってみた動画をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
-            page_title = "Vtuberの歌う" + music_name
-            music_data = search_musicdata(music_name)
-            share_html_a('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/music/" + music_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + music_data[4] + '"><meta property="article:modified_time" content="' + music_data[5] + '"></head><body>')
-            share_html_a(html_import_lib)
-            share_html_a(header)
-            share_html_a('<main><div class="for_center">')
-            if music_data[1]==None:
-                music_data[1] = "不明"
-            if music_data[2] and music_data[3]!=None:#spotifyもyoutubeも存在する場合
-                share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + music_data[3] + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + """</p><td><a href='https://open.spotify.com/track/""" + music_data[2] + """'>Spotifyで再生</a></td></tr></table>""")
-            elif music_data[2]==None and music_data[3]!=None:#spotifyにはないがyoutubeにはある場合
-                share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/watch?v=" + music_data[3] + "'>YoutubeMusicで聞く</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-            elif music_data[2]!=None and music_data[3]==None:#spotifyにありyoutubeにないパターン
-                share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + """</p><td><a href='https://open.spotify.com/track/""" + music_data[2] + """'>Spotifyで再生</a></td></tr></table>""")
-            else:#spotifyにもyoutubeにもないパターン
-                share_html_a("<h1><button class='bt_noborder' onclick='allplay()'><img class='control_icon' src='/util/cicle_playbtn.svg'></button>" + music_data[0] + "</h1><table border='1' class='table-line inline'><tr><th><p>曲名</p></th><th><p>アーティスト名</p></th><td><a href='https://music.youtube.com/search?q=" + music_data[0] + "'>YoutubeMusicで検索(DBにデータがありません)</a></td></tr><tr><td><p>" + music_data[0] + "</p></td><td><p>" + music_data[1] + "</p><td><a href='https://open.spotify.com/search/" + urllib.parse.quote(music_data[0]) + "'>spotifyで検索(DBに登録されていません)</a></td></tr></table>")
-            share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_music(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas>")
-            share_html_a('</div><div id="music_flex">')
-            music_videos = music_list(music_name)#動画IDと動画名取得
-            v_data = [video2data_v2(g) for g in music_videos]
-            nowdata = []
-            for x in range(len(v_data)):
-                men_of_list = []
-                if v_data[x][2]==1:#歌い手が１人
-                    if v_data[x][3][5]==None:
-                        v_data[x][3][5] = "個人"
-                    men_of_list = [str(v_data[x][3][0]).replace(" ",""),v_data[x][3][5]]
-                else:#複数人
-                    for w in range(v_data[x][2]):
-                        if v_data[x][3][w][0] not in men_of_list:
-                            men_of_list.append(str(v_data[x][3][w][0]).replace(" ",""))
-                        if v_data[x][3][w][5]==None:
-                            v_data[x][3][w][5] = "個人"
-                        if v_data[x][3][w][5] not in men_of_list:
-                            men_of_list.append(v_data[x][3][w][5])
-                nowdata.append(f'<div id="fb_{v_data[x][0]}" class="music_flex_ly {" ".join(men_of_list)}"><span class="ofoverflow_320" title="{v_data[x][4][2]}">{v_data[x][4][2]}</span><lite-youtube videoid="{v_data[x][0]}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{v_data[x][0]}\')">詳細を表示</button></div>')
-            share_html_a(nowdata)
-            share_html_a("""</div></div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
-            share_html_a("<script src='/library/main.js'></script></body></html>")
-            with open(n_html_path + "index.html","wb") as f:
-                f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
-    except Exception as e:
-        pro_log("error","make_musicpage_v3",music_name,"unknown error->continue",str(e))
-
-def make_chpage_v3(nick_name):
-    try:
-        site_nick_name = dir_name_replace(nick_name)
-        n_html_path = folder_path + siteurl + "/ch/" + site_nick_name + "/"
-        if os.path.isdir(n_html_path)==False:#フォルダがなければ生成
-            os.mkdir(n_html_path)
-        v_data,page_fc_date,videolist_id,page_lmod = get_ch_vdata(nick_name)
-        share_html = []
-        share_html_a = share_html.append
-        description = "Vtuberの" + nick_name + "が歌った歌ってみた及びオリジナル曲をまとめたサイトです。たくさんのvtuberの歌ってみた動画のランキングのサイトです。皆様に沢山のvtuberを知ってもらいたく運営しています。"
-        page_title = nick_name + "の歌った曲集"
-        share_html_a('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no"><meta name="HandheldFriendly" content="True"><meta name="auther" content="VtuberSongHobbyist"><meta name="description" content="' + description + '"><meta property="og:description" content="' + description + '"><meta name="twitter:description" content="' + description + '"><title>' + page_title + '</title><meta property="og:title" content="' + page_title + '"><meta name="twitter:title" content="' + page_title + '"><meta property="og:url" content="https://' + siteurl + "/ch/" + site_nick_name + '"><meta property="og:image" content=""><meta name="twitter:image" content=""><meta name="twitter:card" content="summary"><meta property="article:published_time" content="' + page_fc_date + '"><meta property="article:modified_time" content="' + page_lmod + '"></head><body>')
-        share_html_a(html_import_lib)
-        share_html_a(header)
-        share_html_a('<main><div class="for_center">')
-        share_html_a(f'<h1><button class="bt_noborder" onclick="allplay()"><img class="control_icon" src="/util/cicle_playbtn.svg"></button>{nick_name}</h1>')
-        share_html_a('<group class="inline-radio-sum yt-view-sum" onchange="change_graph_ch(\'sum-yt\')"><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra" checked><label class="radio-page-label">視聴回数</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">高評価</label></div><div class="radio-page-div"><input class="radio-page-select-p" type="radio" name="sum-yt_ra"><label class="radio-page-label">コメント数</label></div></group>' + "<canvas id='sum-yt' class='yt-view-sum inline'></canvas></div><div id='ch_flex'>")
-        nowdata = []
-        for x in range(len(v_data)):
-            men_of_list = []
-            if v_data[x][2]==1:#歌い手が１人
-                if v_data[x][3][5]==None:
-                    v_data[x][3][5] = "個人"
-                men_of_list = [str(v_data[x][3][0]).replace(" ",""),v_data[x][3][5]]
-            else:#複数人
-                for w in range(v_data[x][2]):
-                    if v_data[x][3][w][0] not in men_of_list:
-                        men_of_list.append(str(v_data[x][3][w][0]).replace(" ",""))
-                    if v_data[x][3][w][5]==None:
-                        v_data[x][3][w][5] = "個人"
-                    if v_data[x][3][w][5] not in men_of_list:
-                        men_of_list.append(v_data[x][3][w][5])
-            nowdata.append(f'<div id="fb_{v_data[x][0]}" class="music_flex_ly {" ".join(men_of_list)}"><span class="ofoverflow_320" title="{v_data[x][1][0]}"><a href="{"/music/" + dir_name_replace(v_data[x][1][0]) + "/"}" onclick="page_ajax_load(\'{"/music/" + dir_name_replace(v_data[x][1][0]) + "/"}\');return false">{v_data[x][1][0]}</a></span><lite-youtube videoid="{v_data[x][0]}"></lite-youtube><button class="ofoverflow_320 minmg" onclick="vdt(\'{v_data[x][0]}\')">詳細を表示</button></div>')
-        share_html_a(nowdata)
-        share_html_a("""</div><div class="pos-re"><div id="descm"></div><div id="music_recommend"></div><div id="descc"></div><div id="ch_recommend"></div></div></main>""" + music_control_html)
-        share_html_a("<script src='/library/main.js'></script></body></html>")
-        with open(n_html_path + "index.html","wb") as f:
-            f.write("".join(list(flatten(share_html))).encode("utf-8"))#windows対策
-    except Exception as e:
-        pro_log("error","make_chpage_v3",nick_name,"unknown error->continue",str(e))
-
-def make_all_chpage():
-    cur.execute("select nick_name_1 from ch_id where ig = 0 and nick_name_1 is not null and content_count > 0")
-    chid_list = cur.fetchall()
-    for i in chid_list:
-        make_chpage_v3(str(i)[2:-3])
-
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
     cur.execute("select key_music_name,(select VIDEO_ID from VIDEO_ID vid where vid.MUSIC_NAME = msd.KEY_MUSIC_NAME AND STATUS = 0 order by upload_time desc FETCH FIRST 1 ROWS ONLY) from MUSIC_SONG_DB msd where exists(select * from VIDEO_ID vid where msd.KEY_MUSIC_NAME = vid.music_name having count(*) > 0)")
@@ -694,30 +524,6 @@ def music_recommend_page():
         with open(ajax_path + "mr-" + str(n) + ".json","w") as f:
             json.dump(n_dict,f,indent=4)
 
-def make_api_video_data():
-    cur.execute("SELECT VIDEO_ID,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID.CH_ID=VIDEO_ID.CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID.CH_ID=VIDEO_ID.CHANNEL_ID),VIDEO_NAME,MUSIC_NAME from VIDEO_ID where ig = 0 and STATUS = 0 and GROUPE_NAME IS NULL")
-    now_ls = [[x[0],x[1],x[2],x[3],x[4]] for x in cur.fetchall()]
-    for r in now_ls:
-        with open(folder_path + siteurl + "/api/videoid/" + r[0] + ".json","w") as f:
-            json.dump({"videoid":r[0],"nickname":r[1],"chphoto":r[2],"videoname":r[3],"musicname":r[4],"groupname":"","statisticsdata":view_graph(r[0],7,5)},f)
-    cur.execute("SELECT VIDEO_ID,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME from VIDEO_ID where ig = 0 and STATUS = 0 and GROUPE_NAME IS NOT NULL")
-    nowls = [[x[0],x[1],x[2],x[3]] for x in cur.fetchall()]
-    for r in nowls:
-        with open(folder_path + siteurl + "/api/videoid/" + r[0] + ".json","w") as f:
-            json.dump({"videoid":r[0],"nickname":"","chphoto":"","videoname":r[1],"musicname":r[2],"groupname":dir_name_replace(r[3]),"statisticsdata":view_graph(r[0],7,5)},f)
-
-def make_api_group_data(strict=0):
-    #動画があり入力されているのだけを抽出
-    cur.execute("SELECT DISTINCT GROUPE_NAME FROM VIDEO_ID vid WHERE EXISTS(SELECT * FROM PAIR_LIST_SECOND pls WHERE pls.GROUPE_NAME = vid.GROUPE_NAME AND MN_1 IS NOT NULL) AND IG = 0 AND STATUS = 0")
-    now_ls = [x[0] for x in cur.fetchall()]
-    for r in now_ls:
-        nfpath = folder_path + siteurl + "/api/groupname/" + dir_name_replace(r) + ".json"
-        if os.path.isfile(nfpath) and strict==0:
-            pass
-        else:
-            with open(nfpath,"w") as f:
-                json.dump({"groupname":r,"groupmenlist":group_name2mendata(r)},f)
-
 def beta_add_videotime():
     cur.execute("select VIDEO_ID from VIDEO_ID where MOVIE_TIME is null and STATUS = 0")#必要なカラムを取得
     nowls = [x[0] for x in cur.fetchall()]
@@ -725,20 +531,6 @@ def beta_add_videotime():
     for x in kalist:
         cur.execute("UPDATE VIDEO_ID SET MOVIE_TIME = :mtlong WHERE VIDEO_ID = :nvid",nvid=x[0],mtlong=x[5])
     con.commit()
-
-def make_api_music_data():
-    cur.execute("SELECT KEY_MUSIC_NAME,SP_ID,YT_ID FROM MUSIC_SONG_DB WHERE CONTENT_COUNT > 0")
-    nowls = [[x[0],view_music_graph(x[0],7,1),x[1],x[2],musicvlist(x[0])] for x in cur.fetchall()]
-    for r in nowls:
-        with open(folder_path + siteurl + "/api/music/" + dir_name_replace(r[0]) + ".json","w") as f:
-            json.dump({"musicname":r[0],"statisticsdata":r[1],"sp":r[2],"yt":r[3],"videolist":r[4]},f)
-
-def make_api_ch_data():
-    cur.execute("select nick_name_1 from ch_id where ig = 0 and nick_name_1 is not null and content_count > 0")
-    nowls = [[x[0],view_vlist_graph(get_ch_vdata(x[0],1),data=1),get_ch_vdata(x[0],1)] for x in cur.fetchall()]
-    for r in nowls:
-        with open(folder_path + siteurl + "/api/channel/" + dir_name_replace(r[0]) + ".json","w") as f:
-            json.dump({"channelnickname":r[0],"statisticsdata":r[1],"videolist":r[2]},f)
 
 def channel_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/ch/"
@@ -834,12 +626,12 @@ def make_search_index():
             else:#2使えってくる
                 for r in range(2):
                     search_index_a([nowret[r].replace(" ",""),nst,"/watch?v=" + n[0]])
-    cur.execute("SELECT DISTINCT GROUPE_NAME FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0 AND GROUPE_NAME IS NOT NULL")#使われているgroupe name抽出
+    cur.execute("SELECT DISTINCT NVL(vid.GROUPE_NAME,(SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) FROM VIDEO_ID vid WHERE IG = 0 AND STATUS = 0 AND NVL(vid.GROUPE_NAME,(SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) IS NOT NULL")#使われているgroupe name抽出
     gname_v = cur.fetchall()
     for n_gn in gname_v:
         now_gname = str(n_gn)[2:-3]
         now_g_list = groupe_name2men_namev2(now_gname)
-        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID WHERE GROUPE_NAME = :gname AND IG = 0 AND STATUS = 0",gname=now_gname)
+        cur.execute("SELECT VIDEO_ID,MUSIC_NAME FROM VIDEO_ID vid WHERE NVL(vid.GROUPE_NAME,(SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) = :gname AND IG = 0 AND STATUS = 0",gname=now_gname)
         for n in cur.fetchall():
             for z in now_g_list:
                 nst = z + " " + n[1]
@@ -982,8 +774,8 @@ def music_modify_update():
 def ch_modify_update():
     cur.execute("UPDATE CH_ID SET CLEATE_PAGE_DATE = SYSDATE + 9/24 WHERE CLEATE_PAGE_DATE is null and ig = 0")
     #実行時間長すぎ　効率化したプルリクエスト待ってます
-    cur.execute("UPDATE CH_ID chi SET LAST_MODIFIED = SYSDATE + 9 / 24 WHERE chi.CONTENT_COUNT != (select count(1) from video_id vid where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = chi.ch_id UNION SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0))) UNION (select video_id from video_id where channel_id = chi.LINK)) and music_name is not null)")
-    cur.execute("UPDATE CH_ID chi SET CONTENT_COUNT = (select count(1) from video_id vid where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = chi.ch_id UNION SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND GROUPE_NAME in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0))) UNION (select video_id from video_id where channel_id = chi.LINK)) and music_name is not null)")
+    cur.execute("UPDATE CH_ID chi SET LAST_MODIFIED = SYSDATE + 9 / 24 WHERE chi.CONTENT_COUNT != (select count(1) from video_id vid where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = chi.ch_id UNION SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0))) UNION (select video_id from video_id where channel_id = chi.LINK)) and music_name is not null)")
+    cur.execute("UPDATE CH_ID chi SET CONTENT_COUNT = (select count(1) from video_id vid where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = chi.ch_id UNION SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0))) UNION (select video_id from video_id where channel_id = chi.LINK)) and music_name is not null)")
     con.commit()
 
 def onlydate_time(datetime_obj):
@@ -1036,7 +828,7 @@ def yt_status_ex():#0なら見れる1なら見れない
 
 def office_hot():
     #まずは箱リスト作成
-    cur.execute("select distinct BELONG_OFFICE from CH_ID chi where exists(select 1 from VIDEO_ID vid where vid.CHANNEL_ID = chi.CH_ID) and chi.BELONG_OFFICE IS NOT NULL")
+    cur.execute("SELECT BELONG_OFFICE FROM CH_ID WHERE IG = 0 AND BELONG_OFFICE IS NOT NULL GROUP BY BELONG_OFFICE ORDER BY SUM(CONTENT_COUNT) DESC")#順番を動画数の多い順に
     video_office_list = [x[0] for x in cur.fetchall()]
     video_office_list.insert(0,"全体")
     with open(folder_path + siteurl + "/api/today/index_list.json","w") as f:
@@ -1046,7 +838,8 @@ def office_hot():
     nowday_d = datetime.date.today()
     for r in video_office_list:
         #なんかこのSQL動作遅いんです　プルリクエスト待ってます でもなんかexists->inにしたら100倍早くなった なんで？
-        cur.execute("SELECT VIDEO_ID, (SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID) video_name, RELOAD_TIME, NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0) / NULLIF((lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME) - lag(VIEW_C, 2) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), - 1000) - 1 DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - 3 AND exists(select * from VIDEO_ID vid where ig = 0 and vvd.VIDEO_ID = vid.VIDEO_ID) AND vvd.VIDEO_ID in (select VIDEO_ID from video_id vid where exists (select * from ch_id chi where vid.CHANNEL_ID = chi.CH_ID and chi.BELONG_OFFICE = :office_name) or exists (select * from PAIR_LIST_SECOND pls where vid.GROUPE_NAME = pls.GROUPE_NAME and (exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and (pls.MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)))))) or exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and vid.CHANNEL_ID = chi.LINK)) ORDER BY RELOAD_TIME DESC, DIFF DESC FETCH FIRST 100 ROWS ONLY",office_name=r)
+        #前日比上昇率
+        cur.execute("SELECT VIDEO_ID, (SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID) video_name, RELOAD_TIME, NVL(NULLIF((VIEW_C - lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0) / NULLIF((lag(VIEW_C, 1) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME) - lag(VIEW_C, 2) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), - 1000) - 1 DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - 3 AND exists (select * from VIDEO_ID vid where ig = 0 and vvd.VIDEO_ID = vid.VIDEO_ID) AND vvd.VIDEO_ID in (select VIDEO_ID from video_id vid where exists (select * from ch_id chi where vid.CHANNEL_ID = chi.CH_ID and chi.BELONG_OFFICE = :office_name) or exists (select * from PAIR_LIST_SECOND pls where NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) = pls.GROUPE_NAME and (exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and (pls.MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)))))) or exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and vid.CHANNEL_ID = chi.LINK)) ORDER BY RELOAD_TIME DESC, DIFF DESC FETCH FIRST 100 ROWS ONLY",office_name=r)
         kalist = cur.fetchall()
         rank_list_a = []
         vidlist_a = []
@@ -1058,7 +851,7 @@ def office_hot():
         sub_vidlist = []
         diff_list = [[1,"daydiff"],[7,"weekdiff"],[30,"monthdiff"]]
         for n in diff_list:
-            cur.execute("SELECT VIDEO_ID, (SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID), RELOAD_TIME, NVL(NULLIF((VIEW_C - lag(VIEW_C, :day_diff) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), - 1) AS DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - :day_diff_p AND exists(select * from VIDEO_ID vid where ig = 0 and vvd.VIDEO_ID = vid.VIDEO_ID) AND vvd.VIDEO_ID in (select VIDEO_ID from video_id vid where exists (select * from ch_id chi where vid.CHANNEL_ID = chi.CH_ID and chi.BELONG_OFFICE = :office_name) or exists (select * from PAIR_LIST_SECOND pls where vid.GROUPE_NAME = pls.GROUPE_NAME and (exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and (pls.MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)))))) or exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and vid.CHANNEL_ID = chi.LINK)) ORDER BY RELOAD_TIME DESC, DIFF DESC FETCH FIRST 100 ROWS ONLY",office_name=r,day_diff=n[0],day_diff_p=n[0]+1)
+            cur.execute("SELECT VIDEO_ID, (SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID), RELOAD_TIME, NVL(NULLIF((VIEW_C - lag(VIEW_C, :day_diff) OVER (PARTITION BY VIDEO_ID ORDER BY RELOAD_TIME)), 0), - 1) AS DIFF FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - :day_diff_p AND exists (select * from VIDEO_ID vid where ig = 0 and vvd.VIDEO_ID = vid.VIDEO_ID) AND vvd.VIDEO_ID in (select VIDEO_ID from video_id vid where exists (select * from ch_id chi where vid.CHANNEL_ID = chi.CH_ID and chi.BELONG_OFFICE = :office_name) or exists (select * from PAIR_LIST_SECOND pls where NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) = pls.GROUPE_NAME and (exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and (pls.MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)))))) or exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and vid.CHANNEL_ID = chi.LINK)) ORDER BY RELOAD_TIME DESC, DIFF DESC FETCH FIRST 100 ROWS ONLY",office_name=r,day_diff=n[0],day_diff_p=n[0]+1)
             kalist = cur.fetchall()
             rank_list = []
             vidlist_s = []
@@ -1068,7 +861,8 @@ def office_hot():
                     vidlist_s.append(i[0])
             sub_rankilist.append(rank_list)
             sub_vidlist.append(vidlist_s)
-        cur.execute("SELECT VIDEO_ID, (SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID), RELOAD_TIME, VIEW_C FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - 1 AND exists(select * from VIDEO_ID vid where ig = 0 and vvd.VIDEO_ID = vid.VIDEO_ID) AND vvd.VIDEO_ID in (select VIDEO_ID from video_id vid where exists (select * from ch_id chi where vid.CHANNEL_ID = chi.CH_ID and chi.BELONG_OFFICE = :office_name) or exists (select * from PAIR_LIST_SECOND pls where vid.GROUPE_NAME = pls.GROUPE_NAME and (exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and (pls.MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)))))) or exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and vid.CHANNEL_ID = chi.LINK)) ORDER BY RELOAD_TIME DESC, VIEW_C DESC FETCH FIRST 100 ROWS ONLY",office_name=r)
+        #全期間
+        cur.execute("SELECT VIDEO_ID, (SELECT VIDEO_NAME FROM VIDEO_ID WHERE VIDEO_ID = vvd.VIDEO_ID), RELOAD_TIME, VIEW_C FROM VIDEO_V_DATA vvd WHERE RELOAD_TIME > SYSDATE - 1 AND exists (select * from VIDEO_ID vid where ig = 0 and vvd.VIDEO_ID = vid.VIDEO_ID) AND vvd.VIDEO_ID in (select VIDEO_ID from video_id vid where exists (select * from ch_id chi where vid.CHANNEL_ID = chi.CH_ID and chi.BELONG_OFFICE = :office_name) or exists (select * from PAIR_LIST_SECOND pls where NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) = pls.GROUPE_NAME and (exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and (pls.MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) or pls.MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)))))) or exists (select * from CH_ID chi where chi.BELONG_OFFICE = :office_name and vid.CHANNEL_ID = chi.LINK)) ORDER BY RELOAD_TIME DESC, VIEW_C DESC FETCH FIRST 100 ROWS ONLY",office_name=r)
         kalist = cur.fetchall()
         rank_list_b = []
         vidlist_b = []
@@ -1080,19 +874,21 @@ def office_hot():
             json.dump({"index":[rank_list_a,sub_rankilist[0],sub_rankilist[1],sub_rankilist[2],rank_list_b],"vidlist":[vidlist_a,sub_vidlist[0],sub_vidlist[1],sub_vidlist[2],vidlist_b]},f)
 
 def groupname_slash():
-    cur.execute("select GROUPE_NAME from PAIR_LIST_SECOND where GROUPE_NAME LIKE '%/%' and MN_1 is null and ig = 0")#まだ入力がなされていないスラッシュ付きのやつを抽出
-    k_now_slasher_list = cur.fetchall()
-    if k_now_slasher_list==[]:
-        print("no-srash")
-        return
-    now_slasher_list = [t[0] for t in k_now_slasher_list]
-    for r in now_slasher_list:
-        slash_list = str(r).split("/")
-        k_now_mnlist = [["MN_"+str(y+1),"'"+slash_list[y]+"'"] for y in range(len(slash_list))]
-        now_mnlist = []
-        for q in k_now_mnlist:
-            now_mnlist.append("=".join(q))
-        cur.execute(f"UPDATE PAIR_LIST_SECOND SET {','.join(now_mnlist)} WHERE GROUPE_NAME = '{r}'")
+    slashlist = ["/","、"]
+    for n_slash in slashlist:
+        cur.execute(f"select GROUPE_NAME from PAIR_LIST_SECOND where GROUPE_NAME LIKE '%{n_slash}%' and MN_1 is null and ig = 0")#まだ入力がなされていないスラッシュ付きのやつを抽出
+        k_now_slasher_list = cur.fetchall()
+        if k_now_slasher_list==[]:
+            print("no-srash")
+            return
+        now_slasher_list = [t[0] for t in k_now_slasher_list]
+        for r in now_slasher_list:
+            slash_list = str(r).split("/")
+            k_now_mnlist = [["MN_"+str(y+1),"'"+slash_list[y]+"'"] for y in range(len(slash_list))]
+            now_mnlist = []
+            for q in k_now_mnlist:
+                now_mnlist.append("=".join(q))
+            cur.execute(f"UPDATE PAIR_LIST_SECOND SET {','.join(now_mnlist)} WHERE GROUPE_NAME = '{r}'")
     con.commit()
 
 def remove_topic():
@@ -1101,7 +897,7 @@ def remove_topic():
 
 def igch_tig():#無視するチャンネル上がっていてグループ名が設定されていないものを一時無視に追加
     cur.execute("UPDATE VIDEO_ID VID SET IG = 2 WHERE EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND VID.GROUPE_NAME IS NULL AND IG = 0")
-    cur.execute("UPDATE VIDEO_ID VID SET IG = 0 WHERE EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND VID.GROUPE_NAME IS NOT NULL AND IG = 2 AND VID.MUSIC_NAME IS NOT NULL")
+    cur.execute("UPDATE VIDEO_ID VID SET IG = 0 WHERE EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND NVL(VID.GROUPE_NAME,(SELECT DEFAULT_GROUPE_NAME FROM CH_ID CHI WHERE CHI.CH_ID = VID.CHANNEL_ID)) IS NOT NULL AND IG = 2 AND VID.MUSIC_NAME IS NOT NULL")
     cur.execute("UPDATE VIDEO_ID VID SET IG = 0 WHERE NOT EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND IG = 2 AND VID.MUSIC_NAME IS NOT NULL")
     cur.execute("update VIDEO_ID set ig = 0 where MUSIC_NAME is not null and GROUPE_NAME is null and ig = 4")
     con.commit()
@@ -1196,10 +992,13 @@ def unknown_channel_search():
     if len(chidlist) > 0:
         add_ch_data_self(chidlist)
 
-def open_not_entered_ch():
-    cur.execute("SELECT CH_ID FROM CH_ID WHERE IG = 0 AND NICK_NAME_1 IS NULL ORDER BY CH_ID ASC")
+def open_not_entered_ch(mode=0):
+    if mode==0:
+        cur.execute("SELECT CH_ID FROM CH_ID WHERE IG = 0 AND NICK_NAME_1 IS NULL ORDER BY CH_ID ASC")
+    elif mode==1:
+        cur.execute("SELECT CH_ID FROM CH_ID WHERE IG = 1 AND DEFAULT_GROUPE_NAME IS NULL AND NAM like '%Topic%' AND NAM NOT LIKE '%Various Artists%' ORDER BY CH_ID ASC")
     chidlist = [c[0] for c in cur.fetchall()]
-    ret = input("本当に" + str(len(chidlist)) + "個のタブを開きますか？ Y/n")
+    ret = input("本当に" + str(len(chidlist)) + "個のタブを開きますか？ Y/n :")
     ret = ret.lower()
     if ret == "y":
         for x in chidlist:
@@ -1283,6 +1082,10 @@ class Videodata:
     member = []
     diffdata = ""
     channelname = ""
+    songstart:float = 0.0
+    songend:float = 0.0
+    chorusstart:float = 0.0
+    chorusend:float = 0.0
 
     def __init__(self):
         self.videoid = ""
@@ -1296,6 +1099,10 @@ class Videodata:
         self.member = []
         self.diffdata = ""
         self.channelname = ""
+        self.songstart:float = 0.0
+        self.songend:float = 0.0
+        self.chorusstart:float = 0.0
+        self.chorusend:float = 0.0
     
     def generate_videodata(self):
         self = video2data_v4(self.videoid)
@@ -1343,7 +1150,7 @@ class Videodata:
         if mode==0:
             nowdic = {"videoid":self.videoid,"videoname":self.videoname,"musicname":self.musicname,"statisticsdata":self.diffdata.output(),"memberdata":self.dictlist_mendata(),"movietime":self.movietime}
         if mode==1:
-            nowdic = {"videoid":self.videoid,"videoname":self.videoname,"musicname":self.musicname,"statisticsdata":self.diffdata.output(),"memberdata":self.dictlist_mendata(),"movietime":self.movietime,"channelname":self.channelname}
+            nowdic = {"videoid":self.videoid,"videoname":self.videoname,"musicname":self.musicname,"statisticsdata":self.diffdata.output(),"memberdata":self.dictlist_mendata(),"movietime":self.movietime,"channelname":self.channelname,"songtime":[self.songstart,self.songend],"chorusdata":[self.chorusstart,self.chorusend]}
         return nowdic
 
 class Memberdata:
@@ -1525,6 +1332,11 @@ def music2allvideodata_v4(musicname):
 def create_pairlist_materialized():
     cur.execute("CREATE MATERIALIZED VIEW FLAT_PAIRLIST_SECOND AS SELECT GROUPE_NAME, TO_CHAR(MN_1) MN from PAIR_LIST_SECOND WHERE MN_1 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_2) MN from PAIR_LIST_SECOND WHERE MN_2 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_3) MN from PAIR_LIST_SECOND WHERE MN_3 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_4) MN from PAIR_LIST_SECOND WHERE MN_4 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_5) MN from PAIR_LIST_SECOND WHERE MN_5 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_6) MN from PAIR_LIST_SECOND WHERE MN_6 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_7) MN from PAIR_LIST_SECOND WHERE MN_7 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_8) MN from PAIR_LIST_SECOND WHERE MN_8 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_9) MN from PAIR_LIST_SECOND WHERE MN_9 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_10) MN from PAIR_LIST_SECOND WHERE MN_10 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_11) MN from PAIR_LIST_SECOND WHERE MN_11 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_12) MN from PAIR_LIST_SECOND WHERE MN_12 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_13) MN from PAIR_LIST_SECOND WHERE MN_13 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_14) MN from PAIR_LIST_SECOND WHERE MN_14 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_15) MN from PAIR_LIST_SECOND WHERE MN_15 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_16) MN from PAIR_LIST_SECOND WHERE MN_16 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_17) MN from PAIR_LIST_SECOND WHERE MN_17 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_18) MN from PAIR_LIST_SECOND WHERE MN_18 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_19) MN from PAIR_LIST_SECOND WHERE MN_19 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_20) MN from PAIR_LIST_SECOND WHERE MN_20 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_21) MN from PAIR_LIST_SECOND WHERE MN_21 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_22) MN from PAIR_LIST_SECOND WHERE MN_22 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_23) MN from PAIR_LIST_SECOND WHERE MN_23 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_24) MN from PAIR_LIST_SECOND WHERE MN_24 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_25) MN from PAIR_LIST_SECOND WHERE MN_25 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_26) MN from PAIR_LIST_SECOND WHERE MN_26 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_27) MN from PAIR_LIST_SECOND WHERE MN_27 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_28) MN from PAIR_LIST_SECOND WHERE MN_28 IS NOT NULL UNION ALL SELECT GROUPE_NAME, TO_CHAR(MN_29) MN from PAIR_LIST_SECOND WHERE MN_29 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_30 MN from PAIR_LIST_SECOND WHERE MN_30 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_31 MN from PAIR_LIST_SECOND WHERE MN_31 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_32 MN from PAIR_LIST_SECOND WHERE MN_32 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_33 MN from PAIR_LIST_SECOND WHERE MN_33 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_34 MN from PAIR_LIST_SECOND WHERE MN_34 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_35 MN from PAIR_LIST_SECOND WHERE MN_35 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_36 MN from PAIR_LIST_SECOND WHERE MN_36 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_37 MN from PAIR_LIST_SECOND WHERE MN_37 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_38 MN from PAIR_LIST_SECOND WHERE MN_38 IS NOT NULL UNION ALL SELECT GROUPE_NAME, MN_39 MN from PAIR_LIST_SECOND WHERE MN_39 IS NOT NULL")
     con.commit()
+    #インデックス作成
+    cur.execute("CREATE INDEX INDEX_FPS_GROUPE_NAME ON FLAT_PAIRLIST_SECOND(GROUPE_NAME)")
+    cur.execute("CREATE INDEX INDEX_FPS_MN ON FLAT_PAIRLIST_SECOND(MN)")
+    cur.execute("CREATE INDEX INDEX_FPS_GROUPE_NAME_AND_MN ON FLAT_PAIRLIST_SECOND(GROUPE_NAME,MN)")
+    con.commit()
 
 def reload_pairlist_materialized():
     cur.execute("DROP MATERIALIZED VIEW FLAT_PAIRLIST_SECOND")
@@ -1532,7 +1344,7 @@ def reload_pairlist_materialized():
     #cur.execute("EXECUTE dbms_mview.refresh('FLAT_PAIRLIST_SECOND')")
 
 def nickname2allvideodata_v4(nickname):
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NAM FROM CH_ID WHERE CH_ID=CHANNEL_ID) from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nnc=nickname)
+    cur.execute("SELECT VIDEO_ID, CHANNEL_ID, UPLOAD_TIME, VIDEO_NAME, MUSIC_NAME, GROUPE_NAME, STATUS, MOVIE_TIME, (SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID = CHANNEL_ID), (SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID = CHANNEL_ID), (SELECT PICTURE_URL FROM CH_ID WHERE CH_ID = CHANNEL_ID), NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID = CHANNEL_ID), '個人勢'), (SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID = CHANNEL_ID), (SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID = CHANNEL_ID), (SELECT NAM FROM CH_ID WHERE CH_ID = CHANNEL_ID) from VIDEO_ID vid where (exists (SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc), (select NVL(NICK_NAME_2, 0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) STATUS = 0 ORDER BY UPLOAD_TIME DESC",nnc=nickname)
     fetchcache = cur.fetchall()
     
     nowmainmemberdata = Memberdata()
@@ -1799,7 +1611,7 @@ def v4api_video():
         now_mendata.modifytime = x[6]
         ndata.append(now_mendata)
         
-    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NAM FROM CH_ID WHERE CH_ID=CHANNEL_ID) FROM VIDEO_ID WHERE IG != 1")
+    cur.execute("SELECT VIDEO_ID,CHANNEL_ID,UPLOAD_TIME,VIDEO_NAME,MUSIC_NAME,GROUPE_NAME,STATUS,MOVIE_TIME,(SELECT NICK_NAME_1 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NICK_NAME_2 FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT PICTURE_URL FROM CH_ID WHERE CH_ID=CHANNEL_ID),NVL((SELECT BELONG_OFFICE FROM CH_ID WHERE CH_ID=CHANNEL_ID),'個人勢'),(SELECT CLEATE_PAGE_DATE FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT LAST_MODIFIED FROM CH_ID WHERE CH_ID=CHANNEL_ID),(SELECT NAM FROM CH_ID WHERE CH_ID=CHANNEL_ID),SOUND_START,SOUND_END,CHORUS_START,CHORUS_END FROM VIDEO_ID WHERE IG != 1")
     fetchcache = cur.fetchall()
     for x in fetchcache:
         nowvideodata = Videodata()
@@ -1813,6 +1625,10 @@ def v4api_video():
         nowvideodata.status = x[6]
         nowvideodata.movietime = x[7]
         nowvideodata.channelname = x[14]
+        nowvideodata.songstart = x[15]
+        nowvideodata.songend = x[16]
+        nowvideodata.chorusstart = x[17]
+        nowvideodata.chorusend = x[18]
         try:
             nowvideodata.diffdata = ndiffdata[nowvideodata.videoid]
             nowvideodata.diffdata.igdata.extend([math.floor((nowvideodata.diffdata.viewcount[len(nowvideodata.diffdata.viewcount)-1]/nowvideodata.diffdata.viewcount[len(nowvideodata.diffdata.viewcount)-2])*100),nowvideodata.uploadtime.timestamp()])
@@ -1853,7 +1669,7 @@ def v4api_ch():
         nowmemdata.createtime = fetchcache[x][4]
         nowmemdata.modifytime = fetchcache[x][5]
 
-        cur.execute("SELECT VIDEO_ID from VIDEO_ID vid where (exists(SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc),(select NVL(NICK_NAME_2,0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and vid.GROUPE_NAME = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nnc=nowmemdata.nickname)
+        cur.execute("SELECT VIDEO_ID from VIDEO_ID vid where status = 0 and (exists (SELECT * from FLAT_PAIRLIST_SECOND fps where MN in ((select NICK_NAME_1 from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc), (select NVL(NICK_NAME_2, 0) from CH_ID where NICK_NAME_1 = :nnc or NICK_NAME_2 = :nnc)) and NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) = fps.GROUPE_NAME) OR vid.CHANNEL_ID = (SELECT CH_ID FROM CH_ID chi WHERE NICK_NAME_1 = :nnc OR NICK_NAME_2 = :nnc)) AND (IG = 0 OR IG = 2) ORDER BY UPLOAD_TIME DESC",nnc=nowmemdata.nickname)
         videoidlist = [r[0] for r in cur.fetchall()]
         diffarray = view_vlist_graph(video_idlist=videoidlist,data=2)
         with open(folder_path + siteurl + "/api/v4/ch/" + dir_name_replace(nowmemdata.nickname) + ".json","w") as f:
@@ -1903,3 +1719,42 @@ def v4api_music():
             except:
                 json.dump({"musicname":x[0],"sp":x[2],"yt":x[3],"artist":x[1],"videolist":vididlist,"statisticsdata":diffarray,"createtime":None,"modifytime":None},f)
 
+def youtube_music_analyze():
+    cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND STATUS = 0 AND ( SOUND_START = 0 OR SOUND_END = 0 OR CHORUS_START = 0 OR CHORUS_END = 0)")
+    need_vidlist = [x[0] for x in cur.fetchall()]
+    if len(need_vidlist)==0:
+        return
+    filelist = []
+    proc_list = []
+    if len(need_vidlist) < ev.multi_max*4:
+        with open(ev.tmp_folder + "/vid_0.json","w") as f:
+            json.dump({"videoid":need_vidlist},f)
+        filelist.append(ev.tmp_folder + "/vid_0_return.json")
+        subprocess.run([ev.python_call,os.path.dirname(os.path.abspath(__file__)) + '/youtube_music_analyze.py',"file",ev.tmp_folder + "/vid_0.json"], stdout=subprocess.DEVNULL)
+    else:
+        #ファイル生成
+        content_length = math.ceil(len(need_vidlist)/ev.multi_max)
+        for n in range(ev.multi_max):
+            vlistjson = {"videoid":need_vidlist[content_length*n:content_length*(n+1)]}
+            if n+1==ev.multi_max:
+                vlistjson["videoid"] = need_vidlist[content_length*n:]
+            with open(ev.tmp_folder + f"/vid_{n+1}.json","w") as f:
+                json.dump(vlistjson,f)
+            filelist.append(ev.tmp_folder + f"/vid_{n+1}_return.json")
+        for n in range(ev.multi_max):
+            proc = subprocess.Popen([ev.python_call,os.path.dirname(os.path.abspath(__file__)) + '/youtube_music_analyze.py',"file",ev.tmp_folder + f"/vid_{n+1}.json"], stdout=subprocess.DEVNULL)
+            proc_list.append(proc)
+        for subproc in proc_list:
+            subproc.wait()
+    for x in filelist:
+        with open(x,"r") as f:
+            retj:dict = json.load(f)
+        inc_vid = retj.keys()
+        for r in inc_vid:
+            ndata = retj[r]
+            cur.execute("UPDATE VIDEO_ID SET SOUND_START = :ss,SOUND_END = :se,CHORUS_START = :cs,CHORUS_END = :ce WHERE VIDEO_ID = :vid",ss=ndata["timedata"][0],se=ndata["timedata"][1],cs=ndata["chorusdata"][0],ce=ndata["chorusdata"][1],vid=r)
+    con.commit()
+
+def groupe_predict():
+    cur.execute("UPDATE VIDEO_ID vid SET GROUPE_NAME = (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE vid.CHANNEL_ID = chi.CH_ID AND chi.IG = 1) WHERE vid.IG = 2 AND vid.GROUPE_NAME IS NULL AND EXISTS(SELECT 1 FROM CH_ID chi WHERE chi.IG = 1 AND chi.CH_ID=vid.CHANNEL_ID AND chi.DEFAULT_GROUPE_NAME IS NOT NULL)")
+    con.commit()

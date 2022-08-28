@@ -386,7 +386,7 @@ background-color: #38a1db;
     border: 1px solid var(--main-border);
 }
 
-.radio-page-label{
+.radio-page-label,.radio-option-label{
     position: absolute;
     top: 0; left: 0;
     color: var(--main-text);
@@ -633,6 +633,7 @@ input.cmn-toggle-round + label {
     display: block;
     overflow-y: scroll;
     max-height: calc(100% - 70px);
+    height: 100%;
 }
 
 .pl_nest{
@@ -649,7 +650,7 @@ input.cmn-toggle-round + label {
     top: 10px;
     left: 180px;
     overflow: hidden;
-    width: 400px;
+    max-width: 400px;
     height: 90px;
 }
 
@@ -682,6 +683,41 @@ input.cmn-toggle-round + label {
 .for-sidebar-embed{
     width: 160px;
     height: 90px;
+}
+
+.center-txt{
+    text-align: center;
+}
+
+.radio-option-select{
+    width: 100%;
+    height: 40px;
+    opacity: 0;
+}
+
+.radio-option-select:checked + .radio-option-label {
+    background: #38a1db;
+    font-weight: 500;
+    color: #fff;
+}
+
+.sidebar_history_clear{
+    width: 100%;
+    height: 50px;
+    margin-top: 10px;
+}
+
+.cmn-toggle-label-left{
+    margin-left: auto;
+}
+
+.option-checkbox-txt{
+    position: absolute;
+    top: 7px;
+}
+
+.mt-15{
+    margin-top: 15px;
 }
 
 @media screen and (max-width:1000px) {
