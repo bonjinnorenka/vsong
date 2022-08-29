@@ -77,14 +77,14 @@ def cp_lib():#ライブラリのデータを配置
     shutil.copy2("jslibrary/main.css",folder_path + siteurl + "/library/main.css")
     shutil.copy2("jslibrary/search.cpp",cgi_bin_dir + "/cgi-bin/search.cpp")
     shutil.copy2("jslibrary/vdata.cpp",cgi_bin_dir + "/cgi-bin/vdata.cpp")
-    shutil.copy2("jslibrary/vdata_query.cpp",cgi_bin_dir + "/cgi-bin/vdata_query_post.cpp")
+    shutil.copy2("jslibrary/vdata_query_post.cpp",cgi_bin_dir + "/cgi-bin/vdata_query_post.cpp")
 
 def ps_lib():#ライブラリのデータを本番環境から移す
     shutil.copy2(folder_path + siteurl + "/library/main.js","jslibrary/main.js")
     shutil.copy2(folder_path + siteurl + "/library/main.css","jslibrary/main.css")
     shutil.copy2(folder_path + siteurl + "/cgi-bin/search.cpp","jslibrary/search.cpp")
     shutil.copy2(folder_path + siteurl + "/cgi-bin/vdata.cpp","jslibrary/vdata.cpp")
-    shutil.copy2(folder_path + siteurl + "/cgi-bin/vdata_query.cpp","jslibrary/vdata_query_post.cpp")
+    shutil.copy2(folder_path + siteurl + "/cgi-bin/vdata_query_post.cpp","jslibrary/vdata_query_post.cpp")
 
 def cp_htm():#basic_pageのデータを本番の場所にペースト
     shutil.copy2("basic_page/watch-index.html",folder_path + siteurl + "/watch/index.html")
@@ -883,7 +883,7 @@ def groupname_slash():
             return
         now_slasher_list = [t[0] for t in k_now_slasher_list]
         for r in now_slasher_list:
-            slash_list = str(r).split("/")
+            slash_list = str(r).split(n_slash)
             k_now_mnlist = [["MN_"+str(y+1),"'"+slash_list[y]+"'"] for y in range(len(slash_list))]
             now_mnlist = []
             for q in k_now_mnlist:
