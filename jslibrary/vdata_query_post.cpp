@@ -30,7 +30,8 @@ int main(){
     std::vector<std::string> query_videoid_array;
 
     //リクエスト方法を判別
-    if (std::getenv("REQUEST_METHOD")=="POST"){
+    
+    if ((std::string)std::getenv("REQUEST_METHOD")==(std::string)"POST"){
         //標準入力受け取り
         std::string receive_jsstring;
         std::cin >> receive_jsstring;
@@ -39,7 +40,7 @@ int main(){
         json receive_json = json::parse(receive_jsstring);
         query_videoid_array = (std::vector<std::string>)receive_json["videoid"];
     }
-    else if (std::getenv("REQUEST_METHOD")=="GET"){
+    else if ((std::string)std::getenv("REQUEST_METHOD")==(std::string)"GET"){
         std::string now_query_string = getenv("QUERY_STRING");//querystringを取得
         std::string now_query_st = url_decode(now_query_string.substr(2));
 
@@ -61,10 +62,16 @@ int main(){
             }
             }
     }
+    else {
+        res_js["error"] = "unknown requests";
+        res_js["method"] = std::getenv("REQUEST_METHOD");
+    }
 
 
     //htmlたちがいるところを取得
     std::string documentroot = getenv("DOCUMENT_ROOT");
+
+    //std::string documentroot = "C:\\Users\\ryo\\Documents\\vscode\\vsong\\public\\vsong.fans";
 
     //ぶん回して情報取得
 
