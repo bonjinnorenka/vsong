@@ -136,6 +136,7 @@ def correct_video_list(fetchall=False):
         for r in v_data:
             if r[6]==False:
                 cur.execute("UPDATE VIDEO_ID SET IG = 2 WHERE VIDEO_ID = :nvidid",nvidid=r[0])
+                con.commit()
     pid_l = diff_playlistid(fetchall=fetchall)
     if len(pid_l)==0:
         print("プレイリスト取得スキップ")
@@ -482,7 +483,7 @@ def reloadpeople_picture():
     ch_data = gy.ExtremeChidToInfo(chid_list)
     for x in ch_data:
         cur.execute("UPDATE CH_ID SET PICTURE_URL=:purl WHERE CH_ID = :chid",purl=x[2],chid=x[0])
-    con.commit()
+        con.commit()
     #twitterの場合
     cur.execute("select distinct twitter_name from ch_id where TWITTER_NAME is not null")
     k_tnlist = cur.fetchall()
@@ -503,7 +504,7 @@ def reloadpeople_picture():
         new_json = jsong.json()
         for i in range(n_length):
             cur.execute("update CH_ID set PICTURE_URL='" + new_json["data"][i]["profile_image_url"].replace("normal","400x400") + "' where TWITTER_NAME='" + new_json["data"][i]["username"] + "'")
-    con.commit()
+            con.commit()
 
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
@@ -530,7 +531,7 @@ def beta_add_videotime():
     kalist = gy.videoid_lToMInfo(nowls)
     for x in kalist:
         cur.execute("UPDATE VIDEO_ID SET MOVIE_TIME = :mtlong WHERE VIDEO_ID = :nvid",nvid=x[0],mtlong=x[5])
-    con.commit()
+        con.commit()
 
 def channel_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/ch/"
@@ -736,7 +737,7 @@ def wikipedia_info(nickname_list):#wikipediapi->自動update 一度にできる�
                 exp = ""
             if exp!="":
                 cur.execute("UPDATE CH_ID SET DESCRIPTION = '" + exp.replace("'","''").replace(" ","").replace("　","") + "' WHERE NICK_NAME_1 = '" + title.replace("'","''") + "'")
-        con.commit()
+                con.commit()
 
 def wikipedia_all():#没
     cur.execute("SELECT NICK_NAME_1 FROM CH_ID WHERE NICK_NAME_1 IS NOT NULL AND DESCRIPTION IS NULL")
@@ -765,16 +766,20 @@ def make_music_top():
 
 def music_modify_update():
     cur.execute("UPDATE MUSIC_SONG_DB SET CLEATE_PAGE_DATE = SYSDATE + 9/24 WHERE CLEATE_PAGE_DATE is null")
+    con.commit()
     #数が変わったところに最新の日時(utc+9)を追加
     cur.execute("UPDATE MUSIC_SONG_DB msd SET LAST_MODIFIED = SYSDATE + 9/24 WHERE msd.CONTENT_COUNT != (SELECT COUNT(1) FROM VIDEO_ID vid WHERE vid.MUSIC_NAME = msd.KEY_MUSIC_NAME AND ig = 0)")
+    con.commit()
     #その後にカウントの値を更新
     cur.execute("UPDATE MUSIC_SONG_DB msd SET CONTENT_COUNT = (SELECT COUNT(1) FROM VIDEO_ID vid WHERE msd.KEY_MUSIC_NAME = vid.music_name and ig = 0)")
     con.commit()#変更を保存
 
 def ch_modify_update():
     cur.execute("UPDATE CH_ID SET CLEATE_PAGE_DATE = SYSDATE + 9/24 WHERE CLEATE_PAGE_DATE is null and ig = 0")
+    con.commit()
     #実行時間長すぎ　効率化したプルリクエスト待ってます
     cur.execute("UPDATE CH_ID chi SET LAST_MODIFIED = SYSDATE + 9 / 24 WHERE chi.CONTENT_COUNT != (select count(1) from video_id vid where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = chi.ch_id UNION SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0))) UNION (select video_id from video_id where channel_id = chi.LINK)) and music_name is not null)")
+    con.commit()
     cur.execute("UPDATE CH_ID chi SET CONTENT_COUNT = (select count(1) from video_id vid where video_id in (select video_id from video_id where IG = 0 AND CHANNEL_ID = chi.ch_id UNION SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 0 AND NVL(vid.GROUPE_NAME, (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE chi.CH_ID = vid.CHANNEL_ID)) in (SELECT GROUPE_NAME FROM PAIR_LIST_SECOND WHERE MN_1 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_2 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_3 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_4 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_5 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_6 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_7 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_8 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_9 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_10 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_11 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_12 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_13 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_14 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_15 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_16 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_17 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_18 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_19 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_20 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_21 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_22 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_23 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_24 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_25 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_26 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_27 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_28 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_29 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_30 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_31 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_32 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_33 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_34 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_35 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_36 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_37 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_38 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0)) OR MN_39 in (chi.NICK_NAME_1, NVL(chi.NICK_NAME_2, 0))) UNION (select video_id from video_id where channel_id = chi.LINK)) and music_name is not null)")
     con.commit()
 
@@ -823,6 +828,7 @@ def makesitemap():#もちろん5万件以上対応
 
 def yt_status_ex():#0なら見れる1なら見れない
     cur.execute("UPDATE VIDEO_ID vid SET STATUS = 1 WHERE NOT EXISTS(SELECT 1 FROM VIDEO_V_DATA vvd WHERE vvd.RELOAD_TIME > SYSDATE-1 AND vvd.VIDEO_ID = vid.VIDEO_ID)")
+    con.commit()
     cur.execute("UPDATE VIDEO_ID vid SET STATUS = 0 WHERE EXISTS(SELECT 1 FROM VIDEO_V_DATA vvd WHERE vvd.RELOAD_TIME > SYSDATE-1 AND vvd.VIDEO_ID = vid.VIDEO_ID)")
     con.commit()
 
@@ -889,7 +895,7 @@ def groupname_slash():
             for q in k_now_mnlist:
                 now_mnlist.append("=".join(q))
             cur.execute(f"UPDATE PAIR_LIST_SECOND SET {','.join(now_mnlist)} WHERE GROUPE_NAME = '{r}'")
-    con.commit()
+            con.commit()
 
 def remove_topic():
     cur.execute("UPDATE CH_ID set ig = 1 where NAM like '%Topic%'")
@@ -897,8 +903,11 @@ def remove_topic():
 
 def igch_tig():#無視するチャンネル上がっていてグループ名が設定されていないものを一時無視に追加
     cur.execute("UPDATE VIDEO_ID VID SET IG = 2 WHERE EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND VID.GROUPE_NAME IS NULL AND IG = 0")
+    con.commit()
     cur.execute("UPDATE VIDEO_ID VID SET IG = 0 WHERE EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND NVL(VID.GROUPE_NAME,(SELECT DEFAULT_GROUPE_NAME FROM CH_ID CHI WHERE CHI.CH_ID = VID.CHANNEL_ID)) IS NOT NULL AND IG = 2 AND VID.MUSIC_NAME IS NOT NULL")
+    con.commit()
     cur.execute("UPDATE VIDEO_ID VID SET IG = 0 WHERE NOT EXISTS(SELECT * FROM CH_ID CHI WHERE IG = 1 AND CHI.CH_ID=VID.CHANNEL_ID) AND IG = 2 AND VID.MUSIC_NAME IS NOT NULL")
+    con.commit()
     cur.execute("update VIDEO_ID set ig = 0 where MUSIC_NAME is not null and GROUPE_NAME is null and ig = 4")
     con.commit()
 
@@ -929,7 +938,7 @@ def diff_playlistid(force=False,fetchall=False):
             if r[1] != pldict[r[0]]:#値が違う!
                 difflist.append(r[0])
                 cur.execute("UPDATE CRAWLER_PLAYLIST SET CONTENT_LENGTH = :ncl WHERE PLAYLIST_ID = :npl",ncl=r[1],npl=r[0])
-        con.commit()
+                con.commit()
     else:
         difflist = nowls
     return difflist
@@ -958,14 +967,18 @@ def music_helper():#曲名が長いやつに引っ張られるようになって
             invalue = invalue.lower()
             if invalue == "y" or invalue == "":
                 cur.execute("UPDATE VIDEO_ID SET MUSIC_NAME = :nmn WHERE VIDEO_ID = :nvid",nmn = musicpt[0],nvid=nvidid)
+                con.commit()
             elif invalue == "ii":
                 cur.execute("UPDATE VIDEO_ID SET IG = 1 WHERE VIDEO_ID = :nvid",nvid=nvidid)
+                con.commit()
             elif invalue == "n":
                 pass
             elif invalue == "c":
                 cur.execute("UPDATE VIDEO_ID SET IG = 4,MUSIC_NAME = :nmn WHERE VIDEO_ID = :nvid",nvid=nvidid,nmn = musicpt[0])
+                con.commit()
             else:
                 cur.execute("UPDATE VIDEO_ID SET MUSIC_NAME = :nmn WHERE VIDEO_ID = :nvid",nmn=invalue,nvid=nvidid)
+                con.commit()
             con.commit()
     else:
         print("対象はありません")
@@ -1011,7 +1024,7 @@ def beta_spotify_reload():
         rn = r[0]
         res = md.search_music(rn)
         cur.execute("update MUSIC_SONG_DB set MUSIC_NAME_SP = :mnsp,SP_ID = :spid,ARTIST_NAME = :nan where KEY_MUSIC_NAME = :nkmn",nkmn=rn,mnsp=res[0],spid=res[3],nan=res[2])
-    con.commit()
+        con.commit()
 
 def music_analyze():
     cur.execute("SELECT SP_ID FROM MUSIC_SONG_DB msd WHERE SP_ID != 'faul' AND CONTENT_COUNT > 0 AND NOT EXISTS(SELECT 1 FROM MUSICINFO sd WHERE sd.SP_ID = msd.SP_ID)")
@@ -1027,7 +1040,7 @@ def music_analyze():
         for x in nowres:
             if x["id"] in nidlis:
                 cur.execute("UPDATE MUSICINFO SET POPULARITY = :np,ARTIST_ID = :nai WHERE SP_ID = :nspid",np=x["popularity"],nai=x["artist_id"],nspid=x["id"])
-        con.commit()
+                con.commit()
 
 def ownerplaylist_recommend():
     nowpl = pytube.Playlist("https://www.youtube.com/playlist?list=" + ev.owplid)
@@ -1753,7 +1766,7 @@ def youtube_music_analyze():
         for r in inc_vid:
             ndata = retj[r]
             cur.execute("UPDATE VIDEO_ID SET SOUND_START = :ss,SOUND_END = :se,CHORUS_START = :cs,CHORUS_END = :ce WHERE VIDEO_ID = :vid",ss=ndata["timedata"][0],se=ndata["timedata"][1],cs=ndata["chorusdata"][0],ce=ndata["chorusdata"][1],vid=r)
-    con.commit()
+            con.commit()
 
 def groupe_predict():
     cur.execute("UPDATE VIDEO_ID vid SET GROUPE_NAME = (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE vid.CHANNEL_ID = chi.CH_ID AND chi.IG = 1) WHERE vid.IG = 2 AND vid.GROUPE_NAME IS NULL AND EXISTS(SELECT 1 FROM CH_ID chi WHERE chi.IG = 1 AND chi.CH_ID=vid.CHANNEL_ID AND chi.DEFAULT_GROUPE_NAME IS NOT NULL)")
