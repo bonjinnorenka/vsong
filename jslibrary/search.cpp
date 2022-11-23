@@ -31,7 +31,7 @@ int main()
     
     auto start = std::chrono::system_clock::now();
 
-    
+    /*
     ifstream ifs("search_index_a.rcsv");
     if (ifs.fail())
     {
@@ -43,6 +43,20 @@ int main()
     std::istreambuf_iterator<char> it(ifs);
     std::istreambuf_iterator<char> last;
     std::string string_n(it, last);
+    */
+    FILE *fp = fopen("search_index_a.rcsv","r");
+    if(fp==NULL){
+        std::cout << "Content-Type: application/json";
+        std::cout << "\n\n";
+        std::cout << "{status:\"error\"}" << std::endl;
+        return -1;
+    }
+    //std::cout << "file opened" << std::endl;
+    uintmax_t filesize = std::filesystem::file_size("search_index_a.rcsv");
+    std::vector<char> buffer(filesize);
+    fread(&buffer[0],1,buffer.size(),fp);
+    fclose(fp);
+    std::string string_n(buffer.begin(),buffer.end());
     auto separator = std::string("@");         // 区切り文字
     auto separator_length = separator.length(); // 区切り文字の長さ
     
@@ -85,6 +99,8 @@ int main()
     //一時格納用配列定義
     std::vector<std::string> top_hit;
     std::vector<std::string> sub_hit;
+    top_hit.reserve(60);//事前にメモリ確保
+    sub_hit.reserve(60);
 
     for (int x = 0;x<obj_index_search.size()/3;x++){
         std::string now_key = obj_index_search[3*x];

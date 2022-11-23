@@ -20,8 +20,11 @@
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
+                "vsing_util.cpp",
                 "-o",
-                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                "${fileDirname}\\${fileBasenameNoExtension}.exe",
+                "-lmysqlclient",
+                "-lcurl",
             ],
             "options": {
                 "cwd": "${fileDirname}"
