@@ -1,4 +1,4 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser,pytube
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser,pytube,xmljson
 import subprocess
 from pykakasi import kakasi
 import get_youtube_data as gy
@@ -490,21 +490,30 @@ def reloadpeople_picture():
     tnlist = [str(i)[2:-3] for i in k_tnlist]
     n_n = math.ceil(float(len(tnlist)/100))
     header_tw = {"Authorization":"Bearer " + ev.tw_apikey}
-    for r in range(n_n):
-        if n_n==r+1:#最後
-            n_length = len(tnlist) - (100*r)
-        else:
-            n_length = 100
-        n_tster = []
-        n_tster_a = n_tster.append
-        for e in range(n_length):
-            n_tster_a(tnlist[e+100*r])
-        tster = str(n_tster).replace("'","").replace(" ","").replace("[","").replace("]","")
-        jsong = requests.get("https://api.twitter.com/2/users/by?user.fields=profile_image_url&usernames=" + tster,headers=header_tw)
-        new_json = jsong.json()
-        for i in range(n_length):
-            cur.execute("update CH_ID set PICTURE_URL='" + new_json["data"][i]["profile_image_url"].replace("normal","400x400") + "' where TWITTER_NAME='" + new_json["data"][i]["username"] + "'")
+    try:
+        for r in range(n_n):
+            if n_n==r+1:#最後
+                n_length = len(tnlist) - (100*r)
+            else:
+                n_length = 100
+            n_tster = []
+            n_tster_a = n_tster.append
+            for e in range(n_length):
+                n_tster_a(tnlist[e+100*r])
+            tster = str(n_tster).replace("'","").replace(" ","").replace("[","").replace("]","")
+            jsong = requests.get("https://api.twitter.com/2/users/by?user.fields=profile_image_url&usernames=" + tster,headers=header_tw)
+            new_json = jsong.json()
+            for i in range(n_length):
+                cur.execute("update CH_ID set PICTURE_URL='" + new_json["data"][i]["profile_image_url"].replace("normal","400x400") + "' where TWITTER_NAME='" + new_json["data"][i]["username"] + "'")
+                con.commit()
+    except:
+        for x in tnlist:
+            xml = requests.get("https://rsshub.app/twitter/user/" + x + "?limit=0")
+            xml_parse = ET.fromstring(xml)
+            pic_url = xmljson.yahoo.data(xml_parse)["rss"]["channel"]["image"]["url"]
+            cur.execute("update CH_ID set PICTURE_URL='" + pic_url + "' where TWITTER_NAME='" + x + "'")
             con.commit()
+
 
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
