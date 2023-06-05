@@ -1,4 +1,4 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser,pytube,xmljson
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser,pytube,xmljson,regex
 import subprocess
 from pykakasi import kakasi
 import get_youtube_data as gy
@@ -126,6 +126,99 @@ def update_videodata():
         cur.execute("INSERT INTO VIDEO_V_DATA (VIDEO_ID,RELOAD_TIME,VIEW_C,LIKE_C,COMMENT_C) VALUES('" + v_st[x][0] + "','" + dt_str + "','" + str(v_st[x][1]) + "','" + str(v_st[x][2]) + "','" + str(v_st[x][3]) + "')")
     con.commit()
 
+def get_song_title(raw_title: str) -> str:
+    title = ""
+    # 「作品名」より【楽曲タイトル】 というパターンがあるので、その場合は【】の中身をタイトルとする
+    if "より【" in raw_title:
+        title = raw_title[raw_title.find("【") + 1: raw_title.find("】")]
+    else:
+        title = raw_title
+
+    # ヘッダー的に記号がついていたら削除する
+    if title[0] == '★':
+        title = title[1:]
+
+    # ()（）[]【】を除外する。左が半角で右が全角だったりすることもある
+    title = regex.sub(r"[【（《\(\[].+?[】）》\)\]]", "", title)
+
+    # 「作品名」主題歌 などのパターンの場合は、その部分を消す
+    keywords = ["主題歌", "OP", "CMソング"]
+    for keyword in keywords:
+        if "」" + keyword in title:
+            end_index = title.find("」" + keyword)
+            for start_index in range(end_index, -1, -1):
+                if title[start_index] == '「':
+                    title = title[:start_index] + title[end_index + len(keyword) + 1:]
+                    break
+
+    for keyword in keywords:
+        if "』" + keyword in title:
+            end_index = title.find("』" + keyword)
+            for start_index in range(end_index, -1, -1):
+                if title[start_index] == '『':
+                    title = title[:start_index] + title[end_index + len(keyword) + 1:]
+                    break
+
+    # 「」と『』がある場合、その中の文字列を取り出す
+    # ただし、稀に「」の中に自分の名前を入れている場合がある。その場合は無視する
+    if "「" in title and "」" in title:
+        temp_title = title[title.find("「") + 1: title.find("」")+1]
+        keyword_status = True
+        for keyword in keywords:
+            if keyword in temp_title:
+                keyword_status = False
+                break
+        if keyword_status and "cover" not in temp_title:
+            title = temp_title
+
+    if "『" in title and "』" in title:
+        temp_title = title[title.find("『") + 1: title.find("』")+1]
+        keyword_status = True
+        for keyword in keywords:
+            if keyword in temp_title:
+                keyword_status = False
+                break
+        if keyword_status and "cover" not in temp_title:
+            title = temp_title
+
+    # 歌ってみた以降の文字列を消す
+    title = regex.sub(r"多重人格で歌ってみた.*", "", title)
+    title = regex.sub(r"コラボ歌ってみた.*", "", title)
+    title = regex.sub(r"歌って踊ってみた.*", "", title)
+    title = regex.sub(r"を歌ってみた.*", "", title)
+    title = regex.sub(r"歌ってみた.*", "", title)
+
+    # cover, covered, covered by 以降の文字列を消す
+    title = regex.sub(r"[cC]over(ed)?( by)?.*", "", title)
+    title = regex.sub(r"[fF]eat.*", "", title)  # featがある場合がある
+
+    # 描いて歌ってみた系対策
+    title = regex.sub(r"描いて.*", "", title)
+
+    # /以降は削除する
+    if "/" in title:
+        title = title[:title.find("/")]
+    if "／" in title:
+        title = title[:title.find("／")]
+
+    # - があったらその後ろを消す
+    title = title[:title.find("-")]
+
+    if title.startswith("MV") and len(title) >= 2:
+        title = title[2:]
+    else:
+        # MV平置き対策
+        title = regex.sub(r"MV.*", "", title)
+
+    title = regex.sub(r"music\s*video", "", title, flags=regex.IGNORECASE)
+    title = title.strip()  # 前後空白対策
+
+    if title == "" and len(raw_title) <= 10:
+        # 曲名の中央値は8 対してタイトルの中央値は35この文字数でポカする確率は約10/7000で0.14%と非常に低いので一般的に曲名と同じであると考えられる
+        title = raw_title
+
+    return title
+
 def correct_video_list(fetchall=False):
     #先にプレミア関係をすることで処理量を削減
     cur.execute("SELECT VIDEO_ID FROM VIDEO_ID WHERE IG = 3")#プレミア用一次処理したのを抽出
@@ -154,6 +247,7 @@ def correct_video_list(fetchall=False):
                 for n in musiclist:
                     if n in v_data[x][3]:
                         musicpt.append(n)
+                musicpt.append(get_song_title(v_data[x][3]))
                 musicpt.sort(key=len,reverse=True)#長いのを優先的に充てる
                 if len(musicpt) > 0:
                     nowmusicpredict = musicpt[0]
@@ -1780,3 +1874,14 @@ def youtube_music_analyze():
 def groupe_predict():
     cur.execute("UPDATE VIDEO_ID vid SET GROUPE_NAME = (SELECT DEFAULT_GROUPE_NAME FROM CH_ID chi WHERE vid.CHANNEL_ID = chi.CH_ID AND chi.IG = 1) WHERE vid.IG = 2 AND vid.GROUPE_NAME IS NULL AND EXISTS(SELECT 1 FROM CH_ID chi WHERE chi.IG = 1 AND chi.CH_ID=vid.CHANNEL_ID AND chi.DEFAULT_GROUPE_NAME IS NOT NULL)")
     con.commit()
+
+def ig2_musicname():
+    cur.execute("select VIDEO_ID,VIDEO_NAME from VIDEO_ID where MUSIC_NAME is null and IG = 2")
+    fetchCache = cur.fetchall()
+    for x in fetchCache:
+        videoname = x[1]
+        predict = get_song_title(videoname)
+        if(len(predict)>30):
+            predict = predict[0:30]
+        cur.execute("UPDATE VIDEO_ID SET MUSIC_NAME = :mn WHERE VIDEO_ID = :vid",vid=x[0],mn=predict)
+        con.commit()
