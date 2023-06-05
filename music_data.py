@@ -9,8 +9,16 @@ client_credentials_manager = spotipy.oauth2.SpotifyClientCredentials(client_id, 
 spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 ytmusic = YTMusic()
 def search_music(music_name:str):
-    sp_result = spotify.search(q="track:"+music_name, type='track',market="jp")
-    yt_result = ytmusic.search(query=music_name,limit=1)[0]
+    sp_result = None
+    try:
+        sp_result = spotify.search(q="track:"+music_name, type='track',market="jp")
+    except:
+        sp_result = {}
+    yt_result = None
+    try:
+        yt_result = ytmusic.search(query=music_name,limit=1)[0]
+    except:
+        yt_result = {}
     try:
         song_name_sp = sp_result["tracks"]["items"][0]["name"]
     except:
