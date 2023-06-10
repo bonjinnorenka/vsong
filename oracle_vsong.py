@@ -130,7 +130,7 @@ def get_song_title(raw_title: str) -> str:
     title = ""
     # 「作品名」より【楽曲タイトル】 というパターンがあるので、その場合は【】の中身をタイトルとする
     if "より【" in raw_title:
-        title = raw_title[raw_title.find("【") + 1: raw_title.find("】")]
+        title = raw_title[raw_title.find("【") + 1: raw_title.find("】")+1]
     else:
         title = raw_title
 
@@ -145,7 +145,7 @@ def get_song_title(raw_title: str) -> str:
     keywords = ["主題歌", "OP", "CMソング"]
     for keyword in keywords:
         if "」" + keyword in title:
-            end_index = title.find("」" + keyword)
+            end_index = title.find("」" + keyword)+1
             for start_index in range(end_index, -1, -1):
                 if title[start_index] == '「':
                     title = title[:start_index] + title[end_index + len(keyword) + 1:]
@@ -153,7 +153,7 @@ def get_song_title(raw_title: str) -> str:
 
     for keyword in keywords:
         if "』" + keyword in title:
-            end_index = title.find("』" + keyword)
+            end_index = title.find("』" + keyword)+1
             for start_index in range(end_index, -1, -1):
                 if title[start_index] == '『':
                     title = title[:start_index] + title[end_index + len(keyword) + 1:]
@@ -197,12 +197,12 @@ def get_song_title(raw_title: str) -> str:
 
     # /以降は削除する
     if "/" in title:
-        title = title[:title.find("/")]
+        title = title[:title.find("/")+1]
     if "／" in title:
-        title = title[:title.find("／")]
+        title = title[:title.find("／")+1]
 
     # - があったらその後ろを消す
-    title = title[:title.find("-")]
+    title = title[:title.find("-")+1]
 
     if title.startswith("MV") and len(title) >= 2:
         title = title[2:]
@@ -603,7 +603,7 @@ def reloadpeople_picture():
     except:
         for x in tnlist:
             xml = requests.get("https://rsshub.app/twitter/user/" + x + "?limit=0")
-            xml_parse = ET.fromstring(xml)
+            xml_parse = ET.fromstring(xml.text)
             pic_url = xmljson.yahoo.data(xml_parse)["rss"]["channel"]["image"]["url"]
             cur.execute("update CH_ID set PICTURE_URL='" + pic_url + "' where TWITTER_NAME='" + x + "'")
             con.commit()
@@ -1876,7 +1876,7 @@ def groupe_predict():
     con.commit()
 
 def ig2_musicname():
-    cur.execute("select VIDEO_ID,VIDEO_NAME from VIDEO_ID where MUSIC_NAME is null and IG = 2")
+    cur.execute("select VIDEO_ID,VIDEO_NAME from VIDEO_ID where IG = 2")
     fetchCache = cur.fetchall()
     for x in fetchCache:
         videoname = x[1]
@@ -1885,3 +1885,5 @@ def ig2_musicname():
             predict = predict[0:30]
         cur.execute("UPDATE VIDEO_ID SET MUSIC_NAME = :mn WHERE VIDEO_ID = :vid",vid=x[0],mn=predict)
         con.commit()
+
+ig2_musicname()
