@@ -51,7 +51,7 @@ def youtube_music_analyze(videoid,sampling_rate_change = 5,overwrite = False,len
             ffmpeg_option += "-y"
 
         #ffmpeg で　ダウンロードしたのをwavに変換(mp3でもopusでも可) 要ffmpegのpath&dl,130秒まで出力させる(負荷軽減)
-        subprocess.run(f"ffmpeg {ffmpeg_option} -i \"{dl_path}\" -t 130 -f wav \"{os.path.join(before_path,videoid)}.wav\"")
+        subprocess.run(f"ffmpeg {ffmpeg_option} -i \"{dl_path}\" -f wav \"{os.path.join(before_path,videoid)}.wav\"")
         #元のファイルを削除
         os.remove(dl_path)
         nowsppath = spleeter_tmpfolder
