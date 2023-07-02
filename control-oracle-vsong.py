@@ -121,11 +121,14 @@ while True:
         ov.open_not_entered_ch()
     elif nowcommand=="owplrec":
         ov.ownerplaylist_recommend()
+    elif nowcommand=="predct_chorus":
+        ov.youtube_music_analyze()
     else:
         print("exit:終了\nhelp:今のコマンド\nupdate_vdata:動画の統計情報を更新します\nupdate_vlist:プレイリストから最新の動画idを取得します\nadd_chdata:足りないチャンネルを取得します\
         \nadd_gname:足りないグループ名を追加します\nadd_mdata:足りない音楽データを追加します\ntrue_check:データが正常に登録されているか確認します\nmake_page:ページを生成します\
         \nre_pic:チャンネルの顔画像を更新します\nse_index:検索用索引を生成\nrandom_gen:おすすめデータ生成\nhot:人気動画ランキング生成\nmake_sitemap:サイトマップ生成\nreload_status:視聴できるかの状態を確認\
-        \ngn_slash:スラッシュ入りのグループ名をメンバー名に変換します\nremove_topic:チャンネル名にトピックが入るのを除外\nmusic_helper:音楽名入力補助\nreload_api:apiを更新\nalways_do:定期的に実行するコマンドをまとめたもの")
+        \ngn_slash:スラッシュ入りのグループ名をメンバー名に変換します\nremove_topic:チャンネル名にトピックが入るのを除外\nmusic_helper:音楽名入力補助\nreload_api:apiを更新\nalways_do:定期的に実行するコマンドをまとめたもの\
+        \npredct_chorus:サビ位置検知")
     print("\ntask finish!")
     try:
         if nowcommand==sys.argv[2]:

@@ -602,12 +602,16 @@ def reloadpeople_picture():
                 con.commit()
     except:
         for x in tnlist:
-            xml = requests.get("https://rsshub.app/twitter/user/" + x + "?limit=0")
-            xml_parse = ET.fromstring(xml.text)
-            pic_url = xmljson.yahoo.data(xml_parse)["rss"]["channel"]["image"]["url"]
-            cur.execute("update CH_ID set PICTURE_URL='" + pic_url + "' where TWITTER_NAME='" + x + "'")
-            con.commit()
+            try:
+                xml = requests.get("https://rsshub.app/twitter/user/" + x + "?limit=1")
+                xml_parse = ET.fromstring(xml.text)
+                pic_url = xmljson.yahoo.data(xml_parse)["rss"]["channel"]["image"]["url"]
+                cur.execute("update CH_ID set PICTURE_URL='" + pic_url + "' where TWITTER_NAME='" + x + "'")
+                con.commit()
+            except:
+                pass
 
+reloadpeople_picture()
 
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
