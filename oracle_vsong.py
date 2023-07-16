@@ -1889,5 +1889,3 @@ def ig2_musicname():
             predict = predict[0:30]
         cur.execute("UPDATE VIDEO_ID SET MUSIC_NAME = :mn WHERE VIDEO_ID = :vid",vid=x[0],mn=predict)
         con.commit()
-
-ig2_musicname()
