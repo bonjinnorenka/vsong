@@ -583,8 +583,8 @@ def reloadpeople_picture():
     k_tnlist = cur.fetchall()
     tnlist = [str(i)[2:-3] for i in k_tnlist]
     n_n = math.ceil(float(len(tnlist)/100))
-    header_tw = {"Authorization":"Bearer " + ev.tw_apikey}
     try:
+        header_tw = {"Authorization":"Bearer " + ev.tw_apikey}
         for r in range(n_n):
             if n_n==r+1:#最後
                 n_length = len(tnlist) - (100*r)
