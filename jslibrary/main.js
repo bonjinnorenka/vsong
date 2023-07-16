@@ -814,7 +814,7 @@ function yt_state_change(){//再生の状態に応じてバーを更新するか
         if (now_player.getDuration()===0){//うまく取得できていないとき
             player_gd_er = true;
         }
-        if(document.getElementById("autoload_check").checked&&Math.floor(playtime_data[0]+playtime_data[3])<Math.floor(now_player.getCurrentTime())+5&&playlock==false&&player_gd_er==false){//自動再生あり
+        if((document.getElementById("autoload_check").checked||now_playlist.length>0)&&Math.floor(playtime_data[0]+playtime_data[3])<Math.floor(now_player.getCurrentTime())+5&&playlock==false&&player_gd_er==false){//自動再生あり
             yt_skip();
         }
         else{
