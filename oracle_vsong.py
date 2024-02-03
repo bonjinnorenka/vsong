@@ -1,4 +1,4 @@
-import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser,pytube,xmljson,regex
+import math,os,cx_Oracle,requests,datetime,collections,urllib.parse,json,random,jaconv,shutil,itertools,MySQLdb,sys,copy,webbrowser,pytube,xmljson,regex,re
 import subprocess
 from pykakasi import kakasi
 import get_youtube_data as gy
@@ -611,8 +611,6 @@ def reloadpeople_picture():
             except:
                 pass
 
-reloadpeople_picture()
-
 def music_recommend_page():
     ajax_path = folder_path + siteurl + "/ajax/music/"
     cur.execute("select key_music_name,(select VIDEO_ID from VIDEO_ID vid where vid.MUSIC_NAME = msd.KEY_MUSIC_NAME AND STATUS = 0 order by upload_time desc FETCH FIRST 1 ROWS ONLY) from MUSIC_SONG_DB msd where exists(select * from VIDEO_ID vid where msd.KEY_MUSIC_NAME = vid.music_name having count(*) > 0)")
@@ -1050,6 +1048,90 @@ def diff_playlistid(force=False,fetchall=False):
         difflist = nowls
     return difflist
 
+def get_song_title(raw_title):
+
+    # 「作品名」より【楽曲タイトル】 というパターンがあるので、その場合は【】の中身をタイトルとする
+    if "より【" in raw_title:
+        title = raw_title.split("【")[1].split("】")[0]
+    else:
+        title = raw_title
+
+    # ヘッダー的に記号がついていたら削除する
+    if title[0] == "★":
+        title = title[1:]
+
+    # ()（）[]【】を除外する。左が半角で右が全角だったりすることもある
+    title = re.sub("[<【（《\(\[].+?[】）》〉\)\]>]"," ",title)
+
+    # 「作品名」主題歌 などのパターンの場合は、その部分を消す
+    for keyword in ["主題歌", "OP", "CMソング","オリジナル曲"]:
+        if "」{}".format(keyword) in title:
+            end_index = title.index("」{}".format(keyword))
+            for start_index in range(end_index, -1, -1):
+                if title[start_index] == "「":
+                    title = title[:start_index] + title[end_index + len(keyword) + 1:]
+                    break
+
+    for keyword in ["主題歌", "OP", "CMソング","オリジナル曲"]:
+        if "』{}".format(keyword) in title:
+            end_index = title.index("』{}".format(keyword))
+            for start_index in range(end_index, -1, -1):
+                if title[start_index] == "『":
+                    title = title[:start_index] + title[end_index + len(keyword) + 1:]
+                    break
+
+    # 「」と『』がある場合、その中の文字列を取り出す
+    # ただし、稀に「」の中に自分の名前を入れている場合がある。その場合は無視する
+    if "「" in title and "」" in title:
+        temp_title = title = title.split("「")[1].split("」")[0]
+        if "cover" not in temp_title.lower():
+            title = temp_title
+
+    if "『" in title and "』" in title:
+        temp_title = title.split("『")[1].split("』")[0]
+        if "cover" not in temp_title.lower():
+            title = temp_title
+
+    # 歌ってみた以降の文字列を消す
+    title = re.sub("を歌ってみた.*"," ", title)
+    title = re.sub("歌ってみた.*"," ", title)
+
+    title = re.sub("描いて.*"," ", title)
+
+    # cover, covered, covered by 以降の文字列を消す
+    title = re.sub("[cC]over(ed)?( by)?.*", "", title)
+    title = re.sub("[Ff]eat.*", "", title)
+
+    title = re.sub("[Mm]usic[ 　s][Vv]ideo","",title)
+
+    # /以降は削除する
+    if "/" in title:
+        title = title.split("/")[0]
+
+    if "／" in title:
+        title =  title.split("／")[0]
+
+    # - があったらその後ろを消す
+    title = title.split("-")[0]
+
+    # コラボメンバーを×で表現している部分を消す
+    # #012 的な表現を消す
+    title_part_list = []
+    for title_part in title.split(" "):
+        if "×" not in title_part and not re.fullmatch("#[0-9]+", title_part):
+            title_part_list.append(title_part)
+    title = " ".join(title_part_list)
+
+    if(title.find("MV")==0):
+        title = title[2:]
+    else:
+        title = re.sub("MV.*","",title)
+
+    # 前後の空白を削除
+    title = title.strip()
+
+    return title
+
 def music_helper():#曲名が長いやつに引っ張られるようになってる　ぽとかだと簡単に引っかかっちゃう
     igch_tig()
     cur.execute("SELECT KEY_MUSIC_NAME FROM MUSIC_SONG_DB")
@@ -1062,9 +1144,10 @@ def music_helper():#曲名が長いやつに引っ張られるようになって
             nvidname = nowvideolist[r][1]
             nvidid = nowvideolist[r][0]
             musicpt = []
-            for n in musiclist:
-                if n in nvidname:
-                    musicpt.append(n)
+            #for n in musiclist:
+                #if n in nvidname:
+                    #musicpt.append(n)
+            musicpt.append(get_song_title(nvidname))
             musicpt.sort(key=len,reverse=True)
             if len(musicpt)>0:
                 print("動画id: " + nvidid + "\n動画名: " + nvidname + "\n推測される音楽名: " + musicpt[0] + "\n\nOK->y or 空白\tNo->n\tig->ii\tコラボカツ入力良し->c\tまちがい->音楽名を入力\n\n")
