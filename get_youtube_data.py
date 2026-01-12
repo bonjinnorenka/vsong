@@ -164,22 +164,25 @@ def ExtremeVideoToStatics(videoid_list):
         n_list = str(k_vidl).replace("'","").replace(" ","").replace("[","").replace("]","")
         jsong = requests.get("https://www.googleapis.com/youtube/v3/videos?id=" + n_list + "&key=" + api_key + "&part=statistics")
         new_json = jsong.json()
-        for i in range(new_json["pageInfo"]["totalResults"]):
-            #エラーの時はとりあえず-1を出力
-            _id = new_json["items"][i]["id"]
-            try:
-                view_count = new_json["items"][i]["statistics"]["viewCount"]
-            except:
-                view_count = -1
-            try:
-                like_count = new_json["items"][i]["statistics"]["likeCount"]
-            except:
-                like_count = -1
-            try:
-                comment_count = new_json["items"][i]["statistics"]["commentCount"]
-            except:
-                comment_count = -1
-            sta_v_a([_id,view_count,like_count,comment_count])
+        try:
+            for i in range(new_json["pageInfo"]["totalResults"]):
+                #エラーの時はとりあえず-1を出力
+                _id = new_json["items"][i]["id"]
+                try:
+                    view_count = new_json["items"][i]["statistics"]["viewCount"]
+                except:
+                    view_count = -1
+                try:
+                    like_count = new_json["items"][i]["statistics"]["likeCount"]
+                except:
+                    like_count = -1
+                try:
+                    comment_count = new_json["items"][i]["statistics"]["commentCount"]
+                except:
+                    comment_count = -1
+                sta_v_a([_id,view_count,like_count,comment_count])
+        except:
+            print("おそらくpageInfo欠落 in videoids:" + n_list)
     return sta_v
 
 def ChannnelidToInfo(ch_id):
@@ -200,20 +203,18 @@ def ExtremeChidToInfo(chid_list):
             n_loop = len(chid_list) - (50 * r)
         else:
             n_loop = 50
-        """k_chlist = []
-        k_chlist_a = k_chlist.append
-        for x in range(n_loop):
-            k_chlist_a(chid_list[x+50*r])
-        n_list = str(k_chlist).replace("'","").replace(" ","").replace("[","").replace("]","")"""
         n_list = ",".join(chid_list[50*r:50*r+n_loop])
         jsong = requests.get("https://www.googleapis.com/youtube/v3/channels?id=" + n_list + "&key=" + api_key + "&part=snippet")
         new_json = jsong.json()
-        for i in range(new_json["pageInfo"]["totalResults"]):
-            _ch_id = new_json["items"][i]["id"]
-            ch_name = new_json["items"][i]["snippet"]["title"]
-            pic_url_k = new_json["items"][i]["snippet"]["thumbnails"]["default"]["url"]
-            pic_url = pic_url_k[0:pic_url_k.find("=")]
-            sta_c_a([_ch_id,ch_name,pic_url])
+        try:
+            for i in range(new_json["pageInfo"]["totalResults"]):
+                _ch_id = new_json["items"][i]["id"]
+                ch_name = new_json["items"][i]["snippet"]["title"]
+                pic_url_k = new_json["items"][i]["snippet"]["thumbnails"]["default"]["url"]
+                pic_url = pic_url_k[0:pic_url_k.find("=")]
+                sta_c_a([_ch_id,ch_name,pic_url])
+        except:
+            print("おそらくpageInfo欠落 channelids:" + n_list)
     return sta_c
 
 def Channnelid_listToInfo(ch_id):
